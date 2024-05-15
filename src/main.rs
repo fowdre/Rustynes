@@ -1,3 +1,10 @@
+#![allow(unused)]
+
+mod bus;
+mod devices;
+
 fn main() {
-    println!("Hello, world!");
+    let cpu = devices::Cpu6502::default();
+    dbg!(&cpu);
+    let bus = bus::Bus{ cpu: &cpu, ram: [0x0000; 64 * 1024] };
 }
