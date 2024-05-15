@@ -24,7 +24,7 @@ impl Cpu6502<'_> {
     fn addr_ZPy(&self) -> u8 { todo!("addr ZPy") }
     
     /// Implied addressing mode
-    fn addr_IMP(&self) -> u8 { todo!("addr IMP") }
+    pub fn addr_IMP(&self) -> u8 { todo!("addr IMP") }
     
     /// Relative addressing mode
     fn addr_REL(&self) -> u8 { todo!("addr REL") }
