@@ -1,3 +1,6 @@
+mod addressing_modes;
+mod opcodes;
+
 pub use cpu6502::Cpu6502;
 
 pub mod cpu6502 {
@@ -23,6 +26,12 @@ pub mod cpu6502 {
         sp: u8,
         pc: u16,
         status: u8,
+        
+        opcode: u8,
+        fetched: u8,
+        addr_abs: u16,
+        addr_rel: u16,
+        cycles: u8,
     }
 
     impl<'a> Cpu6502<'a> {
@@ -41,5 +50,24 @@ pub mod cpu6502 {
                 bus.read(a, false);
             }
         }
+
+        fn get_flag(&self, f: Flags) -> u8 { todo!("get_flag") }
+        
+        fn set_flag(&self, f: Flags, v: bool) { todo!("set_flag") }
+
+        fn fetch(&mut self) { todo!("fetch"); }
+
+        /// Handle cycles
+        fn clock(&self) { todo!("clock"); }
+
+        /// Reset signal
+        fn reset(&self) { todo!("reset"); }
+
+        /// Interrupt request signal
+        fn irq(&self) { todo!("irq"); }
+
+        /// Non-maskable interrupt request signal
+        fn nmi(&self) { todo!("nmi"); }
+
     }
 }
