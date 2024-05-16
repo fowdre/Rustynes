@@ -22,7 +22,7 @@ pub mod cpu6502 {
         addr_rel: u16,
         cycles: u8,
 
-        lookup: [Instruction<'a>; 80],
+        lookup: [Instruction<'a>; 96],
     }
 
     #[derive(Debug)]
@@ -151,6 +151,24 @@ pub mod cpu6502 {
                     Instruction{name: "EOR", addr_mode: Self::addr_ABS,  operate: Self::EOR, cycles: 4},
                     Instruction{name: "LSR", addr_mode: Self::addr_ABS,  operate: Self::LSR, cycles: 6},
                     Instruction{name: "...", addr_mode: Self::addr_ABS,  operate: Self::xxx, cycles: 6}, // SRE
+
+                    // Row 5
+                    Instruction{name: "BVC", addr_mode: Self::addr_REL,  operate: Self::BVC, cycles: 2},
+                    Instruction{name: "EOR", addr_mode: Self::addr_INDy, operate: Self::EOR, cycles: 5},
+                    Instruction{name: "...", addr_mode: Self::addr_IMP,  operate: Self::xxx, cycles: 2}, // JAM
+                    Instruction{name: "...", addr_mode: Self::addr_INDy, operate: Self::xxx, cycles: 8}, // SRE
+                    Instruction{name: "...", addr_mode: Self::addr_ZPGx, operate: Self::NOP, cycles: 4},
+                    Instruction{name: "EOR", addr_mode: Self::addr_ZPGx, operate: Self::EOR, cycles: 4},
+                    Instruction{name: "LSR", addr_mode: Self::addr_ZPGx, operate: Self::LSR, cycles: 6},
+                    Instruction{name: "...", addr_mode: Self::addr_ZPGx, operate: Self::xxx, cycles: 6}, // SRE
+                    Instruction{name: "CLI", addr_mode: Self::addr_IMP,  operate: Self::CLI, cycles: 2},
+                    Instruction{name: "EOR", addr_mode: Self::addr_ABSy, operate: Self::EOR, cycles: 4},
+                    Instruction{name: "...", addr_mode: Self::addr_IMP,  operate: Self::NOP, cycles: 2},
+                    Instruction{name: "...", addr_mode: Self::addr_ABSy, operate: Self::xxx, cycles: 7}, // SRE
+                    Instruction{name: "...", addr_mode: Self::addr_ABSx, operate: Self::NOP, cycles: 4},
+                    Instruction{name: "EOR", addr_mode: Self::addr_ABSx, operate: Self::EOR, cycles: 4},
+                    Instruction{name: "LSR", addr_mode: Self::addr_ABSx, operate: Self::LSR, cycles: 7},
+                    Instruction{name: "...", addr_mode: Self::addr_ABSx, operate: Self::xxx, cycles: 7}, // SRE
                 ]
             }
         }

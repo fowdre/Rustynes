@@ -29,7 +29,7 @@ impl Cpu6502<'_> {
     /// Force Break
     pub fn BRK(&mut self) -> u8 { todo!("BRK") }
     /// Branch on Overflow Clear
-    fn BVC(&mut self) -> u8 { todo!("BVC") }
+    pub fn BVC(&mut self) -> u8 { todo!("BVC") }
 	/// Branch on Overflow Set
     fn BVS(&mut self) -> u8 { todo!("BVS") }
     
@@ -38,7 +38,7 @@ impl Cpu6502<'_> {
     /// Clear Decimal Mode
     fn CLD(&mut self) -> u8 { todo!("CLD") }
     /// Clear Interrupt Disable Bit
-    fn CLI(&mut self) -> u8 { todo!("CLI") }
+    pub fn CLI(&mut self) -> u8 { todo!("CLI") }
 	/// Clear Overflow Flag
     fn CLV(&mut self) -> u8 { todo!("CLV") }
     /// Compare Memory and Accumulator
