@@ -356,16 +356,18 @@ pub mod cpu6502 {
         fn connect_bus(&mut self, bus: bus::Bus<'a>) {
             self.bus = Some(bus);
         }
-
-        fn write(&mut self, a: u16) {
-            if let Some(bus) = &mut self.bus {
-                bus.write(a, 0);
+    
+        fn read(&self, addr: u16) -> u8 {
+            if let Some(bus) = &self.bus {
+                bus.read(addr, false)
+            } else {
+                panic!("No bus connected");
             }
         }
-    
-        fn read(&self, a: u16, d: u8) {
-            if let Some(bus) = &self.bus {
-                bus.read(a, false);
+
+        fn write(&mut self, addr: u16, data: u8) {
+            if let Some(bus) = &mut self.bus {
+                bus.write(addr, data);
             }
         }
 

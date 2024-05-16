@@ -1,5 +1,3 @@
-#![allow(unused)]
-
 mod bus;
 mod devices;
 
