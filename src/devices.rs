@@ -207,16 +207,16 @@ pub mod cpu6502 {
                     Instruction{name: "...", addr_mode: Self::addr_ABSx, operate: Self::xxx, cycles: 7}, // RRA
 
                     // Row 8
-                    Instruction{name: "NOP", addr_mode: Self::addr_IMM,  operate: Self::NOP, cycles: 2},
+                    Instruction{name: "...", addr_mode: Self::addr_IMM,  operate: Self::NOP, cycles: 2},
                     Instruction{name: "STA", addr_mode: Self::addr_INDx, operate: Self::STA, cycles: 6},
-                    Instruction{name: "NOP", addr_mode: Self::addr_IMM,  operate: Self::NOP, cycles: 2},
+                    Instruction{name: "...", addr_mode: Self::addr_IMM,  operate: Self::NOP, cycles: 2},
                     Instruction{name: "...", addr_mode: Self::addr_INDx, operate: Self::xxx, cycles: 6}, // SAX
                     Instruction{name: "STY", addr_mode: Self::addr_ZPG,  operate: Self::STY, cycles: 3},
                     Instruction{name: "STA", addr_mode: Self::addr_ZPG,  operate: Self::STA, cycles: 3},
                     Instruction{name: "STX", addr_mode: Self::addr_ZPG,  operate: Self::STX, cycles: 3},
                     Instruction{name: "...", addr_mode: Self::addr_ZPG,  operate: Self::xxx, cycles: 3}, // SAX
                     Instruction{name: "DEY", addr_mode: Self::addr_IMP,  operate: Self::DEY, cycles: 2},
-                    Instruction{name: "NOP", addr_mode: Self::addr_IMM,  operate: Self::NOP, cycles: 2},
+                    Instruction{name: "...", addr_mode: Self::addr_IMM,  operate: Self::NOP, cycles: 2},
                     Instruction{name: "TXA", addr_mode: Self::addr_IMP,  operate: Self::TXA, cycles: 2},
                     Instruction{name: "...", addr_mode: Self::addr_IMM,  operate: Self::xxx, cycles: 2}, // ANE
                     Instruction{name: "STY", addr_mode: Self::addr_ABS,  operate: Self::STY, cycles: 4},
@@ -281,7 +281,7 @@ pub mod cpu6502 {
                     // Row C
                     Instruction{name: "CPY", addr_mode: Self::addr_IMM,  operate: Self::CPY, cycles: 2},
                     Instruction{name: "CMP", addr_mode: Self::addr_INDx, operate: Self::CMP, cycles: 6},
-                    Instruction{name: "NOP", addr_mode: Self::addr_IMM,  operate: Self::NOP, cycles: 2},
+                    Instruction{name: "...", addr_mode: Self::addr_IMM,  operate: Self::NOP, cycles: 2},
                     Instruction{name: "...", addr_mode: Self::addr_INDx, operate: Self::xxx, cycles: 8}, // DCP
                     Instruction{name: "CPY", addr_mode: Self::addr_ZPG,  operate: Self::CPY, cycles: 3},
                     Instruction{name: "CMP", addr_mode: Self::addr_ZPG,  operate: Self::CMP, cycles: 3},
