@@ -22,7 +22,7 @@ pub mod cpu6502 {
         addr_rel: u16,
         cycles: u8,
 
-        lookup: [Instruction<'a>; 208],
+        lookup: [Instruction<'a>; 224],
     }
 
     #[derive(Debug)]
@@ -295,6 +295,24 @@ pub mod cpu6502 {
                     Instruction{name: "CMP", addr_mode: Self::addr_ABS,  operate: Self::CMP, cycles: 4},
                     Instruction{name: "DEC", addr_mode: Self::addr_ABS,  operate: Self::DEC, cycles: 6},
                     Instruction{name: "...", addr_mode: Self::addr_ABS,  operate: Self::xxx, cycles: 6}, // DCP
+
+                    // Row D
+                    Instruction{name: "BNE", addr_mode: Self::addr_REL,  operate: Self::BNE, cycles: 2},
+                    Instruction{name: "CMP", addr_mode: Self::addr_INDy, operate: Self::CMP, cycles: 5},
+                    Instruction{name: "...", addr_mode: Self::addr_IMP,  operate: Self::xxx, cycles: 2}, // JAM
+                    Instruction{name: "...", addr_mode: Self::addr_INDy, operate: Self::xxx, cycles: 8}, // DCP
+                    Instruction{name: "...", addr_mode: Self::addr_ZPGx, operate: Self::NOP, cycles: 4},
+                    Instruction{name: "CMP", addr_mode: Self::addr_ZPGx, operate: Self::CMP, cycles: 4},
+                    Instruction{name: "DEC", addr_mode: Self::addr_ZPGx, operate: Self::DEC, cycles: 6},
+                    Instruction{name: "...", addr_mode: Self::addr_ZPGx, operate: Self::xxx, cycles: 6}, // DCP
+                    Instruction{name: "CLD", addr_mode: Self::addr_IMP,  operate: Self::CLD, cycles: 2},
+                    Instruction{name: "CMP", addr_mode: Self::addr_ABSy, operate: Self::CMP, cycles: 4},
+                    Instruction{name: "...", addr_mode: Self::addr_IMP,  operate: Self::NOP, cycles: 2},
+                    Instruction{name: "...", addr_mode: Self::addr_ABSy, operate: Self::xxx, cycles: 7}, // DCP
+                    Instruction{name: "...", addr_mode: Self::addr_ABSx, operate: Self::NOP, cycles: 4},
+                    Instruction{name: "CMP", addr_mode: Self::addr_ABSx, operate: Self::CMP, cycles: 4},
+                    Instruction{name: "DEC", addr_mode: Self::addr_ABSx, operate: Self::DEC, cycles: 7},
+                    Instruction{name: "...", addr_mode: Self::addr_ABSx, operate: Self::xxx, cycles: 7}, // DCP
                 ]
             }
         }

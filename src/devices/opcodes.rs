@@ -23,7 +23,7 @@ impl Cpu6502<'_> {
     /// Branch on Result Minus
     pub fn BMI(&mut self) -> u8 { todo!("BMI") }
 	/// Branch on Result not Zero
-    fn BNE(&mut self) -> u8 { todo!("BNE") }
+    pub fn BNE(&mut self) -> u8 { todo!("BNE") }
     /// Branch on Result Plus
     pub fn BPL(&mut self) -> u8 { todo!("BPL") }
     /// Force Break
@@ -36,7 +36,7 @@ impl Cpu6502<'_> {
     /// Clear Carry Flag
     pub fn CLC(&mut self) -> u8 { todo!("CLC") }
     /// Clear Decimal Mode
-    fn CLD(&mut self) -> u8 { todo!("CLD") }
+    pub fn CLD(&mut self) -> u8 { todo!("CLD") }
     /// Clear Interrupt Disable Bit
     pub fn CLI(&mut self) -> u8 { todo!("CLI") }
 	/// Clear Overflow Flag
