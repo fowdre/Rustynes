@@ -44,7 +44,7 @@ impl Cpu6502<'_> {
     /// Compare Memory and Accumulator
     pub fn CMP(&mut self) -> u8 { todo!("CMP") }
     /// Compare Memory and Index X
-    fn CPX(&mut self) -> u8 { todo!("CPX") }
+    pub fn CPX(&mut self) -> u8 { todo!("CPX") }
     /// Compare Memory and Index Y
     pub fn CPY(&mut self) -> u8 { todo!("CPY") }
     
@@ -59,9 +59,9 @@ impl Cpu6502<'_> {
     pub fn EOR(&mut self) -> u8 { todo!("EOR") }
     
 	/// Increment Memory by One
-    fn INC(&mut self) -> u8 { todo!("INC") }
+    pub fn INC(&mut self) -> u8 { todo!("INC") }
     /// Increment Index X by One
-    fn INX(&mut self) -> u8 { todo!("INX") }
+    pub fn INX(&mut self) -> u8 { todo!("INX") }
     /// Increment Index Y by One
     pub fn INY(&mut self) -> u8 { todo!("INY") }
     
@@ -104,7 +104,7 @@ impl Cpu6502<'_> {
     pub fn RTS(&mut self) -> u8 { todo!("RTS") }
     
     /// Subtract Memory from Accumulator with Borrow
-    fn SBC(&mut self) -> u8 { todo!("SBC") }
+    pub fn SBC(&mut self) -> u8 { todo!("SBC") }
 	/// Set Carry Flag
     pub fn SEC(&mut self) -> u8 { todo!("SEC") }
     /// Set Decimal Mode

@@ -22,7 +22,7 @@ pub mod cpu6502 {
         addr_rel: u16,
         cycles: u8,
 
-        lookup: [Instruction<'a>; 224],
+        lookup: [Instruction<'a>; 240],
     }
 
     #[derive(Debug)]
@@ -313,6 +313,24 @@ pub mod cpu6502 {
                     Instruction{name: "CMP", addr_mode: Self::addr_ABSx, operate: Self::CMP, cycles: 4},
                     Instruction{name: "DEC", addr_mode: Self::addr_ABSx, operate: Self::DEC, cycles: 7},
                     Instruction{name: "...", addr_mode: Self::addr_ABSx, operate: Self::xxx, cycles: 7}, // DCP
+
+                    // Row E
+                    Instruction{name: "CPX", addr_mode: Self::addr_IMM,  operate: Self::CPX, cycles: 2},
+                    Instruction{name: "SBC", addr_mode: Self::addr_INDx, operate: Self::SBC, cycles: 6},
+                    Instruction{name: "...", addr_mode: Self::addr_IMM,  operate: Self::NOP, cycles: 2},
+                    Instruction{name: "...", addr_mode: Self::addr_INDx, operate: Self::xxx, cycles: 8}, // ISC
+                    Instruction{name: "CPX", addr_mode: Self::addr_ZPG,  operate: Self::CPX, cycles: 3},
+                    Instruction{name: "SBC", addr_mode: Self::addr_ZPG,  operate: Self::SBC, cycles: 3},
+                    Instruction{name: "INC", addr_mode: Self::addr_ZPG,  operate: Self::INC, cycles: 5},
+                    Instruction{name: "...", addr_mode: Self::addr_ZPG,  operate: Self::xxx, cycles: 5}, // ISC
+                    Instruction{name: "INX", addr_mode: Self::addr_IMP,  operate: Self::INX, cycles: 2},
+                    Instruction{name: "SBC", addr_mode: Self::addr_IMM,  operate: Self::SBC, cycles: 2},
+                    Instruction{name: "NOP", addr_mode: Self::addr_IMP,  operate: Self::NOP, cycles: 2},
+                    Instruction{name: "...", addr_mode: Self::addr_IMM,  operate: Self::SBC, cycles: 2}, // USBC
+                    Instruction{name: "CPX", addr_mode: Self::addr_ABS,  operate: Self::CPX, cycles: 4},
+                    Instruction{name: "SBC", addr_mode: Self::addr_ABS,  operate: Self::SBC, cycles: 4},
+                    Instruction{name: "INC", addr_mode: Self::addr_ABS,  operate: Self::INC, cycles: 6},
+                    Instruction{name: "...", addr_mode: Self::addr_ABS,  operate: Self::xxx, cycles: 6}, // ISC
                 ]
             }
         }
