@@ -42,16 +42,16 @@ impl Cpu6502<'_> {
 	/// Clear Overflow Flag
     pub fn CLV(&mut self) -> u8 { todo!("CLV") }
     /// Compare Memory and Accumulator
-    fn CMP(&mut self) -> u8 { todo!("CMP") }
+    pub fn CMP(&mut self) -> u8 { todo!("CMP") }
     /// Compare Memory and Index X
     fn CPX(&mut self) -> u8 { todo!("CPX") }
     /// Compare Memory and Index Y
-    fn CPY(&mut self) -> u8 { todo!("CPY") }
+    pub fn CPY(&mut self) -> u8 { todo!("CPY") }
     
 	/// Decrement Memory by One
-    fn DEC(&mut self) -> u8 { todo!("DEC") }
+    pub fn DEC(&mut self) -> u8 { todo!("DEC") }
     /// Decrement Index X by One
-    fn DEX(&mut self) -> u8 { todo!("DEX") }
+    pub fn DEX(&mut self) -> u8 { todo!("DEX") }
     /// Decrement Index Y by One
     pub fn DEY(&mut self) -> u8 { todo!("DEY") }
     
@@ -63,7 +63,7 @@ impl Cpu6502<'_> {
     /// Increment Index X by One
     fn INX(&mut self) -> u8 { todo!("INX") }
     /// Increment Index Y by One
-    fn INY(&mut self) -> u8 { todo!("INY") }
+    pub fn INY(&mut self) -> u8 { todo!("INY") }
     
     /// Jump to New Location
     pub fn JMP(&mut self) -> u8 { todo!("JMP") }
