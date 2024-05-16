@@ -22,7 +22,7 @@ pub mod cpu6502 {
         addr_rel: u16,
         cycles: u8,
 
-        lookup: [Instruction<'a>; 16],
+        lookup: [Instruction<'a>; 32],
     }
 
     #[derive(Debug)]
@@ -79,6 +79,24 @@ pub mod cpu6502 {
                     Instruction{name: "ORA", cycles: 4, addr_mode: Self::addr_ABS,  operate: Self::ORA},
                     Instruction{name: "ASL", cycles: 6, addr_mode: Self::addr_ABS,  operate: Self::ASL},
                     Instruction{name: "...", cycles: 6, addr_mode: Self::addr_ABS,  operate: Self::XXX}, // SLO
+
+                    // Row 1
+                    Instruction{name: "BPL", cycles: 2, addr_mode: Self::addr_REL,  operate: Self::BPL},
+                    Instruction{name: "ORA", cycles: 5, addr_mode: Self::addr_INDy, operate: Self::ORA},
+                    Instruction{name: "...", cycles: 2, addr_mode: Self::addr_IMP,  operate: Self::XXX}, // JAM
+                    Instruction{name: "...", cycles: 8, addr_mode: Self::addr_INDy, operate: Self::XXX}, // SLO
+                    Instruction{name: "...", cycles: 4, addr_mode: Self::addr_ZPGx, operate: Self::NOP},
+                    Instruction{name: "ORA", cycles: 4, addr_mode: Self::addr_ZPGx, operate: Self::ORA},
+                    Instruction{name: "ASL", cycles: 6, addr_mode: Self::addr_ZPGx, operate: Self::ASL},
+                    Instruction{name: "...", cycles: 6, addr_mode: Self::addr_ZPGx, operate: Self::XXX}, // SLO
+                    Instruction{name: "CLC", cycles: 2, addr_mode: Self::addr_IMP,  operate: Self::CLC},
+                    Instruction{name: "ORA", cycles: 4, addr_mode: Self::addr_ABSy, operate: Self::ORA},
+                    Instruction{name: "...", cycles: 2, addr_mode: Self::addr_IMP,  operate: Self::NOP},
+                    Instruction{name: "...", cycles: 7, addr_mode: Self::addr_ABSy, operate: Self::XXX}, // SLO
+                    Instruction{name: "...", cycles: 4, addr_mode: Self::addr_ABSx, operate: Self::NOP},
+                    Instruction{name: "ORA", cycles: 4, addr_mode: Self::addr_ABSx, operate: Self::ORA},
+                    Instruction{name: "ASL", cycles: 7, addr_mode: Self::addr_ABSx, operate: Self::ASL},
+                    Instruction{name: "...", cycles: 7, addr_mode: Self::addr_ABSx, operate: Self::XXX}, // SLO
                 ]
             }
         }

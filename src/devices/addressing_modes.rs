@@ -9,16 +9,16 @@ impl Cpu6502<'_> {
     pub fn addr_ABS(&self) -> u8 { todo!("addr ABS") }
     
     /// Absolute addressing mode with X offset
-    fn addr_ABSx(&self) -> u8 { todo!("addr ABSx") }
+    pub fn addr_ABSx(&self) -> u8 { todo!("addr ABSx") }
     
     /// Absolute addressing mode with Y offset
-    fn addr_ABSy(&self) -> u8 { todo!("addr ABSy") }
+    pub fn addr_ABSy(&self) -> u8 { todo!("addr ABSy") }
     
     /// Zero Page addressing mode
     pub fn addr_ZPG(&self) -> u8 { todo!("addr ZP") }
     
     /// Zero Page addressing mode with X offset
-    fn addr_ZPGx(&self) -> u8 { todo!("addr ZPx") }
+    pub fn addr_ZPGx(&self) -> u8 { todo!("addr ZPx") }
     
     /// Zero Page addressing mode with Y offset
     fn addr_ZPGy(&self) -> u8 { todo!("addr ZPy") }
@@ -27,7 +27,7 @@ impl Cpu6502<'_> {
     pub fn addr_IMP(&self) -> u8 { todo!("addr IMP") }
     
     /// Relative addressing mode
-    fn addr_REL(&self) -> u8 { todo!("addr REL") }
+    pub fn addr_REL(&self) -> u8 { todo!("addr REL") }
     
     /// Indirect addressing mode
     fn addr_IND(&self) -> u8 { todo!("addr IND") }
@@ -36,5 +36,5 @@ impl Cpu6502<'_> {
     pub fn addr_INDx(&self) -> u8 { todo!("addr INDx") }
     
     /// Indirect addressing mode with Y offset
-    fn addr_INDy(&self) -> u8 { todo!("addr INDy") }
+    pub fn addr_INDy(&self) -> u8 { todo!("addr INDy") }
 }
