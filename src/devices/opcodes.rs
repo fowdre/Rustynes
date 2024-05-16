@@ -53,7 +53,7 @@ impl Cpu6502<'_> {
     /// Decrement Index X by One
     fn DEX(&mut self) -> u8 { todo!("DEX") }
     /// Decrement Index Y by One
-    fn DEY(&mut self) -> u8 { todo!("DEY") }
+    pub fn DEY(&mut self) -> u8 { todo!("DEY") }
     
     /// "Exclusive-OR" Memory with Accumulator
     pub fn EOR(&mut self) -> u8 { todo!("EOR") }
@@ -112,11 +112,11 @@ impl Cpu6502<'_> {
     /// Set Interrupt Disable Status
     pub fn SEI(&mut self) -> u8 { todo!("SEI") }
     /// Store Accumulator in Memory
-    fn STA(&mut self) -> u8 { todo!("STA") }
+    pub fn STA(&mut self) -> u8 { todo!("STA") }
 	/// Store Index X in Memory
-    fn STX(&mut self) -> u8 { todo!("STX") }
+    pub fn STX(&mut self) -> u8 { todo!("STX") }
     /// Store Index Y in Memory
-    fn STY(&mut self) -> u8 { todo!("STY") }
+    pub fn STY(&mut self) -> u8 { todo!("STY") }
     
     /// Transfer Accumulator to Index X
     fn TAX(&mut self) -> u8 { todo!("TAX") }
@@ -125,7 +125,7 @@ impl Cpu6502<'_> {
 	/// Transfer Stack Pointer to Index X
     fn TSX(&mut self) -> u8 { todo!("TSX") }
     /// Transfer Index X to Accumulator
-    fn TXA(&mut self) -> u8 { todo!("TXA") }
+    pub fn TXA(&mut self) -> u8 { todo!("TXA") }
     /// Transfer Index X to Stack Pointer
     fn TXS(&mut self) -> u8 { todo!("TXS") }
     /// Transfer Index Y to Accumulator
