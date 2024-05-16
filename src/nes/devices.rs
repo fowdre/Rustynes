@@ -364,8 +364,19 @@ pub mod cpu6502 {
 
         fn fetch(&mut self) { todo!("fetch"); }
 
-        /// Handle cycles
-        fn clock(&self) { todo!("clock"); }
+        /// Handle clock cycles
+        pub fn clock(&mut self, bus: &Bus) {
+            if self.cycles == 0 {
+                self.opcode = self.read(bus, self.pc);
+                self.pc += 1;
+                self.cycles = self.lookup[self.opcode as usize].cycles;
+                
+                let bonus_cycles_addr_mode = (self.lookup[self.opcode as usize].addr_mode)(self);
+                let bonus_cycles_operate = (self.lookup[self.opcode as usize].operate)(self);
+                self.cycles += bonus_cycles_addr_mode & bonus_cycles_operate;
+            }
+            self.cycles -= 1;
+        }
 
         /// Reset signal
         fn reset(&self) { todo!("reset"); }

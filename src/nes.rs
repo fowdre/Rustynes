@@ -24,4 +24,8 @@ impl NES {
     pub fn cpu_write(&mut self, addr: u16, data: u8) {
         self.cpu.write(&mut self.bus, addr, data);
     }
+
+    pub fn cpu_tick(&mut self) {
+        self.cpu.clock(&mut self.bus);
+    }
 }
