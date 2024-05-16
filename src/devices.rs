@@ -22,7 +22,7 @@ pub mod cpu6502 {
         addr_rel: u16,
         cycles: u8,
 
-        lookup: [Instruction<'a>; 160],
+        lookup: [Instruction<'a>; 176],
     }
 
     #[derive(Debug)]
@@ -241,6 +241,24 @@ pub mod cpu6502 {
                     Instruction{name: "STA", addr_mode: Self::addr_ABSx, operate: Self::STA, cycles: 5},
                     Instruction{name: "...", addr_mode: Self::addr_ABSy, operate: Self::xxx, cycles: 5}, // SHX
                     Instruction{name: "...", addr_mode: Self::addr_ABSy, operate: Self::xxx, cycles: 5}, // SHA
+
+                    // Row A
+                    Instruction{name: "LDY", addr_mode: Self::addr_IMM,  operate: Self::LDY, cycles: 2},
+                    Instruction{name: "LDA", addr_mode: Self::addr_INDx, operate: Self::LDA, cycles: 6},
+                    Instruction{name: "LDX", addr_mode: Self::addr_IMM,  operate: Self::LDX, cycles: 2},
+                    Instruction{name: "...", addr_mode: Self::addr_INDx, operate: Self::xxx, cycles: 6}, // LAX
+                    Instruction{name: "LDY", addr_mode: Self::addr_ZPG,  operate: Self::LDY, cycles: 3},
+                    Instruction{name: "LDA", addr_mode: Self::addr_ZPG,  operate: Self::LDA, cycles: 3},
+                    Instruction{name: "LDX", addr_mode: Self::addr_ZPG,  operate: Self::LDX, cycles: 3},
+                    Instruction{name: "...", addr_mode: Self::addr_ZPG,  operate: Self::xxx, cycles: 3}, // LAX
+                    Instruction{name: "TAY", addr_mode: Self::addr_IMP,  operate: Self::TAY, cycles: 2},
+                    Instruction{name: "LDA", addr_mode: Self::addr_IMM,  operate: Self::LDA, cycles: 2},
+                    Instruction{name: "TAX", addr_mode: Self::addr_IMP,  operate: Self::TAX, cycles: 2},
+                    Instruction{name: "...", addr_mode: Self::addr_IMM,  operate: Self::xxx, cycles: 2}, // LXA
+                    Instruction{name: "LDY", addr_mode: Self::addr_ABS,  operate: Self::LDY, cycles: 4},
+                    Instruction{name: "LDA", addr_mode: Self::addr_ABS,  operate: Self::LDA, cycles: 4},
+                    Instruction{name: "LDX", addr_mode: Self::addr_ABS,  operate: Self::LDX, cycles: 4},
+                    Instruction{name: "...", addr_mode: Self::addr_ABS,  operate: Self::xxx, cycles: 4}, // LAX
                 ]
             }
         }

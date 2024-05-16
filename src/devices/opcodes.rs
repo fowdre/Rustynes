@@ -71,11 +71,11 @@ impl Cpu6502<'_> {
     pub fn JSR(&mut self) -> u8 { todo!("JSR") }
     
     /// Load Accumulator with Memory
-    fn LDA(&mut self) -> u8 { todo!("LDA") }
+    pub fn LDA(&mut self) -> u8 { todo!("LDA") }
     /// Load Index X with Memory
-    fn LDX(&mut self) -> u8 { todo!("LDX") }
+    pub fn LDX(&mut self) -> u8 { todo!("LDX") }
     /// Load Index Y with Memory
-    fn LDY(&mut self) -> u8 { todo!("LDY") }
+    pub fn LDY(&mut self) -> u8 { todo!("LDY") }
 	/// Shift Right One Bit (Memory or Accumulator)
     pub fn LSR(&mut self) -> u8 { todo!("LSR") }
     
@@ -119,9 +119,9 @@ impl Cpu6502<'_> {
     pub fn STY(&mut self) -> u8 { todo!("STY") }
     
     /// Transfer Accumulator to Index X
-    fn TAX(&mut self) -> u8 { todo!("TAX") }
+    pub fn TAX(&mut self) -> u8 { todo!("TAX") }
     /// Transfer Accumulator to Index Y
-    fn TAY(&mut self) -> u8 { todo!("TAY") }
+    pub fn TAY(&mut self) -> u8 { todo!("TAY") }
 	/// Transfer Stack Pointer to Index X
     fn TSX(&mut self) -> u8 { todo!("TSX") }
     /// Transfer Index X to Accumulator
