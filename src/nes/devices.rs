@@ -27,7 +27,7 @@ pub mod cpu6502 {
     pub struct Instruction {
         pub name: &'static str,
         pub cycles: u8,
-        pub addr_mode: fn(&Cpu6502) -> u8,
+        pub addr_mode: fn(&mut Cpu6502) -> u8,
         pub operate: fn(&mut Cpu6502) -> u8,
     }
 
