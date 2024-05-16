@@ -21,7 +21,7 @@ impl Cpu6502<'_> {
     /// Test Bits in Memory with Accumulator
     pub fn BIT(&mut self) -> u8 { todo!("BIT") }
     /// Branch on Result Minus
-    fn BMI(&mut self) -> u8 { todo!("BMI") }
+    pub fn BMI(&mut self) -> u8 { todo!("BMI") }
 	/// Branch on Result not Zero
     fn BNE(&mut self) -> u8 { todo!("BNE") }
     /// Branch on Result Plus
@@ -106,7 +106,7 @@ impl Cpu6502<'_> {
     /// Subtract Memory from Accumulator with Borrow
     fn SBC(&mut self) -> u8 { todo!("SBC") }
 	/// Set Carry Flag
-    fn SEC(&mut self) -> u8 { todo!("SEC") }
+    pub fn SEC(&mut self) -> u8 { todo!("SEC") }
     /// Set Decimal Mode
     fn SED(&mut self) -> u8 { todo!("SED") }
     /// Set Interrupt Disable Status
