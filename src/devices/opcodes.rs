@@ -6,7 +6,7 @@ impl Cpu6502<'_> {
     pub fn xxx(&mut self) -> u8 { todo!("Unofficial opcode") }
 
     /// Add Memory to Accumulator with Carry
-    fn ADC(&mut self) -> u8 { todo!("ADC") }
+    pub fn ADC(&mut self) -> u8 { todo!("ADC") }
     /// "AND" Memory with Accumulator
     pub fn AND(&mut self) -> u8 { todo!("AND") }
     /// Shift Left One Bit (Memory or Accumulator)
@@ -90,18 +90,18 @@ impl Cpu6502<'_> {
 	/// Push Processor Status on Stack
     pub fn PHP(&mut self) -> u8 { todo!("PHP") }
     /// Pull Accumulator from Stack
-    fn PLA(&mut self) -> u8 { todo!("PLA") }
+    pub fn PLA(&mut self) -> u8 { todo!("PLA") }
     /// Pull Processor Status from Stack
     pub fn PLP(&mut self) -> u8 { todo!("PLP") }
     
     /// Rotate One Bit Left (Memory or Accumulator)
     pub fn ROL(&mut self) -> u8 { todo!("ROL") }
 	/// Rotate One Bit Right (Memory or Accumulator)
-    fn ROR(&mut self) -> u8 { todo!("ROR") }
+    pub fn ROR(&mut self) -> u8 { todo!("ROR") }
     /// Return from Interrupt
     pub fn RTI(&mut self) -> u8 { todo!("RTI") }
     /// Return from Subroutine
-    fn RTS(&mut self) -> u8 { todo!("RTS") }
+    pub fn RTS(&mut self) -> u8 { todo!("RTS") }
     
     /// Subtract Memory from Accumulator with Borrow
     fn SBC(&mut self) -> u8 { todo!("SBC") }

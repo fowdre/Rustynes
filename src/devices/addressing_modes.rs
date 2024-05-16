@@ -33,7 +33,7 @@ impl Cpu6502<'_> {
     pub fn addr_REL(&self) -> u8 { todo!("addr REL") }
     
     /// Indirect addressing mode
-    fn addr_IND(&self) -> u8 { todo!("addr IND") }
+    pub fn addr_IND(&self) -> u8 { todo!("addr IND") }
     
     /// Indirect addressing mode with X offset
     pub fn addr_INDx(&self) -> u8 { todo!("addr INDx") }

@@ -22,7 +22,7 @@ pub mod cpu6502 {
         addr_rel: u16,
         cycles: u8,
 
-        lookup: [Instruction<'a>; 96],
+        lookup: [Instruction<'a>; 112],
     }
 
     #[derive(Debug)]
@@ -169,6 +169,24 @@ pub mod cpu6502 {
                     Instruction{name: "EOR", addr_mode: Self::addr_ABSx, operate: Self::EOR, cycles: 4},
                     Instruction{name: "LSR", addr_mode: Self::addr_ABSx, operate: Self::LSR, cycles: 7},
                     Instruction{name: "...", addr_mode: Self::addr_ABSx, operate: Self::xxx, cycles: 7}, // SRE
+
+                    // Row 6
+                    Instruction{name: "RTS", addr_mode: Self::addr_IMP,  operate: Self::RTS, cycles: 6},
+                    Instruction{name: "ADC", addr_mode: Self::addr_INDx, operate: Self::ADC, cycles: 6},
+                    Instruction{name: "...", addr_mode: Self::addr_IMP,  operate: Self::xxx, cycles: 2}, // JAM
+                    Instruction{name: "...", addr_mode: Self::addr_INDx, operate: Self::xxx, cycles: 8}, // RRA
+                    Instruction{name: "...", addr_mode: Self::addr_ZPG,  operate: Self::NOP, cycles: 3},
+                    Instruction{name: "ADC", addr_mode: Self::addr_ZPG,  operate: Self::ADC, cycles: 3},
+                    Instruction{name: "ROR", addr_mode: Self::addr_ZPG,  operate: Self::ROR, cycles: 5},
+                    Instruction{name: "...", addr_mode: Self::addr_ZPG,  operate: Self::xxx, cycles: 5}, // RRA
+                    Instruction{name: "PLA", addr_mode: Self::addr_IMP,  operate: Self::PLA, cycles: 4},
+                    Instruction{name: "ADC", addr_mode: Self::addr_IMM,  operate: Self::ADC, cycles: 2},
+                    Instruction{name: "ROR", addr_mode: Self::addr_ACC,  operate: Self::ROR, cycles: 2},
+                    Instruction{name: "...", addr_mode: Self::addr_IMM,  operate: Self::xxx, cycles: 2}, // ARR
+                    Instruction{name: "JMP", addr_mode: Self::addr_IND,  operate: Self::JMP, cycles: 5},
+                    Instruction{name: "ADC", addr_mode: Self::addr_ABS,  operate: Self::ADC, cycles: 4},
+                    Instruction{name: "ROR", addr_mode: Self::addr_ABS,  operate: Self::ROR, cycles: 6},
+                    Instruction{name: "...", addr_mode: Self::addr_ABS,  operate: Self::xxx, cycles: 6}, // RRA
                 ]
             }
         }
