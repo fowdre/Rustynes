@@ -3,7 +3,7 @@ use super::Cpu6502;
 #[allow(non_snake_case)]
 impl Cpu6502<'_> {
     /// Unofficial opcode
-    pub fn XXX(&mut self) -> u8 { todo!("XXX") }
+    pub fn xxx(&mut self) -> u8 { todo!("Unofficial opcode") }
 
     /// Add Memory to Accumulator with Carry
     fn ADC(&mut self) -> u8 { todo!("ADC") }
