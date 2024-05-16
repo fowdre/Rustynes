@@ -1,4 +1,5 @@
 target/
 ressources/
+ignore/
 
 .gitignore

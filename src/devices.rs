@@ -22,7 +22,7 @@ pub mod cpu6502 {
         addr_rel: u16,
         cycles: u8,
 
-        lookup: [Instruction<'a>; 1],
+        lookup: [Instruction<'a>; 16],
     }
 
     #[derive(Debug)]
@@ -62,7 +62,23 @@ pub mod cpu6502 {
                 cycles: 0,
                 
                 lookup: [
-                    Instruction { name: "XXX", cycles: 0, addr_mode: Self::addr_IMP, operate: Self::XXX }
+                    // Row 0
+                    Instruction{name: "BRK", cycles: 7, addr_mode: Self::addr_IMP,  operate: Self::BRK},
+                    Instruction{name: "ORA", cycles: 6, addr_mode: Self::addr_INDx, operate: Self::ORA},
+                    Instruction{name: "...", cycles: 2, addr_mode: Self::addr_IMP,  operate: Self::XXX}, // JAM
+                    Instruction{name: "...", cycles: 8, addr_mode: Self::addr_INDx, operate: Self::XXX}, // SLO
+                    Instruction{name: "...", cycles: 3, addr_mode: Self::addr_ZPG,  operate: Self::NOP},
+                    Instruction{name: "ORA", cycles: 3, addr_mode: Self::addr_ZPG,  operate: Self::ORA},
+                    Instruction{name: "ASL", cycles: 5, addr_mode: Self::addr_ZPG,  operate: Self::ASL},
+                    Instruction{name: "...", cycles: 5, addr_mode: Self::addr_ZPG,  operate: Self::XXX}, // SLO
+                    Instruction{name: "PHP", cycles: 3, addr_mode: Self::addr_IMP,  operate: Self::PHP},
+                    Instruction{name: "ORA", cycles: 2, addr_mode: Self::addr_IMM,  operate: Self::ORA},
+                    Instruction{name: "ASL", cycles: 2, addr_mode: Self::addr_IMP,  operate: Self::ASL},
+                    Instruction{name: "...", cycles: 2, addr_mode: Self::addr_IMM,  operate: Self::XXX}, // ANC
+                    Instruction{name: "...", cycles: 4, addr_mode: Self::addr_ABS,  operate: Self::NOP},
+                    Instruction{name: "ORA", cycles: 4, addr_mode: Self::addr_ABS,  operate: Self::ORA},
+                    Instruction{name: "ASL", cycles: 6, addr_mode: Self::addr_ABS,  operate: Self::ASL},
+                    Instruction{name: "...", cycles: 6, addr_mode: Self::addr_ABS,  operate: Self::XXX}, // SLO
                 ]
             }
         }

@@ -10,7 +10,7 @@ impl Cpu6502<'_> {
     /// "AND" Memory with Accumulator
     fn AND(&mut self) -> u8 { todo!("AND") }
     /// Shift Left One Bit (Memory or Accumulator)
-    fn ASL(&mut self) -> u8 { todo!("ASL") }
+    pub fn ASL(&mut self) -> u8 { todo!("ASL") }
     
     /// Branch on Carry Clear
     fn BCC(&mut self) -> u8 { todo!("BCC") }
@@ -27,7 +27,7 @@ impl Cpu6502<'_> {
     /// Branch on Result Plus
     fn BPL(&mut self) -> u8 { todo!("BPL") }
     /// Force Break
-    fn BRK(&mut self) -> u8 { todo!("BRK") }
+    pub fn BRK(&mut self) -> u8 { todo!("BRK") }
     /// Branch on Overflow Clear
     fn BVC(&mut self) -> u8 { todo!("BVC") }
 	/// Branch on Overflow Set
@@ -80,15 +80,15 @@ impl Cpu6502<'_> {
     fn LSR(&mut self) -> u8 { todo!("LSR") }
     
     /// No Operation
-    fn NOP(&mut self) -> u8 { todo!("NOP") }
+    pub fn NOP(&mut self) -> u8 { todo!("NOP") }
     
     /// "OR" Memory with Accumulator
-    fn ORA(&mut self) -> u8 { todo!("ORA") }
+    pub fn ORA(&mut self) -> u8 { todo!("ORA") }
     
     /// Push Accumulator on Stack
     fn PHA(&mut self) -> u8 { todo!("PHA") }
 	/// Push Processor Status on Stack
-    fn PHP(&mut self) -> u8 { todo!("PHP") }
+    pub fn PHP(&mut self) -> u8 { todo!("PHP") }
     /// Pull Accumulator from Stack
     fn PLA(&mut self) -> u8 { todo!("PLA") }
     /// Pull Processor Status from Stack
