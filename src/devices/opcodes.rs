@@ -17,7 +17,7 @@ impl Cpu6502<'_> {
 	/// Branch on Carry Set
     pub fn BCS(&mut self) -> u8 { todo!("BCS") }
     /// Branch on Result Zero
-    fn BEQ(&mut self) -> u8 { todo!("BEQ") }
+    pub fn BEQ(&mut self) -> u8 { todo!("BEQ") }
     /// Test Bits in Memory with Accumulator
     pub fn BIT(&mut self) -> u8 { todo!("BIT") }
     /// Branch on Result Minus
@@ -108,7 +108,7 @@ impl Cpu6502<'_> {
 	/// Set Carry Flag
     pub fn SEC(&mut self) -> u8 { todo!("SEC") }
     /// Set Decimal Mode
-    fn SED(&mut self) -> u8 { todo!("SED") }
+    pub fn SED(&mut self) -> u8 { todo!("SED") }
     /// Set Interrupt Disable Status
     pub fn SEI(&mut self) -> u8 { todo!("SEI") }
     /// Store Accumulator in Memory
