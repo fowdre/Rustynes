@@ -13,7 +13,7 @@ impl Cpu6502<'_> {
     pub fn ASL(&mut self) -> u8 { todo!("ASL") }
     
     /// Branch on Carry Clear
-    fn BCC(&mut self) -> u8 { todo!("BCC") }
+    pub fn BCC(&mut self) -> u8 { todo!("BCC") }
 	/// Branch on Carry Set
     fn BCS(&mut self) -> u8 { todo!("BCS") }
     /// Branch on Result Zero
@@ -127,7 +127,7 @@ impl Cpu6502<'_> {
     /// Transfer Index X to Accumulator
     pub fn TXA(&mut self) -> u8 { todo!("TXA") }
     /// Transfer Index X to Stack Pointer
-    fn TXS(&mut self) -> u8 { todo!("TXS") }
+    pub fn TXS(&mut self) -> u8 { todo!("TXS") }
     /// Transfer Index Y to Accumulator
-    fn TYA(&mut self) -> u8 { todo!("TYA") }
+    pub fn TYA(&mut self) -> u8 { todo!("TYA") }
 }

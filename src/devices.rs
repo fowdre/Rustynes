@@ -22,7 +22,7 @@ pub mod cpu6502 {
         addr_rel: u16,
         cycles: u8,
 
-        lookup: [Instruction<'a>; 144],
+        lookup: [Instruction<'a>; 160],
     }
 
     #[derive(Debug)]
@@ -223,6 +223,24 @@ pub mod cpu6502 {
                     Instruction{name: "STA", addr_mode: Self::addr_ABS,  operate: Self::STA, cycles: 4},
                     Instruction{name: "STX", addr_mode: Self::addr_ABS,  operate: Self::STX, cycles: 4},
                     Instruction{name: "...", addr_mode: Self::addr_ABS,  operate: Self::xxx, cycles: 4}, // SAX
+
+                    // Row 9
+                    Instruction{name: "BCC", addr_mode: Self::addr_REL,  operate: Self::BCC, cycles: 2},
+                    Instruction{name: "STA", addr_mode: Self::addr_INDy, operate: Self::STA, cycles: 6},
+                    Instruction{name: "...", addr_mode: Self::addr_IMP,  operate: Self::xxx, cycles: 2}, // JAM
+                    Instruction{name: "...", addr_mode: Self::addr_INDy, operate: Self::xxx, cycles: 6}, // SHA
+                    Instruction{name: "STY", addr_mode: Self::addr_ZPGx, operate: Self::STY, cycles: 4},
+                    Instruction{name: "STA", addr_mode: Self::addr_ZPGx, operate: Self::STA, cycles: 4},
+                    Instruction{name: "STX", addr_mode: Self::addr_ZPGy, operate: Self::STX, cycles: 4},
+                    Instruction{name: "...", addr_mode: Self::addr_ZPGy, operate: Self::xxx, cycles: 4}, // SAX
+                    Instruction{name: "TYA", addr_mode: Self::addr_IMP,  operate: Self::TYA, cycles: 2},
+                    Instruction{name: "STA", addr_mode: Self::addr_ABSy, operate: Self::STA, cycles: 5},
+                    Instruction{name: "TXS", addr_mode: Self::addr_IMP,  operate: Self::TXS, cycles: 2},
+                    Instruction{name: "...", addr_mode: Self::addr_ABSy, operate: Self::xxx, cycles: 5}, // TAS
+                    Instruction{name: "...", addr_mode: Self::addr_ABSx, operate: Self::NOP, cycles: 5}, // SHY
+                    Instruction{name: "STA", addr_mode: Self::addr_ABSx, operate: Self::STA, cycles: 5},
+                    Instruction{name: "...", addr_mode: Self::addr_ABSy, operate: Self::xxx, cycles: 5}, // SHX
+                    Instruction{name: "...", addr_mode: Self::addr_ABSy, operate: Self::xxx, cycles: 5}, // SHA
                 ]
             }
         }

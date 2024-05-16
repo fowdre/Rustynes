@@ -24,7 +24,7 @@ impl Cpu6502<'_> {
     pub fn addr_ZPGx(&self) -> u8 { todo!("addr ZPx") }
     
     /// Zero Page addressing mode with Y offset
-    fn addr_ZPGy(&self) -> u8 { todo!("addr ZPy") }
+    pub fn addr_ZPGy(&self) -> u8 { todo!("addr ZPy") }
     
     /// Implied addressing mode
     pub fn addr_IMP(&self) -> u8 { todo!("addr IMP") }
