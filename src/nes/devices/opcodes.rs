@@ -1,4 +1,4 @@
-use super::Cpu6502;
+use super::cpu6502::Cpu6502;
 
 #[allow(non_snake_case)]
 impl Cpu6502 {

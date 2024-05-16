@@ -1,12 +1,9 @@
 mod addressing_modes;
 mod opcodes;
 
-pub use cpu6502::Cpu6502;
 
 pub mod cpu6502 {
-    use core::panic;
-
-    use crate::bus;
+    use super::super::bus::Bus;
 
     #[derive(Debug)]
     pub struct Cpu6502 {
@@ -353,11 +350,11 @@ pub mod cpu6502 {
             }
         }
     
-        pub fn read(&self, bus: &bus::Bus, addr: u16) -> u8 {
+        pub fn read(&self, bus: &Bus, addr: u16) -> u8 {
             bus.read(addr, false)
         }
 
-        pub fn write(&mut self, bus: &mut bus::Bus, addr: u16, data: u8) {
+        pub fn write(&mut self, bus: &mut Bus, addr: u16, data: u8) {
             bus.write(addr, data);
         }
 
