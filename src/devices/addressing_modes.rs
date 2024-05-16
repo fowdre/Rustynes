@@ -2,6 +2,9 @@ use super::Cpu6502;
 
 #[allow(non_snake_case)]
 impl Cpu6502<'_> {
+    /// Accumulator addressing mode
+    pub fn addr_ACC(&self) -> u8 { todo!("addr ACC") }
+
     /// Immediate addressing mode
     pub fn addr_IMM(&self) -> u8 { todo!("addr IMM") }
     

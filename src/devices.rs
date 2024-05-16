@@ -73,7 +73,7 @@ pub mod cpu6502 {
                     Instruction{name: "...", cycles: 5, addr_mode: Self::addr_ZPG,  operate: Self::XXX}, // SLO
                     Instruction{name: "PHP", cycles: 3, addr_mode: Self::addr_IMP,  operate: Self::PHP},
                     Instruction{name: "ORA", cycles: 2, addr_mode: Self::addr_IMM,  operate: Self::ORA},
-                    Instruction{name: "ASL", cycles: 2, addr_mode: Self::addr_IMP,  operate: Self::ASL},
+                    Instruction{name: "ASL", cycles: 2, addr_mode: Self::addr_ACC,  operate: Self::ASL},
                     Instruction{name: "...", cycles: 2, addr_mode: Self::addr_IMM,  operate: Self::XXX}, // ANC
                     Instruction{name: "...", cycles: 4, addr_mode: Self::addr_ABS,  operate: Self::NOP},
                     Instruction{name: "ORA", cycles: 4, addr_mode: Self::addr_ABS,  operate: Self::ORA},
