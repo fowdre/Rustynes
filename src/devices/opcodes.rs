@@ -31,7 +31,7 @@ impl Cpu6502<'_> {
     /// Branch on Overflow Clear
     pub fn BVC(&mut self) -> u8 { todo!("BVC") }
 	/// Branch on Overflow Set
-    fn BVS(&mut self) -> u8 { todo!("BVS") }
+    pub fn BVS(&mut self) -> u8 { todo!("BVS") }
     
     /// Clear Carry Flag
     pub fn CLC(&mut self) -> u8 { todo!("CLC") }
@@ -110,7 +110,7 @@ impl Cpu6502<'_> {
     /// Set Decimal Mode
     fn SED(&mut self) -> u8 { todo!("SED") }
     /// Set Interrupt Disable Status
-    fn SEI(&mut self) -> u8 { todo!("SEI") }
+    pub fn SEI(&mut self) -> u8 { todo!("SEI") }
     /// Store Accumulator in Memory
     fn STA(&mut self) -> u8 { todo!("STA") }
 	/// Store Index X in Memory
