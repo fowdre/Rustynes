@@ -22,7 +22,7 @@ pub mod cpu6502 {
         addr_rel: u16,
         cycles: u8,
 
-        lookup: [Instruction<'a>; 32],
+        lookup: [Instruction<'a>; 48],
     }
 
     #[derive(Debug)]
@@ -96,7 +96,25 @@ pub mod cpu6502 {
                     Instruction{name: "...", cycles: 4, addr_mode: Self::addr_ABSx, operate: Self::NOP},
                     Instruction{name: "ORA", cycles: 4, addr_mode: Self::addr_ABSx, operate: Self::ORA},
                     Instruction{name: "ASL", cycles: 7, addr_mode: Self::addr_ABSx, operate: Self::ASL},
-                    Instruction{name: "...", cycles: 7, addr_mode: Self::addr_ABSx, operate: Self::XXX}, // SLO
+                    Instruction{name: "...", cycles: 7, addr_mode: Self::addr_ABSx, operate: Self::XXX}, // SLO*
+
+                    // Row 2
+                    Instruction{name: "JSR", cycles: 6, addr_mode: Self::addr_ABS,  operate: Self::JSR},
+                    Instruction{name: "AND", cycles: 6, addr_mode: Self::addr_INDx, operate: Self::AND},
+                    Instruction{name: "...", cycles: 2, addr_mode: Self::addr_IMP,  operate: Self::XXX}, // JAM
+                    Instruction{name: "...", cycles: 8, addr_mode: Self::addr_INDx, operate: Self::XXX}, // RLA
+                    Instruction{name: "BIT", cycles: 3, addr_mode: Self::addr_ZPG,  operate: Self::BIT},
+                    Instruction{name: "AND", cycles: 3, addr_mode: Self::addr_ZPG,  operate: Self::AND},
+                    Instruction{name: "ROL", cycles: 5, addr_mode: Self::addr_ZPG,  operate: Self::ROL},
+                    Instruction{name: "...", cycles: 5, addr_mode: Self::addr_ZPG,  operate: Self::XXX}, // RLA
+                    Instruction{name: "PLP", cycles: 4, addr_mode: Self::addr_IMP,  operate: Self::PLP},
+                    Instruction{name: "AND", cycles: 2, addr_mode: Self::addr_IMM,  operate: Self::AND},
+                    Instruction{name: "ROL", cycles: 2, addr_mode: Self::addr_ACC,  operate: Self::ROL},
+                    Instruction{name: "...", cycles: 2, addr_mode: Self::addr_IMM,  operate: Self::XXX}, // ANC
+                    Instruction{name: "BIT", cycles: 4, addr_mode: Self::addr_ABS,  operate: Self::BIT},
+                    Instruction{name: "AND", cycles: 4, addr_mode: Self::addr_ABS,  operate: Self::AND},
+                    Instruction{name: "ROL", cycles: 6, addr_mode: Self::addr_ABS,  operate: Self::ROL},
+                    Instruction{name: "...", cycles: 6, addr_mode: Self::addr_ABS,  operate: Self::XXX}, // RLA
                 ]
             }
         }

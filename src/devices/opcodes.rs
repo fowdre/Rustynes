@@ -8,7 +8,7 @@ impl Cpu6502<'_> {
     /// Add Memory to Accumulator with Carry
     fn ADC(&mut self) -> u8 { todo!("ADC") }
     /// "AND" Memory with Accumulator
-    fn AND(&mut self) -> u8 { todo!("AND") }
+    pub fn AND(&mut self) -> u8 { todo!("AND") }
     /// Shift Left One Bit (Memory or Accumulator)
     pub fn ASL(&mut self) -> u8 { todo!("ASL") }
     
@@ -19,7 +19,7 @@ impl Cpu6502<'_> {
     /// Branch on Result Zero
     fn BEQ(&mut self) -> u8 { todo!("BEQ") }
     /// Test Bits in Memory with Accumulator
-    fn BIT(&mut self) -> u8 { todo!("BIT") }
+    pub fn BIT(&mut self) -> u8 { todo!("BIT") }
     /// Branch on Result Minus
     fn BMI(&mut self) -> u8 { todo!("BMI") }
 	/// Branch on Result not Zero
@@ -68,7 +68,7 @@ impl Cpu6502<'_> {
     /// Jump to New Location
     fn JMP(&mut self) -> u8 { todo!("JMP") }
 	/// Jump to New Location Saving Return Address
-    fn JSR(&mut self) -> u8 { todo!("JSR") }
+    pub fn JSR(&mut self) -> u8 { todo!("JSR") }
     
     /// Load Accumulator with Memory
     fn LDA(&mut self) -> u8 { todo!("LDA") }
@@ -92,10 +92,10 @@ impl Cpu6502<'_> {
     /// Pull Accumulator from Stack
     fn PLA(&mut self) -> u8 { todo!("PLA") }
     /// Pull Processor Status from Stack
-    fn PLP(&mut self) -> u8 { todo!("PLP") }
+    pub fn PLP(&mut self) -> u8 { todo!("PLP") }
     
     /// Rotate One Bit Left (Memory or Accumulator)
-    fn ROL(&mut self) -> u8 { todo!("ROL") }
+    pub fn ROL(&mut self) -> u8 { todo!("ROL") }
 	/// Rotate One Bit Right (Memory or Accumulator)
     fn ROR(&mut self) -> u8 { todo!("ROR") }
     /// Return from Interrupt
