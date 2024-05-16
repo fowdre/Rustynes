@@ -1,6 +1,9 @@
 mod devices;
 mod bus;
 
+pub use bus::Bus;
+pub use devices::cpu6502::Cpu6502;
+
 #[derive(Debug)]
 pub struct NES {
     cpu: devices::cpu6502::Cpu6502,

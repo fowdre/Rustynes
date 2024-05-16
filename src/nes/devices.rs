@@ -3,7 +3,7 @@ mod opcodes;
 
 
 pub mod cpu6502 {
-    use super::super::bus::Bus;
+    use super::super::Bus;
 
     #[derive(Debug)]
     pub struct Cpu6502 {
@@ -27,7 +27,7 @@ pub mod cpu6502 {
     pub struct Instruction {
         pub name: &'static str,
         pub cycles: u8,
-        pub addr_mode: fn(&mut Cpu6502) -> u8,
+        pub addr_mode: fn(&mut Cpu6502, &Bus) -> u8,
         pub operate: fn(&mut Cpu6502) -> u8,
     }
 
@@ -371,7 +371,7 @@ pub mod cpu6502 {
                 self.pc += 1;
                 self.cycles = self.lookup[self.opcode as usize].cycles;
                 
-                let bonus_cycles_addr_mode = (self.lookup[self.opcode as usize].addr_mode)(self);
+                let bonus_cycles_addr_mode = (self.lookup[self.opcode as usize].addr_mode)(self, bus);
                 let bonus_cycles_operate = (self.lookup[self.opcode as usize].operate)(self);
                 self.cycles += bonus_cycles_addr_mode & bonus_cycles_operate;
             }
