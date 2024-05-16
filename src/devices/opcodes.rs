@@ -1,7 +1,7 @@
 use super::Cpu6502;
 
 #[allow(non_snake_case)]
-impl Cpu6502<'_> {
+impl Cpu6502 {
     /// Unofficial opcode
     pub fn xxx(&mut self) -> u8 { todo!("Unofficial opcode") }
 

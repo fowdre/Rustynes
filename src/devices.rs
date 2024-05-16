@@ -4,11 +4,12 @@ mod opcodes;
 pub use cpu6502::Cpu6502;
 
 pub mod cpu6502 {
+    use core::panic;
+
     use crate::bus;
 
     #[derive(Debug)]
-    pub struct Cpu6502<'a> {
-        bus: Option<bus::Bus<'a>>,
+    pub struct Cpu6502 {
         a: u8,
         x: u8,
         y: u8,
@@ -22,15 +23,15 @@ pub mod cpu6502 {
         addr_rel: u16,
         cycles: u8,
 
-        lookup: [Instruction<'a>; 256],
+        lookup: [Instruction; 256],
     }
 
     #[derive(Debug)]
-    pub struct Instruction<'a> {
+    pub struct Instruction {
         pub name: &'static str,
         pub cycles: u8,
-        pub addr_mode: fn(&'a Cpu6502<'a>) -> u8,
-        pub operate: fn(&'a mut Cpu6502<'a>) -> u8,
+        pub addr_mode: fn(&Cpu6502) -> u8,
+        pub operate: fn(&mut Cpu6502) -> u8,
     }
 
     enum Flags {
@@ -44,10 +45,9 @@ pub mod cpu6502 {
         N = (1 << 7), // Negative
     }
 
-    impl<'a> Cpu6502<'a> {
+    impl Cpu6502 {
         pub fn new() -> Self {
             Self {
-                bus: None,
                 a: 0,
                 x: 0,
                 y: 0,
@@ -352,23 +352,13 @@ pub mod cpu6502 {
                 ]
             }
         }
-
-        fn connect_bus(&mut self, bus: bus::Bus<'a>) {
-            self.bus = Some(bus);
-        }
     
-        fn read(&self, addr: u16) -> u8 {
-            if let Some(bus) = &self.bus {
-                bus.read(addr, false)
-            } else {
-                panic!("No bus connected");
-            }
+        pub fn read(&self, bus: &bus::Bus, addr: u16) -> u8 {
+            bus.read(addr, false)
         }
 
-        fn write(&mut self, addr: u16, data: u8) {
-            if let Some(bus) = &mut self.bus {
-                bus.write(addr, data);
-            }
+        pub fn write(&mut self, bus: &mut bus::Bus, addr: u16, data: u8) {
+            bus.write(addr, data);
         }
 
         fn get_flag(&self, f: Flags) -> u8 { todo!("get_flag") }
