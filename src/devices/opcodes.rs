@@ -56,7 +56,7 @@ impl Cpu6502<'_> {
     fn DEY(&mut self) -> u8 { todo!("DEY") }
     
     /// "Exclusive-OR" Memory with Accumulator
-    fn EOR(&mut self) -> u8 { todo!("EOR") }
+    pub fn EOR(&mut self) -> u8 { todo!("EOR") }
     
 	/// Increment Memory by One
     fn INC(&mut self) -> u8 { todo!("INC") }
@@ -66,7 +66,7 @@ impl Cpu6502<'_> {
     fn INY(&mut self) -> u8 { todo!("INY") }
     
     /// Jump to New Location
-    fn JMP(&mut self) -> u8 { todo!("JMP") }
+    pub fn JMP(&mut self) -> u8 { todo!("JMP") }
 	/// Jump to New Location Saving Return Address
     pub fn JSR(&mut self) -> u8 { todo!("JSR") }
     
@@ -77,7 +77,7 @@ impl Cpu6502<'_> {
     /// Load Index Y with Memory
     fn LDY(&mut self) -> u8 { todo!("LDY") }
 	/// Shift Right One Bit (Memory or Accumulator)
-    fn LSR(&mut self) -> u8 { todo!("LSR") }
+    pub fn LSR(&mut self) -> u8 { todo!("LSR") }
     
     /// No Operation
     pub fn NOP(&mut self) -> u8 { todo!("NOP") }
@@ -86,7 +86,7 @@ impl Cpu6502<'_> {
     pub fn ORA(&mut self) -> u8 { todo!("ORA") }
     
     /// Push Accumulator on Stack
-    fn PHA(&mut self) -> u8 { todo!("PHA") }
+    pub fn PHA(&mut self) -> u8 { todo!("PHA") }
 	/// Push Processor Status on Stack
     pub fn PHP(&mut self) -> u8 { todo!("PHP") }
     /// Pull Accumulator from Stack
@@ -99,7 +99,7 @@ impl Cpu6502<'_> {
 	/// Rotate One Bit Right (Memory or Accumulator)
     fn ROR(&mut self) -> u8 { todo!("ROR") }
     /// Return from Interrupt
-    fn RTI(&mut self) -> u8 { todo!("RTI") }
+    pub fn RTI(&mut self) -> u8 { todo!("RTI") }
     /// Return from Subroutine
     fn RTS(&mut self) -> u8 { todo!("RTS") }
     
