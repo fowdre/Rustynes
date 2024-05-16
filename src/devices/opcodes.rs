@@ -15,7 +15,7 @@ impl Cpu6502<'_> {
     /// Branch on Carry Clear
     pub fn BCC(&mut self) -> u8 { todo!("BCC") }
 	/// Branch on Carry Set
-    fn BCS(&mut self) -> u8 { todo!("BCS") }
+    pub fn BCS(&mut self) -> u8 { todo!("BCS") }
     /// Branch on Result Zero
     fn BEQ(&mut self) -> u8 { todo!("BEQ") }
     /// Test Bits in Memory with Accumulator
@@ -40,7 +40,7 @@ impl Cpu6502<'_> {
     /// Clear Interrupt Disable Bit
     pub fn CLI(&mut self) -> u8 { todo!("CLI") }
 	/// Clear Overflow Flag
-    fn CLV(&mut self) -> u8 { todo!("CLV") }
+    pub fn CLV(&mut self) -> u8 { todo!("CLV") }
     /// Compare Memory and Accumulator
     fn CMP(&mut self) -> u8 { todo!("CMP") }
     /// Compare Memory and Index X
@@ -123,7 +123,7 @@ impl Cpu6502<'_> {
     /// Transfer Accumulator to Index Y
     pub fn TAY(&mut self) -> u8 { todo!("TAY") }
 	/// Transfer Stack Pointer to Index X
-    fn TSX(&mut self) -> u8 { todo!("TSX") }
+    pub fn TSX(&mut self) -> u8 { todo!("TSX") }
     /// Transfer Index X to Accumulator
     pub fn TXA(&mut self) -> u8 { todo!("TXA") }
     /// Transfer Index X to Stack Pointer
