@@ -8,7 +8,15 @@ impl Cpu6502 {
     /// Add Memory to Accumulator with Carry
     pub fn ADC(&mut self, _bus: &mut Bus) -> u8 { todo!("ADC") }
     /// "AND" Memory with Accumulator
-    pub fn AND(&mut self, bus: &mut Bus) -> u8 { todo!("AND") }
+    pub fn AND(&mut self, bus: &mut Bus) -> u8 {
+        self.fetch(bus);
+        self.a &= self.fetched;
+        
+        self.set_flag(Flags::Z, self.a == 0x00);
+        self.set_flag(Flags::N, self.a & 0x80 == 1);
+        
+        1
+    }
     /// Shift Left One Bit (Memory or Accumulator)
     pub fn ASL(&mut self, _bus: &mut Bus) -> u8 { todo!("ASL") }
     
@@ -19,7 +27,17 @@ impl Cpu6502 {
     /// Branch on Result Zero
     pub fn BEQ(&mut self, _bus: &mut Bus) -> u8 { todo!("BEQ") }
     /// Test Bits in Memory with Accumulator
-    pub fn BIT(&mut self, _bus: &mut Bus) -> u8 { todo!("BIT") }
+    pub fn BIT(&mut self, _bus: &mut Bus) -> u8 {
+        self.fetch(_bus);
+        
+        let tmp: u16 = (self.a & self.fetched) as u16;
+        
+        self.set_flag(Flags::Z, (tmp & 0x00FF) == 0x00);
+        self.set_flag(Flags::N, self.fetched & (1 << 7) == 1);
+        self.set_flag(Flags::V, self.fetched & (1 << 6) == 1);
+        
+        0
+    }
     /// Branch on Result Minus
     pub fn BMI(&mut self, _bus: &mut Bus) -> u8 { todo!("BMI") }
 	/// Branch on Result not Zero
@@ -56,7 +74,15 @@ impl Cpu6502 {
     pub fn DEY(&mut self, _bus: &mut Bus) -> u8 { todo!("DEY") }
     
     /// "Exclusive-OR" Memory with Accumulator
-    pub fn EOR(&mut self, _bus: &mut Bus) -> u8 { todo!("EOR") }
+    pub fn EOR(&mut self, _bus: &mut Bus) -> u8 {
+        self.fetch(_bus);
+        self.a ^= self.fetched;
+        
+        self.set_flag(Flags::Z, self.a == 0x00);
+        self.set_flag(Flags::N, self.a & 0x80 == 1);
+        
+        1
+    }
     
 	/// Increment Memory by One
     pub fn INC(&mut self, _bus: &mut Bus) -> u8 { todo!("INC") }
@@ -107,7 +133,15 @@ impl Cpu6502 {
     pub fn NOP(&mut self, _bus: &mut Bus) -> u8 { todo!("NOP") }
     
     /// "OR" Memory with Accumulator
-    pub fn ORA(&mut self, _bus: &mut Bus) -> u8 { todo!("ORA") }
+    pub fn ORA(&mut self, _bus: &mut Bus) -> u8 {
+        self.fetch(_bus);
+        self.a |= self.fetched;
+        
+        self.set_flag(Flags::Z, self.a == 0x00);
+        self.set_flag(Flags::N, self.a & 0x80 == 1);
+        
+        1
+    }
     
     /// Push Accumulator on Stack
     pub fn PHA(&mut self, _bus: &mut Bus) -> u8 {
