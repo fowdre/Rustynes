@@ -189,13 +189,29 @@ impl Cpu6502 {
     }
     
     /// Clear Carry Flag
-    pub fn CLC(&mut self, _bus: &mut Bus) -> u8 { todo!("CLC") }
-    /// Clear Decimal Mode
-    pub fn CLD(&mut self, _bus: &mut Bus) -> u8 { todo!("CLD") }
-    /// Clear Interrupt Disable Bit
-    pub fn CLI(&mut self, _bus: &mut Bus) -> u8 { todo!("CLI") }
+    pub fn CLC(&mut self, _bus: &mut Bus) -> u8 {
+        self.set_flag(Flags::C, false);
+        
+        0
+    }
+    /// Clear Decimal Mode Flag
+    pub fn CLD(&mut self, _bus: &mut Bus) -> u8 {
+        self.set_flag(Flags::D, false);
+        
+        0
+    }
+    /// Clear Interrupt Disable Bit Flag
+    pub fn CLI(&mut self, _bus: &mut Bus) -> u8 {
+        self.set_flag(Flags::I, false);
+        
+        0
+    }
 	/// Clear Overflow Flag
-    pub fn CLV(&mut self, _bus: &mut Bus) -> u8 { todo!("CLV") }
+    pub fn CLV(&mut self, _bus: &mut Bus) -> u8 {
+        self.set_flag(Flags::V, false);
+        
+        0
+    }
     /// Compare Memory and Accumulator
     pub fn CMP(&mut self, _bus: &mut Bus) -> u8 {
         self.fetch(_bus);
@@ -498,11 +514,23 @@ impl Cpu6502 {
         1
     }
 	/// Set Carry Flag
-    pub fn SEC(&mut self, _bus: &mut Bus) -> u8 { todo!("SEC") }
+    pub fn SEC(&mut self, _bus: &mut Bus) -> u8 {
+        self.set_flag(Flags::C, true);
+        
+        0
+    }
     /// Set Decimal Mode
-    pub fn SED(&mut self, _bus: &mut Bus) -> u8 { todo!("SED") }
+    pub fn SED(&mut self, _bus: &mut Bus) -> u8 {
+        self.set_flag(Flags::D, true);
+        
+        0
+    }
     /// Set Interrupt Disable Status
-    pub fn SEI(&mut self, _bus: &mut Bus) -> u8 { todo!("SEI") }
+    pub fn SEI(&mut self, _bus: &mut Bus) -> u8 {
+        self.set_flag(Flags::I, true);
+        
+        0
+    }
     /// Store Accumulator in Memory
     pub fn STA(&mut self, _bus: &mut Bus) -> u8 {
         self.write(_bus, self.addr_abs, self.a);
