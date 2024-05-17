@@ -456,7 +456,28 @@ pub mod cpu6502 {
         }
 
         /// Non-maskable interrupt request signal
-        fn nmi(&self) { todo!("nmi"); }
+        fn nmi(&mut self, bus: &mut Bus) {
+            // Push PC to stack (16 bits to write)
+            self.write(bus, 0x0100 + self.sp as u16, ((self.pc >> 8) & 0x00FF) as u8);
+            self.sp = self.sp.wrapping_sub(1);
+            self.write(bus, 0x0100 + self.sp as u16, (self.pc & 0x00FF) as u8);
+            self.sp = self.sp.wrapping_sub(1);
+
+            // Push Flags to stack
+            self.set_flag(Flags::B, false);
+            self.set_flag(Flags::U, true);
+            self.set_flag(Flags::I, true);
+            self.write(bus, 0x0100 + self.sp as u16, self.status);
+            self.sp = self.sp.wrapping_sub(1);
+
+            // New PC address to handle the interrupt is 0xFFFA and 0xFFFB
+            let lo = self.read(bus, 0xFFFA) as u16;
+            let hi = self.read(bus, 0xFFFB) as u16;
+            self.pc = (hi << 8) | lo;
+
+            // Manually set cycles because non-maskable interrupt request takes time
+            self.cycles = 8;
+        }
 
     }
 }
