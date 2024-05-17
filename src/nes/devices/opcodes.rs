@@ -113,11 +113,35 @@ impl Cpu6502 {
     }
     
 	/// Decrement Memory by One
-    pub fn DEC(&mut self, _bus: &mut Bus) -> u8 { todo!("DEC") }
+    pub fn DEC(&mut self, _bus: &mut Bus) -> u8 {
+        self.fetch(_bus);
+        let tmp: u16 = self.fetched as u16 - 1;
+        
+        self.write(_bus, self.addr_abs, (tmp & 0x00FF) as u8);
+        
+        self.set_flag(Flags::Z, (tmp & 0x00FF) == 0x0000);
+        self.set_flag(Flags::N, tmp & 0x0080 == 1);
+        
+        0
+    }
     /// Decrement Index X by One
-    pub fn DEX(&mut self, _bus: &mut Bus) -> u8 { todo!("DEX") }
+    pub fn DEX(&mut self, _bus: &mut Bus) -> u8 {
+        self.x = self.x.wrapping_sub(1);
+        
+        self.set_flag(Flags::Z, self.x == 0x00);
+        self.set_flag(Flags::N, self.x & 0x80 == 1);
+        
+        0
+    }
     /// Decrement Index Y by One
-    pub fn DEY(&mut self, _bus: &mut Bus) -> u8 { todo!("DEY") }
+    pub fn DEY(&mut self, _bus: &mut Bus) -> u8 {
+        self.y = self.y.wrapping_sub(1);
+        
+        self.set_flag(Flags::Z, self.y == 0x00);
+        self.set_flag(Flags::N, self.y & 0x80 == 1);
+        
+        0
+    }
     
     /// "Exclusive-OR" Memory with Accumulator
     pub fn EOR(&mut self, _bus: &mut Bus) -> u8 {
@@ -131,11 +155,35 @@ impl Cpu6502 {
     }
     
 	/// Increment Memory by One
-    pub fn INC(&mut self, _bus: &mut Bus) -> u8 { todo!("INC") }
+    pub fn INC(&mut self, _bus: &mut Bus) -> u8 {
+        self.fetch(_bus);
+        let tmp: u16 = self.fetched as u16 + 1;
+        
+        self.write(_bus, self.addr_abs, (tmp & 0x00FF) as u8);
+        
+        self.set_flag(Flags::Z, (tmp & 0x00FF) == 0x0000);
+        self.set_flag(Flags::N, tmp & 0x0080 == 1);
+        
+        0
+    }
     /// Increment Index X by One
-    pub fn INX(&mut self, _bus: &mut Bus) -> u8 { todo!("INX") }
+    pub fn INX(&mut self, _bus: &mut Bus) -> u8 {
+        self.x = self.x.wrapping_add(1);
+        
+        self.set_flag(Flags::Z, self.x == 0x00);
+        self.set_flag(Flags::N, self.x & 0x80 == 1);
+        
+        0
+    }
     /// Increment Index Y by One
-    pub fn INY(&mut self, _bus: &mut Bus) -> u8 { todo!("INY") }
+    pub fn INY(&mut self, _bus: &mut Bus) -> u8 {
+        self.y = self.y.wrapping_add(1);
+        
+        self.set_flag(Flags::Z, self.y == 0x00);
+        self.set_flag(Flags::N, self.y & 0x80 == 1);
+        
+        0
+    }
     
     /// Jump to New Location
     pub fn JMP(&mut self, _bus: &mut Bus) -> u8 { todo!("JMP") }
