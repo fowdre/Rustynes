@@ -14,7 +14,7 @@ pub mod cpu6502 {
         pub pc: u16,
         pub status: u8,
         
-        opcode: u8,
+        pub opcode: u8,
         pub fetched: u8,
         /// Absolute address calculated from the addressing mode which will be
         /// used to read/write data during the instruction execution
@@ -23,7 +23,7 @@ pub mod cpu6502 {
         pub addr_rel: u16,
         pub cycles: u8,
 
-        lookup: [Instruction; 256],
+        pub lookup: [Instruction; 256],
     }
 
     #[derive(Debug)]
