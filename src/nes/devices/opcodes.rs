@@ -71,11 +71,35 @@ impl Cpu6502 {
     pub fn JSR(&mut self, _bus: &mut Bus) -> u8 { todo!("JSR") }
     
     /// Load Accumulator with Memory
-    pub fn LDA(&mut self, _bus: &mut Bus) -> u8 { todo!("LDA") }
+    pub fn LDA(&mut self, _bus: &mut Bus) -> u8 {
+        self.fetch(_bus);
+        self.a = self.fetched;
+        
+        self.set_flag(Flags::Z, self.a == 0x00);
+        self.set_flag(Flags::N, self.a & 0x80 == 1);
+        
+        1
+    }
     /// Load Index X with Memory
-    pub fn LDX(&mut self, _bus: &mut Bus) -> u8 { todo!("LDX") }
+    pub fn LDX(&mut self, _bus: &mut Bus) -> u8 {
+        self.fetch(_bus);
+        self.x = self.fetched;
+        
+        self.set_flag(Flags::Z, self.x == 0x00);
+        self.set_flag(Flags::N, self.x & 0x80 == 1);
+        
+        1
+    }
     /// Load Index Y with Memory
-    pub fn LDY(&mut self, _bus: &mut Bus) -> u8 { todo!("LDY") }
+    pub fn LDY(&mut self, _bus: &mut Bus) -> u8 {
+        self.fetch(_bus);
+        self.y = self.fetched;
+        
+        self.set_flag(Flags::Z, self.y == 0x00);
+        self.set_flag(Flags::N, self.y & 0x80 == 1);
+        
+        1
+    }
 	/// Shift Right One Bit (Memory or Accumulator)
     pub fn LSR(&mut self, _bus: &mut Bus) -> u8 { todo!("LSR") }
     
@@ -112,11 +136,23 @@ impl Cpu6502 {
     /// Set Interrupt Disable Status
     pub fn SEI(&mut self, _bus: &mut Bus) -> u8 { todo!("SEI") }
     /// Store Accumulator in Memory
-    pub fn STA(&mut self, _bus: &mut Bus) -> u8 { todo!("STA") }
+    pub fn STA(&mut self, _bus: &mut Bus) -> u8 {
+        self.write(_bus, self.addr_abs, self.a);
+        
+        0
+    }
 	/// Store Index X in Memory
-    pub fn STX(&mut self, _bus: &mut Bus) -> u8 { todo!("STX") }
+    pub fn STX(&mut self, _bus: &mut Bus) -> u8 {
+        self.write(_bus, self.addr_abs, self.x);
+        
+        0
+    }
     /// Store Index Y in Memory
-    pub fn STY(&mut self, _bus: &mut Bus) -> u8 { todo!("STY") }
+    pub fn STY(&mut self, _bus: &mut Bus) -> u8 {
+        self.write(_bus, self.addr_abs, self.y);
+        
+        0
+    }
     
     /// Transfer Accumulator to Index X
     pub fn TAX(&mut self, _bus: &mut Bus) -> u8 { todo!("TAX") }
