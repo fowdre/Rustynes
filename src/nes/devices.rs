@@ -405,26 +405,55 @@ pub mod cpu6502 {
 
         /// Reset signal
         fn reset(&mut self, bus: &mut Bus) {
+            // Reset registers
             self.a = 0;
             self.x = 0;
             self.y = 0;
+            // Reset SP
             self.sp = 0xFD;
             
+            // Reset PC address is hardcoded at 0xFFFC and 0xFFFD
             let lo = self.read(bus, 0xFFFC) as u16;
             let hi = self.read(bus, 0xFFFD) as u16;
             self.pc = (hi << 8) | lo;
             
+            // Reset Flags
             self.status = 0x00 | Flags::U as u8;
 
+            // Reset custom variables
             self.fetched = 0;
             self.addr_abs = 0;
             self.addr_rel = 0;
 
+            // Manually set cycles because reset takes time
             self.cycles = 8;
         }
 
         /// Interrupt request signal
-        fn irq(&self) { todo!("irq"); }
+        fn irq(&mut self, bus: &mut Bus) {
+            if !self.get_flag(Flags::I) {
+                // Push PC to stack (16 bits to write)
+                self.write(bus, 0x0100 + self.sp as u16, ((self.pc >> 8) & 0x00FF) as u8);
+                self.sp = self.sp.wrapping_sub(1);
+                self.write(bus, 0x0100 + self.sp as u16, (self.pc & 0x00FF) as u8);
+                self.sp = self.sp.wrapping_sub(1);
+
+                // Push Flags to stack
+                self.set_flag(Flags::B, false);
+                self.set_flag(Flags::U, true);
+                self.set_flag(Flags::I, true);
+                self.write(bus, 0x0100 + self.sp as u16, self.status);
+                self.sp = self.sp.wrapping_sub(1);
+
+                // New PC address to handle the interrupt is 0xFFFE and 0xFFFF
+                let lo = self.read(bus, 0xFFFE) as u16;
+                let hi = self.read(bus, 0xFFFF) as u16;
+                self.pc = (hi << 8) | lo;
+
+                // Manually set cycles because interrupt request takes time
+                self.cycles = 7;
+            }
+        }
 
         /// Non-maskable interrupt request signal
         fn nmi(&self) { todo!("nmi"); }
