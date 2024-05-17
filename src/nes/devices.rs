@@ -382,7 +382,8 @@ pub mod cpu6502 {
         }
 
         pub fn fetch(&mut self, bus: &Bus) -> u8 {
-            if self.lookup[self.opcode as usize].addr_mode != Self::addr_IMP {
+            if (self.lookup[self.opcode as usize].addr_mode != Self::addr_ACC)
+            || (self.lookup[self.opcode as usize].addr_mode != Self::addr_IMP) {
                 self.fetched = self.read(bus, self.addr_abs);
             }
             self.fetched
