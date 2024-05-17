@@ -365,7 +365,12 @@ pub mod cpu6502 {
         
         fn set_flag(&self, f: Flags, v: bool) { todo!("set_flag") }
 
-        fn fetch(&mut self) { todo!("fetch"); }
+        fn fetch(&mut self, bus: &Bus) -> u8 {
+            if self.lookup[self.opcode as usize].addr_mode != Self::addr_IMP {
+                self.fetched = self.read(bus, self.addr_abs);
+            }
+            self.fetched
+        }
 
         /// Handle clock cycles
         pub fn clock(&mut self, bus: &Bus) {
