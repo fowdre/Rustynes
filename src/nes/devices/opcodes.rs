@@ -2,8 +2,10 @@ use super::super::{Flags, Cpu6502, Bus};
 
 #[allow(non_snake_case)]
 impl Cpu6502 {
-    /// Unofficial opcode
-    pub fn xxx(&mut self, _bus: &mut Bus) -> u8 { todo!("Unofficial opcode") }
+    /// Illegal opcode
+    pub fn xxx(&mut self, _bus: &mut Bus) -> u8 {
+        0
+    }
 
     /// Add Memory to Accumulator with Carry
     pub fn ADC(&mut self, _bus: &mut Bus) -> u8 {
@@ -156,7 +158,24 @@ impl Cpu6502 {
         0
     }
     /// Force Break
-    pub fn BRK(&mut self, _bus: &mut Bus) -> u8 { todo!("BRK") }
+    pub fn BRK(&mut self, _bus: &mut Bus) -> u8 {
+        self.pc = self.pc.wrapping_add(1);
+        
+        self.set_flag(Flags::I, true);
+        self.write(_bus, 0x0100 + self.sp as u16, ((self.pc >> 8) & 0x00FF) as u8);
+        self.sp = self.sp.wrapping_sub(1);
+        self.write(_bus, 0x0100 + self.sp as u16, (self.pc & 0x00FF) as u8);
+        self.sp = self.sp.wrapping_sub(1);
+        
+        self.set_flag(Flags::B, true);
+        self.write(_bus, 0x0100 + self.sp as u16, self.status);
+        self.sp = self.sp.wrapping_sub(1);
+        self.set_flag(Flags::B, false);
+        
+        self.pc = self.read(_bus, 0xFFFE) as u16 | ((self.read(_bus, 0xFFFF) as u16) << 8);
+        
+        0
+    }
     /// Branch on Overflow Clear
     pub fn BVC(&mut self, _bus: &mut Bus) -> u8 {
         if !self.get_flag(Flags::V) {
@@ -393,7 +412,12 @@ impl Cpu6502 {
     }
     
     /// No Operation
-    pub fn NOP(&mut self, _bus: &mut Bus) -> u8 { todo!("NOP") }
+    pub fn NOP(&mut self, _bus: &mut Bus) -> u8 {
+        match self.opcode {
+            0x1C | 0x3C | 0x5C | 0x7C | 0xDC | 0xFC => 1,
+            _ => 0,
+        }
+    }
     
     /// "OR" Memory with Accumulator
     pub fn ORA(&mut self, _bus: &mut Bus) -> u8 {
@@ -479,7 +503,19 @@ impl Cpu6502 {
         0
     }
     /// Return from Interrupt
-    pub fn RTI(&mut self, _bus: &mut Bus) -> u8 { todo!("RTI") }
+    pub fn RTI(&mut self, _bus: &mut Bus) -> u8 {
+        self.sp = self.sp.wrapping_add(1);
+        self.status = self.read(_bus, 0x0100 + self.sp as u16);
+        self.status &= !(Flags::B as u8);
+        self.status &= !(Flags::U as u8);
+        
+        self.sp = self.sp.wrapping_add(1);
+        self.pc = self.read(_bus, 0x0100 + self.sp as u16) as u16;
+        self.sp = self.sp.wrapping_add(1);
+        self.pc |= (self.read(_bus, 0x0100 + self.sp as u16) as u16) << 8;
+        
+        0
+    }
     /// Return from Subroutine
     pub fn RTS(&mut self, _bus: &mut Bus) -> u8 {
         self.sp = self.sp.wrapping_add(1);
