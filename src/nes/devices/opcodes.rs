@@ -8,8 +8,8 @@ impl Cpu6502 {
     }
 
     /// Add Memory to Accumulator with Carry
-    pub fn ADC(&mut self, _bus: &mut Bus) -> u8 {
-        self.fetch(_bus);
+    pub fn ADC(&mut self, bus: &mut Bus) -> u8 {
+        self.fetch(bus);
 
         let (tmp, has_overflowed1): (u16, bool) = (self.a as u16).overflowing_add(self.fetched as u16);
         let (tmp, has_overflowed2): (u16, bool) = tmp.overflowing_add(self.get_flag(Flags::C) as u16);
@@ -36,8 +36,8 @@ impl Cpu6502 {
         1
     }
     /// Shift Left One Bit (Memory or Accumulator)
-    pub fn ASL(&mut self, _bus: &mut Bus) -> u8 { 
-        self.fetch(_bus);
+    pub fn ASL(&mut self, bus: &mut Bus) -> u8 { 
+        self.fetch(bus);
         
         let tmp: u16 = (self.fetched as u16) << 1;
         
@@ -49,7 +49,7 @@ impl Cpu6502 {
         || (self.lookup[self.opcode as usize].addr_mode == Cpu6502::addr_IMP) {
             self.a = (tmp & 0x00FF) as u8;
         } else {
-            self.write(_bus, self.addr_abs, (tmp & 0x00FF) as u8);
+            self.write(bus, self.addr_abs, (tmp & 0x00FF) as u8);
         }
         
         0
@@ -101,8 +101,8 @@ impl Cpu6502 {
         0
     }
     /// Test Bits in Memory with Accumulator
-    pub fn BIT(&mut self, _bus: &mut Bus) -> u8 {
-        self.fetch(_bus);
+    pub fn BIT(&mut self, bus: &mut Bus) -> u8 {
+        self.fetch(bus);
         
         let tmp: u16 = (self.a & self.fetched) as u16;
         
@@ -158,21 +158,21 @@ impl Cpu6502 {
         0
     }
     /// Force Break
-    pub fn BRK(&mut self, _bus: &mut Bus) -> u8 {
+    pub fn BRK(&mut self, bus: &mut Bus) -> u8 {
         self.pc = self.pc.wrapping_add(1);
         
         self.set_flag(Flags::I, true);
-        self.write(_bus, 0x0100 + self.sp as u16, ((self.pc >> 8) & 0x00FF) as u8);
+        self.write(bus, 0x0100 + self.sp as u16, ((self.pc >> 8) & 0x00FF) as u8);
         self.sp = self.sp.wrapping_sub(1);
-        self.write(_bus, 0x0100 + self.sp as u16, (self.pc & 0x00FF) as u8);
+        self.write(bus, 0x0100 + self.sp as u16, (self.pc & 0x00FF) as u8);
         self.sp = self.sp.wrapping_sub(1);
         
         self.set_flag(Flags::B, true);
-        self.write(_bus, 0x0100 + self.sp as u16, self.status);
+        self.write(bus, 0x0100 + self.sp as u16, self.status);
         self.sp = self.sp.wrapping_sub(1);
         self.set_flag(Flags::B, false);
         
-        self.pc = self.read(_bus, 0xFFFE) as u16 | ((self.read(_bus, 0xFFFF) as u16) << 8);
+        self.pc = self.read(bus, 0xFFFE) as u16 | ((self.read(bus, 0xFFFF) as u16) << 8);
         
         0
     }
@@ -232,8 +232,8 @@ impl Cpu6502 {
         0
     }
     /// Compare Memory and Accumulator
-    pub fn CMP(&mut self, _bus: &mut Bus) -> u8 {
-        self.fetch(_bus);
+    pub fn CMP(&mut self, bus: &mut Bus) -> u8 {
+        self.fetch(bus);
         
         let tmp: u16 = (self.a as u16).wrapping_sub(self.fetched as u16);
         
@@ -244,8 +244,8 @@ impl Cpu6502 {
         1
     }
     /// Compare Memory and Index X
-    pub fn CPX(&mut self, _bus: &mut Bus) -> u8 {
-        self.fetch(_bus);
+    pub fn CPX(&mut self, bus: &mut Bus) -> u8 {
+        self.fetch(bus);
         
         let tmp: u16 = (self.x as u16).wrapping_sub(self.fetched as u16);
         
@@ -256,8 +256,8 @@ impl Cpu6502 {
         1
     }
     /// Compare Memory and Index Y
-    pub fn CPY(&mut self, _bus: &mut Bus) -> u8 {
-        self.fetch(_bus);
+    pub fn CPY(&mut self, bus: &mut Bus) -> u8 {
+        self.fetch(bus);
         
         let tmp: u16 = (self.y as u16).wrapping_sub(self.fetched as u16);
         
@@ -269,11 +269,11 @@ impl Cpu6502 {
     }
     
 	/// Decrement Memory by One
-    pub fn DEC(&mut self, _bus: &mut Bus) -> u8 {
-        self.fetch(_bus);
+    pub fn DEC(&mut self, bus: &mut Bus) -> u8 {
+        self.fetch(bus);
         let tmp: u16 = self.fetched as u16 - 1;
         
-        self.write(_bus, self.addr_abs, (tmp & 0x00FF) as u8);
+        self.write(bus, self.addr_abs, (tmp & 0x00FF) as u8);
         
         self.set_flag(Flags::Z, (tmp & 0x00FF) == 0x0000);
         self.set_flag(Flags::N, tmp & 0x0080 == 1);
@@ -300,8 +300,8 @@ impl Cpu6502 {
     }
     
     /// "Exclusive-OR" Memory with Accumulator
-    pub fn EOR(&mut self, _bus: &mut Bus) -> u8 {
-        self.fetch(_bus);
+    pub fn EOR(&mut self, bus: &mut Bus) -> u8 {
+        self.fetch(bus);
         self.a ^= self.fetched;
         
         self.set_flag(Flags::Z, self.a == 0x00);
@@ -311,11 +311,11 @@ impl Cpu6502 {
     }
     
 	/// Increment Memory by One
-    pub fn INC(&mut self, _bus: &mut Bus) -> u8 {
-        self.fetch(_bus);
+    pub fn INC(&mut self, bus: &mut Bus) -> u8 {
+        self.fetch(bus);
         let tmp: u16 = self.fetched as u16 + 1;
         
-        self.write(_bus, self.addr_abs, (tmp & 0x00FF) as u8);
+        self.write(bus, self.addr_abs, (tmp & 0x00FF) as u8);
         
         self.set_flag(Flags::Z, (tmp & 0x00FF) == 0x0000);
         self.set_flag(Flags::N, tmp & 0x0080 == 1);
@@ -348,12 +348,12 @@ impl Cpu6502 {
         0
     }
 	/// Jump to New Location Saving Return Address
-    pub fn JSR(&mut self, _bus: &mut Bus) -> u8 {
+    pub fn JSR(&mut self, bus: &mut Bus) -> u8 {
         self.pc = self.pc.wrapping_sub(1);
         
-        self.write(_bus, 0x0100 + self.sp as u16, ((self.pc >> 8) & 0x00FF) as u8);
+        self.write(bus, 0x0100 + self.sp as u16, ((self.pc >> 8) & 0x00FF) as u8);
         self.sp = self.sp.wrapping_sub(1);
-        self.write(_bus, 0x0100 + self.sp as u16, (self.pc & 0x00FF) as u8);
+        self.write(bus, 0x0100 + self.sp as u16, (self.pc & 0x00FF) as u8);
         self.sp = self.sp.wrapping_sub(1);
         
         self.pc = self.addr_abs;
@@ -362,8 +362,8 @@ impl Cpu6502 {
     }
     
     /// Load Accumulator with Memory
-    pub fn LDA(&mut self, _bus: &mut Bus) -> u8 {
-        self.fetch(_bus);
+    pub fn LDA(&mut self, bus: &mut Bus) -> u8 {
+        self.fetch(bus);
         self.a = self.fetched;
         
         self.set_flag(Flags::Z, self.a == 0x00);
@@ -372,8 +372,8 @@ impl Cpu6502 {
         1
     }
     /// Load Index X with Memory
-    pub fn LDX(&mut self, _bus: &mut Bus) -> u8 {
-        self.fetch(_bus);
+    pub fn LDX(&mut self, bus: &mut Bus) -> u8 {
+        self.fetch(bus);
         self.x = self.fetched;
         
         self.set_flag(Flags::Z, self.x == 0x00);
@@ -382,8 +382,8 @@ impl Cpu6502 {
         1
     }
     /// Load Index Y with Memory
-    pub fn LDY(&mut self, _bus: &mut Bus) -> u8 {
-        self.fetch(_bus);
+    pub fn LDY(&mut self, bus: &mut Bus) -> u8 {
+        self.fetch(bus);
         self.y = self.fetched;
         
         self.set_flag(Flags::Z, self.y == 0x00);
@@ -392,8 +392,8 @@ impl Cpu6502 {
         1
     }
 	/// Shift Right One Bit (Memory or Accumulator)
-    pub fn LSR(&mut self, _bus: &mut Bus) -> u8 {
-        self.fetch(_bus);
+    pub fn LSR(&mut self, bus: &mut Bus) -> u8 {
+        self.fetch(bus);
         
         let tmp: u16 = (self.fetched as u16) >> 1;
         
@@ -405,7 +405,7 @@ impl Cpu6502 {
         || (self.lookup[self.opcode as usize].addr_mode == Cpu6502::addr_IMP) {
             self.a = (tmp & 0x00FF) as u8;
         } else {
-            self.write(_bus, self.addr_abs, (tmp & 0x00FF) as u8);
+            self.write(bus, self.addr_abs, (tmp & 0x00FF) as u8);
         }
         
         0
@@ -420,8 +420,8 @@ impl Cpu6502 {
     }
     
     /// "OR" Memory with Accumulator
-    pub fn ORA(&mut self, _bus: &mut Bus) -> u8 {
-        self.fetch(_bus);
+    pub fn ORA(&mut self, bus: &mut Bus) -> u8 {
+        self.fetch(bus);
         self.a |= self.fetched;
         
         self.set_flag(Flags::Z, self.a == 0x00);
@@ -431,24 +431,24 @@ impl Cpu6502 {
     }
     
     /// Push Accumulator on Stack
-    pub fn PHA(&mut self, _bus: &mut Bus) -> u8 {
-        self.write(_bus, 0x0100 + self.sp as u16, self.a);
+    pub fn PHA(&mut self, bus: &mut Bus) -> u8 {
+        self.write(bus, 0x0100 + self.sp as u16, self.a);
         self.sp = self.sp.wrapping_sub(1);
         
         0
     }
 	/// Push Processor Status on Stack
-    pub fn PHP(&mut self, _bus: &mut Bus) -> u8 {
-        self.write(_bus, 0x0100 + self.sp as u16, self.status | Flags::B as u8 | Flags::U as u8);
+    pub fn PHP(&mut self, bus: &mut Bus) -> u8 {
+        self.write(bus, 0x0100 + self.sp as u16, self.status | Flags::B as u8 | Flags::U as u8);
         self.set_flag(Flags::B, false);
         self.set_flag(Flags::U, false);
         
         0
     }
     /// Pull Accumulator from Stack
-    pub fn PLA(&mut self, _bus: &mut Bus) -> u8 {
+    pub fn PLA(&mut self, bus: &mut Bus) -> u8 {
         self.sp = self.sp.wrapping_add(1);
-        self.a = self.read(_bus, 0x0100 + self.sp as u16);
+        self.a = self.read(bus, 0x0100 + self.sp as u16);
         
         self.set_flag(Flags::Z, self.a == 0x00);
         self.set_flag(Flags::N, (self.a & 0x80) == 1);
@@ -456,17 +456,17 @@ impl Cpu6502 {
         0
     }
     /// Pull Processor Status from Stack
-    pub fn PLP(&mut self, _bus: &mut Bus) -> u8 {
+    pub fn PLP(&mut self, bus: &mut Bus) -> u8 {
         self.sp = self.sp.wrapping_add(1);
-        self.status = self.read(_bus, 0x0100 + self.sp as u16);
+        self.status = self.read(bus, 0x0100 + self.sp as u16);
         self.set_flag(Flags::U, true);
         
         0
     }
     
     /// Rotate One Bit Left (Memory or Accumulator)
-    pub fn ROL(&mut self, _bus: &mut Bus) -> u8 {
-        self.fetch(_bus);
+    pub fn ROL(&mut self, bus: &mut Bus) -> u8 {
+        self.fetch(bus);
         
         let tmp: u16 = (self.fetched as u16) << 1 | self.get_flag(Flags::C) as u16;
         
@@ -478,14 +478,14 @@ impl Cpu6502 {
         || (self.lookup[self.opcode as usize].addr_mode == Cpu6502::addr_IMP) {
             self.a = (tmp & 0x00FF) as u8;
         } else {
-            self.write(_bus, self.addr_abs, (tmp & 0x00FF) as u8);
+            self.write(bus, self.addr_abs, (tmp & 0x00FF) as u8);
         }
         
         0
     }
 	/// Rotate One Bit Right (Memory or Accumulator)
-    pub fn ROR(&mut self, _bus: &mut Bus) -> u8 {
-        self.fetch(_bus);
+    pub fn ROR(&mut self, bus: &mut Bus) -> u8 {
+        self.fetch(bus);
         
         let tmp: u16 = (self.get_flag(Flags::C) as u16) << 7 | (self.fetched as u16) >> 1;
         
@@ -497,31 +497,31 @@ impl Cpu6502 {
         || (self.lookup[self.opcode as usize].addr_mode == Cpu6502::addr_IMP) {
             self.a = (tmp & 0x00FF) as u8;
         } else {
-            self.write(_bus, self.addr_abs, (tmp & 0x00FF) as u8);
+            self.write(bus, self.addr_abs, (tmp & 0x00FF) as u8);
         }
         
         0
     }
     /// Return from Interrupt
-    pub fn RTI(&mut self, _bus: &mut Bus) -> u8 {
+    pub fn RTI(&mut self, bus: &mut Bus) -> u8 {
         self.sp = self.sp.wrapping_add(1);
-        self.status = self.read(_bus, 0x0100 + self.sp as u16);
+        self.status = self.read(bus, 0x0100 + self.sp as u16);
         self.status &= !(Flags::B as u8);
         self.status &= !(Flags::U as u8);
         
         self.sp = self.sp.wrapping_add(1);
-        self.pc = self.read(_bus, 0x0100 + self.sp as u16) as u16;
+        self.pc = self.read(bus, 0x0100 + self.sp as u16) as u16;
         self.sp = self.sp.wrapping_add(1);
-        self.pc |= (self.read(_bus, 0x0100 + self.sp as u16) as u16) << 8;
+        self.pc |= (self.read(bus, 0x0100 + self.sp as u16) as u16) << 8;
         
         0
     }
     /// Return from Subroutine
-    pub fn RTS(&mut self, _bus: &mut Bus) -> u8 {
+    pub fn RTS(&mut self, bus: &mut Bus) -> u8 {
         self.sp = self.sp.wrapping_add(1);
-        self.pc = self.read(_bus, 0x0100 + self.sp as u16) as u16;
+        self.pc = self.read(bus, 0x0100 + self.sp as u16) as u16;
         self.sp = self.sp.wrapping_add(1);
-        self.pc |= (self.read(_bus, 0x0100 + self.sp as u16) as u16) << 8;
+        self.pc |= (self.read(bus, 0x0100 + self.sp as u16) as u16) << 8;
         
         self.pc = self.pc.wrapping_add(1);
         
@@ -529,8 +529,8 @@ impl Cpu6502 {
     }
     
     /// Subtract Memory from Accumulator with Borrow
-    pub fn SBC(&mut self, _bus: &mut Bus) -> u8 {
-        self.fetch(_bus);
+    pub fn SBC(&mut self, bus: &mut Bus) -> u8 {
+        self.fetch(bus);
         
         // Use two's complement to treat subtraction as addition
         let value: u16 = (self.fetched ^ 0x00FF) as u16;
@@ -568,20 +568,20 @@ impl Cpu6502 {
         0
     }
     /// Store Accumulator in Memory
-    pub fn STA(&mut self, _bus: &mut Bus) -> u8 {
-        self.write(_bus, self.addr_abs, self.a);
+    pub fn STA(&mut self, bus: &mut Bus) -> u8 {
+        self.write(bus, self.addr_abs, self.a);
         
         0
     }
 	/// Store Index X in Memory
-    pub fn STX(&mut self, _bus: &mut Bus) -> u8 {
-        self.write(_bus, self.addr_abs, self.x);
+    pub fn STX(&mut self, bus: &mut Bus) -> u8 {
+        self.write(bus, self.addr_abs, self.x);
         
         0
     }
     /// Store Index Y in Memory
-    pub fn STY(&mut self, _bus: &mut Bus) -> u8 {
-        self.write(_bus, self.addr_abs, self.y);
+    pub fn STY(&mut self, bus: &mut Bus) -> u8 {
+        self.write(bus, self.addr_abs, self.y);
         
         0
     }

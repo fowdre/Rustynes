@@ -20,10 +20,12 @@ impl NES {
         }
     }
     
+    #[allow(dead_code)]
     pub fn cpu_read(&self, addr: u16) -> u8 {
         self.cpu.read(&self.bus, addr)
     }
 
+    #[allow(dead_code)]
     pub fn cpu_write(&mut self, addr: u16, data: u8) {
         self.cpu.write(&mut self.bus, addr, data);
     }

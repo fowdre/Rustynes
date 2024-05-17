@@ -4,7 +4,7 @@ pub struct Bus {
 }
 
 impl Bus {
-    pub fn read(&self, addr: u16, read_only: bool) -> u8 {
+    pub fn read(&self, addr: u16, _read_only: bool) -> u8 {
         if addr >= (0x0000 as u16) && addr <= (0xFFFF as u16) {
             return self.ram[addr as usize]
         }
