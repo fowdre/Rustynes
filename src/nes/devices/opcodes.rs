@@ -110,13 +110,38 @@ impl Cpu6502 {
     pub fn ORA(&mut self, _bus: &mut Bus) -> u8 { todo!("ORA") }
     
     /// Push Accumulator on Stack
-    pub fn PHA(&mut self, _bus: &mut Bus) -> u8 { todo!("PHA") }
+    pub fn PHA(&mut self, _bus: &mut Bus) -> u8 {
+        self.write(_bus, 0x0100 + self.sp as u16, self.a);
+        self.sp = self.sp.wrapping_sub(1);
+        
+        0
+    }
 	/// Push Processor Status on Stack
-    pub fn PHP(&mut self, _bus: &mut Bus) -> u8 { todo!("PHP") }
+    pub fn PHP(&mut self, _bus: &mut Bus) -> u8 {
+        self.write(_bus, 0x0100 + self.sp as u16, self.status | Flags::B as u8 | Flags::U as u8);
+        self.set_flag(Flags::B, false);
+        self.set_flag(Flags::U, false);
+        
+        0
+    }
     /// Pull Accumulator from Stack
-    pub fn PLA(&mut self, _bus: &mut Bus) -> u8 { todo!("PLA") }
+    pub fn PLA(&mut self, _bus: &mut Bus) -> u8 {
+        self.sp = self.sp.wrapping_add(1);
+        self.a = self.read(_bus, 0x0100 + self.sp as u16);
+        
+        self.set_flag(Flags::Z, self.a == 0x00);
+        self.set_flag(Flags::N, (self.a & 0x80) == 1);
+        
+        0
+    }
     /// Pull Processor Status from Stack
-    pub fn PLP(&mut self, _bus: &mut Bus) -> u8 { todo!("PLP") }
+    pub fn PLP(&mut self, _bus: &mut Bus) -> u8 {
+        self.sp = self.sp.wrapping_add(1);
+        self.status = self.read(_bus, 0x0100 + self.sp as u16);
+        self.set_flag(Flags::U, true);
+        
+        0
+    }
     
     /// Rotate One Bit Left (Memory or Accumulator)
     pub fn ROL(&mut self, _bus: &mut Bus) -> u8 { todo!("ROL") }
@@ -173,7 +198,14 @@ impl Cpu6502 {
         0
     }
 	/// Transfer Stack Pointer to Index X
-    pub fn TSX(&mut self, _bus: &mut Bus) -> u8 { todo!("TSX") }
+    pub fn TSX(&mut self, _bus: &mut Bus) -> u8 {
+        self.x = self.sp;
+        
+        self.set_flag(Flags::Z, self.x == 0x00);
+        self.set_flag(Flags::N, self.x & 0x80 == 1);
+        
+        0
+    }
     /// Transfer Index X to Accumulator
     pub fn TXA(&mut self, _bus: &mut Bus) -> u8 {
         self.a = self.x;
@@ -184,7 +216,11 @@ impl Cpu6502 {
         0
     }
     /// Transfer Index X to Stack Pointer
-    pub fn TXS(&mut self, _bus: &mut Bus) -> u8 { todo!("TXS") }
+    pub fn TXS(&mut self, _bus: &mut Bus) -> u8 {
+        self.sp = self.x;
+        
+        0
+    }
     /// Transfer Index Y to Accumulator
     pub fn TYA(&mut self, _bus: &mut Bus) -> u8 {
         self.a = self.y;

@@ -10,9 +10,9 @@ pub mod cpu6502 {
         pub a: u8,
         pub x: u8,
         pub y: u8,
-        sp: u8,
+        pub sp: u8,
         pub pc: u16,
-        status: u8,
+        pub status: u8,
         
         opcode: u8,
         pub fetched: u8,
@@ -35,14 +35,22 @@ pub mod cpu6502 {
     }
 
     pub enum Flags {
-        C = (1 << 0), // Carry
-        Z = (1 << 1), // Zero
-        I = (1 << 2), // Interrupt Disable
-        D = (1 << 3), // Decimal
+        /// Carry
+        C = (1 << 0),
+        /// Zero
+        Z = (1 << 1),
+        /// Interrupt Disable
+        I = (1 << 2),
+        /// Decimal Mode
+        D = (1 << 3),
+        /// Break Command
         B = (1 << 4),
+        /// Unused
         U = (1 << 5),
-        V = (1 << 6), // Overflow
-        N = (1 << 7), // Negative
+        /// Overflow
+        V = (1 << 6),
+        /// Negative
+        N = (1 << 7),
     }
 
     impl Cpu6502 {
