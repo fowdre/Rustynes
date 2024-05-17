@@ -31,7 +31,7 @@ pub mod cpu6502 {
         pub name: &'static str,
         pub cycles: u8,
         pub addr_mode: fn(&mut Cpu6502, &Bus) -> u8,
-        pub operate: fn(&mut Cpu6502, &Bus) -> u8,
+        pub operate: fn(&mut Cpu6502, &mut Bus) -> u8,
     }
 
     pub enum Flags {
@@ -381,7 +381,7 @@ pub mod cpu6502 {
         }
 
         /// Handle clock cycles
-        pub fn clock(&mut self, bus: &Bus) {
+        pub fn clock(&mut self, bus: &mut Bus) {
             if self.cycles == 0 {
                 self.opcode = self.read(bus, self.pc);
                 self.pc = self.pc.wrapping_add(1);
