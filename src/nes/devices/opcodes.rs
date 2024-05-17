@@ -6,7 +6,23 @@ impl Cpu6502 {
     pub fn xxx(&mut self, _bus: &mut Bus) -> u8 { todo!("Unofficial opcode") }
 
     /// Add Memory to Accumulator with Carry
-    pub fn ADC(&mut self, _bus: &mut Bus) -> u8 { todo!("ADC") }
+    pub fn ADC(&mut self, _bus: &mut Bus) -> u8 {
+        self.fetch(_bus);
+
+        let (tmp, has_overflowed1): (u16, bool) = (self.a as u16).overflowing_add(self.fetched as u16);
+        let (tmp, has_overflowed2): (u16, bool) = tmp.overflowing_add(self.get_flag(Flags::C) as u16);
+
+        // Set Carry Flag if overflowed
+        self.set_flag(Flags::C, tmp > 255);
+        self.set_flag(Flags::Z, (tmp & 0x00FF) == 0);
+        self.set_flag(Flags::N, tmp & 0x80 == 1);
+        // Set Overflow Flag if any of the additions overflowed
+        self.set_flag(Flags::V, has_overflowed1 || has_overflowed2);
+        
+        self.a = (tmp & 0x00FF) as u8;
+        
+        1
+    }
     /// "AND" Memory with Accumulator
     pub fn AND(&mut self, bus: &mut Bus) -> u8 {
         self.fetch(bus);
@@ -60,11 +76,41 @@ impl Cpu6502 {
 	/// Clear Overflow Flag
     pub fn CLV(&mut self, _bus: &mut Bus) -> u8 { todo!("CLV") }
     /// Compare Memory and Accumulator
-    pub fn CMP(&mut self, _bus: &mut Bus) -> u8 { todo!("CMP") }
+    pub fn CMP(&mut self, _bus: &mut Bus) -> u8 {
+        self.fetch(_bus);
+        
+        let tmp: u16 = (self.a as u16).wrapping_sub(self.fetched as u16);
+        
+        self.set_flag(Flags::C, self.a >= self.fetched);
+        self.set_flag(Flags::Z, (tmp & 0x00FF) == 0x0000);
+        self.set_flag(Flags::N, tmp & 0x0080 == 1);
+        
+        1
+    }
     /// Compare Memory and Index X
-    pub fn CPX(&mut self, _bus: &mut Bus) -> u8 { todo!("CPX") }
+    pub fn CPX(&mut self, _bus: &mut Bus) -> u8 {
+        self.fetch(_bus);
+        
+        let tmp: u16 = (self.x as u16).wrapping_sub(self.fetched as u16);
+        
+        self.set_flag(Flags::C, self.x >= self.fetched);
+        self.set_flag(Flags::Z, (tmp & 0x00FF) == 0x0000);
+        self.set_flag(Flags::N, tmp & 0x0080 == 1);
+        
+        1
+    }
     /// Compare Memory and Index Y
-    pub fn CPY(&mut self, _bus: &mut Bus) -> u8 { todo!("CPY") }
+    pub fn CPY(&mut self, _bus: &mut Bus) -> u8 {
+        self.fetch(_bus);
+        
+        let tmp: u16 = (self.y as u16).wrapping_sub(self.fetched as u16);
+        
+        self.set_flag(Flags::C, self.y >= self.fetched);
+        self.set_flag(Flags::Z, (tmp & 0x00FF) == 0x0000);
+        self.set_flag(Flags::N, tmp & 0x0080 == 1);
+        
+        1
+    }
     
 	/// Decrement Memory by One
     pub fn DEC(&mut self, _bus: &mut Bus) -> u8 { todo!("DEC") }
@@ -187,7 +233,26 @@ impl Cpu6502 {
     pub fn RTS(&mut self, _bus: &mut Bus) -> u8 { todo!("RTS") }
     
     /// Subtract Memory from Accumulator with Borrow
-    pub fn SBC(&mut self, _bus: &mut Bus) -> u8 { todo!("SBC") }
+    pub fn SBC(&mut self, _bus: &mut Bus) -> u8 {
+        self.fetch(_bus);
+        
+        // Use two's complement to treat subtraction as addition
+        let value: u16 = (self.fetched ^ 0x00FF) as u16;
+        
+        let (tmp, has_overflowed1): (u16, bool) = (self.a as u16).overflowing_add(value as u16);
+        let (tmp, has_overflowed2): (u16, bool) = tmp.overflowing_add(self.get_flag(Flags::C) as u16);
+        
+        // Set Carry Flag if overflowed
+        self.set_flag(Flags::C, tmp > 255);
+        self.set_flag(Flags::Z, (tmp & 0x00FF) == 0);
+        self.set_flag(Flags::N, tmp & 0x80 == 1);
+        // Set Overflow Flag if any of the additions overflowed
+        self.set_flag(Flags::V, has_overflowed1 || has_overflowed2);
+        
+        self.a = (tmp & 0x00FF) as u8;
+        
+        1
+    }
 	/// Set Carry Flag
     pub fn SEC(&mut self, _bus: &mut Bus) -> u8 { todo!("SEC") }
     /// Set Decimal Mode
