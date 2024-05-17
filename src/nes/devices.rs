@@ -34,7 +34,7 @@ pub mod cpu6502 {
         pub operate: fn(&mut Cpu6502) -> u8,
     }
 
-    enum Flags {
+    pub enum Flags {
         C = (1 << 0), // Carry
         Z = (1 << 1), // Zero
         I = (1 << 2), // Interrupt Disable
@@ -361,11 +361,19 @@ pub mod cpu6502 {
             bus.write(addr, data);
         }
 
-        fn get_flag(&self, f: Flags) -> u8 { todo!("get_flag") }
+        pub fn get_flag(&self, flag: Flags) -> bool {
+            if self.status & flag as u8 > 0 { true } else { false }
+        }
         
-        fn set_flag(&self, f: Flags, v: bool) { todo!("set_flag") }
+        pub fn set_flag(&mut self, flag: Flags, value: bool) {
+            if value {
+                self.status |= flag as u8;
+            } else {
+                self.status &= !(flag as u8);
+            }
+        }
 
-        fn fetch(&mut self, bus: &Bus) -> u8 {
+        pub fn fetch(&mut self, bus: &Bus) -> u8 {
             if self.lookup[self.opcode as usize].addr_mode != Self::addr_IMP {
                 self.fetched = self.read(bus, self.addr_abs);
             }
