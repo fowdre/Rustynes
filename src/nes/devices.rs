@@ -31,7 +31,7 @@ pub mod cpu6502 {
         pub name: &'static str,
         pub cycles: u8,
         pub addr_mode: fn(&mut Cpu6502, &Bus) -> u8,
-        pub operate: fn(&mut Cpu6502) -> u8,
+        pub operate: fn(&mut Cpu6502, &Bus) -> u8,
     }
 
     pub enum Flags {
@@ -388,7 +388,7 @@ pub mod cpu6502 {
                 self.cycles = self.lookup[self.opcode as usize].cycles;
                 
                 let bonus_cycles_addr_mode = (self.lookup[self.opcode as usize].addr_mode)(self, bus);
-                let bonus_cycles_operate = (self.lookup[self.opcode as usize].operate)(self);
+                let bonus_cycles_operate = (self.lookup[self.opcode as usize].operate)(self, bus);
                 self.cycles += bonus_cycles_addr_mode & bonus_cycles_operate;
             }
             self.cycles -= 1;
