@@ -54,11 +54,50 @@ impl Cpu6502 {
     }
     
     /// Branch on Carry Clear
-    pub fn BCC(&mut self, _bus: &mut Bus) -> u8 { todo!("BCC") }
+    pub fn BCC(&mut self, _bus: &mut Bus) -> u8 {
+        if !self.get_flag(Flags::C) {
+            self.cycles = self.cycles.wrapping_add(1);
+            self.addr_abs = self.pc.wrapping_add(self.addr_rel as u16);
+            
+            if (self.addr_abs & 0xFF00) != (self.pc & 0xFF00) {
+                self.cycles = self.cycles.wrapping_add(1);
+            }
+            
+            self.pc = self.addr_abs;
+        }
+        
+        0
+    }
 	/// Branch on Carry Set
-    pub fn BCS(&mut self, _bus: &mut Bus) -> u8 { todo!("BCS") }
+    pub fn BCS(&mut self, _bus: &mut Bus) -> u8 {
+        if self.get_flag(Flags::C) {
+            self.cycles = self.cycles.wrapping_add(1);
+            self.addr_abs = self.pc.wrapping_add(self.addr_rel as u16);
+            
+            if (self.addr_abs & 0xFF00) != (self.pc & 0xFF00) {
+                self.cycles = self.cycles.wrapping_add(1);
+            }
+            
+            self.pc = self.addr_abs;
+        }
+        
+        0
+    }
     /// Branch on Result Zero
-    pub fn BEQ(&mut self, _bus: &mut Bus) -> u8 { todo!("BEQ") }
+    pub fn BEQ(&mut self, _bus: &mut Bus) -> u8 {
+        if self.get_flag(Flags::Z) {
+            self.cycles = self.cycles.wrapping_add(1);
+            self.addr_abs = self.pc.wrapping_add(self.addr_rel as u16);
+            
+            if (self.addr_abs & 0xFF00) != (self.pc & 0xFF00) {
+                self.cycles = self.cycles.wrapping_add(1);
+            }
+            
+            self.pc = self.addr_abs;
+        }
+        
+        0
+    }
     /// Test Bits in Memory with Accumulator
     pub fn BIT(&mut self, _bus: &mut Bus) -> u8 {
         self.fetch(_bus);
@@ -72,17 +111,82 @@ impl Cpu6502 {
         0
     }
     /// Branch on Result Minus
-    pub fn BMI(&mut self, _bus: &mut Bus) -> u8 { todo!("BMI") }
+    pub fn BMI(&mut self, _bus: &mut Bus) -> u8 {
+        if self.get_flag(Flags::N) {
+            self.cycles = self.cycles.wrapping_add(1);
+            self.addr_abs = self.pc.wrapping_add(self.addr_rel as u16);
+            
+            if (self.addr_abs & 0xFF00) != (self.pc & 0xFF00) {
+                self.cycles = self.cycles.wrapping_add(1);
+            }
+            
+            self.pc = self.addr_abs;
+        }
+        
+        0
+    }
 	/// Branch on Result not Zero
-    pub fn BNE(&mut self, _bus: &mut Bus) -> u8 { todo!("BNE") }
+    pub fn BNE(&mut self, _bus: &mut Bus) -> u8 {
+        if !self.get_flag(Flags::Z) {
+            self.cycles = self.cycles.wrapping_add(1);
+            self.addr_abs = self.pc.wrapping_add(self.addr_rel as u16);
+            
+            if (self.addr_abs & 0xFF00) != (self.pc & 0xFF00) {
+                self.cycles = self.cycles.wrapping_add(1);
+            }
+            
+            self.pc = self.addr_abs;
+        }
+        
+        0
+    }
     /// Branch on Result Plus
-    pub fn BPL(&mut self, _bus: &mut Bus) -> u8 { todo!("BPL") }
+    pub fn BPL(&mut self, _bus: &mut Bus) -> u8 {
+        if !self.get_flag(Flags::N) {
+            self.cycles = self.cycles.wrapping_add(1);
+            self.addr_abs = self.pc.wrapping_add(self.addr_rel as u16);
+            
+            if (self.addr_abs & 0xFF00) != (self.pc & 0xFF00) {
+                self.cycles = self.cycles.wrapping_add(1);
+            }
+            
+            self.pc = self.addr_abs;
+        }
+        
+        0
+    }
     /// Force Break
     pub fn BRK(&mut self, _bus: &mut Bus) -> u8 { todo!("BRK") }
     /// Branch on Overflow Clear
-    pub fn BVC(&mut self, _bus: &mut Bus) -> u8 { todo!("BVC") }
+    pub fn BVC(&mut self, _bus: &mut Bus) -> u8 {
+        if !self.get_flag(Flags::V) {
+            self.cycles = self.cycles.wrapping_add(1);
+            self.addr_abs = self.pc.wrapping_add(self.addr_rel as u16);
+            
+            if (self.addr_abs & 0xFF00) != (self.pc & 0xFF00) {
+                self.cycles = self.cycles.wrapping_add(1);
+            }
+            
+            self.pc = self.addr_abs;
+        }
+        
+        0
+    }
 	/// Branch on Overflow Set
-    pub fn BVS(&mut self, _bus: &mut Bus) -> u8 { todo!("BVS") }
+    pub fn BVS(&mut self, _bus: &mut Bus) -> u8 {
+        if self.get_flag(Flags::V) {
+            self.cycles = self.cycles.wrapping_add(1);
+            self.addr_abs = self.pc.wrapping_add(self.addr_rel as u16);
+            
+            if (self.addr_abs & 0xFF00) != (self.pc & 0xFF00) {
+                self.cycles = self.cycles.wrapping_add(1);
+            }
+            
+            self.pc = self.addr_abs;
+        }
+        
+        0
+    }
     
     /// Clear Carry Flag
     pub fn CLC(&mut self, _bus: &mut Bus) -> u8 { todo!("CLC") }
