@@ -7,17 +7,20 @@ pub mod cpu6502 {
 
     #[derive(Debug)]
     pub struct Cpu6502 {
-        a: u8,
-        x: u8,
-        y: u8,
+        pub a: u8,
+        pub x: u8,
+        pub y: u8,
         sp: u8,
-        pc: u16,
+        pub pc: u16,
         status: u8,
         
         opcode: u8,
-        fetched: u8,
-        addr_abs: u16,
-        addr_rel: u16,
+        pub fetched: u8,
+        /// Absolute address calculated from the addressing mode which will be
+        /// used to read/write data during the instruction execution
+        pub addr_abs: u16,
+        /// Only changed by the relative addressing mode
+        pub addr_rel: u16,
         cycles: u8,
 
         lookup: [Instruction; 256],
