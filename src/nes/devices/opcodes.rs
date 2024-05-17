@@ -203,9 +203,24 @@ impl Cpu6502 {
     }
     
     /// Jump to New Location
-    pub fn JMP(&mut self, _bus: &mut Bus) -> u8 { todo!("JMP") }
+    pub fn JMP(&mut self, _bus: &mut Bus) -> u8 {
+        self.pc = self.addr_abs;
+        
+        0
+    }
 	/// Jump to New Location Saving Return Address
-    pub fn JSR(&mut self, _bus: &mut Bus) -> u8 { todo!("JSR") }
+    pub fn JSR(&mut self, _bus: &mut Bus) -> u8 {
+        self.pc = self.pc.wrapping_sub(1);
+        
+        self.write(_bus, 0x0100 + self.sp as u16, ((self.pc >> 8) & 0x00FF) as u8);
+        self.sp = self.sp.wrapping_sub(1);
+        self.write(_bus, 0x0100 + self.sp as u16, (self.pc & 0x00FF) as u8);
+        self.sp = self.sp.wrapping_sub(1);
+        
+        self.pc = self.addr_abs;
+        
+        0
+    }
     
     /// Load Accumulator with Memory
     pub fn LDA(&mut self, _bus: &mut Bus) -> u8 {
@@ -346,7 +361,16 @@ impl Cpu6502 {
     /// Return from Interrupt
     pub fn RTI(&mut self, _bus: &mut Bus) -> u8 { todo!("RTI") }
     /// Return from Subroutine
-    pub fn RTS(&mut self, _bus: &mut Bus) -> u8 { todo!("RTS") }
+    pub fn RTS(&mut self, _bus: &mut Bus) -> u8 {
+        self.sp = self.sp.wrapping_add(1);
+        self.pc = self.read(_bus, 0x0100 + self.sp as u16) as u16;
+        self.sp = self.sp.wrapping_add(1);
+        self.pc |= (self.read(_bus, 0x0100 + self.sp as u16) as u16) << 8;
+        
+        self.pc = self.pc.wrapping_add(1);
+        
+        0
+    }
     
     /// Subtract Memory from Accumulator with Borrow
     pub fn SBC(&mut self, _bus: &mut Bus) -> u8 {
