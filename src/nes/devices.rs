@@ -404,7 +404,24 @@ pub mod cpu6502 {
         }
 
         /// Reset signal
-        fn reset(&self) { todo!("reset"); }
+        fn reset(&mut self, bus: &mut Bus) {
+            self.a = 0;
+            self.x = 0;
+            self.y = 0;
+            self.sp = 0xFD;
+            
+            let lo = self.read(bus, 0xFFFC) as u16;
+            let hi = self.read(bus, 0xFFFD) as u16;
+            self.pc = (hi << 8) | lo;
+            
+            self.status = 0x00 | Flags::U as u8;
+
+            self.fetched = 0;
+            self.addr_abs = 0;
+            self.addr_rel = 0;
+
+            self.cycles = 8;
+        }
 
         /// Interrupt request signal
         fn irq(&self) { todo!("irq"); }
