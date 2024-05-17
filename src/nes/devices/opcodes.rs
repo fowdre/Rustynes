@@ -155,15 +155,43 @@ impl Cpu6502 {
     }
     
     /// Transfer Accumulator to Index X
-    pub fn TAX(&mut self, _bus: &mut Bus) -> u8 { todo!("TAX") }
+    pub fn TAX(&mut self, _bus: &mut Bus) -> u8 {
+        self.x = self.a;
+        
+        self.set_flag(Flags::Z, self.x == 0x00);
+        self.set_flag(Flags::N, self.x & 0x80 == 1);
+        
+        0
+    }
     /// Transfer Accumulator to Index Y
-    pub fn TAY(&mut self, _bus: &mut Bus) -> u8 { todo!("TAY") }
+    pub fn TAY(&mut self, _bus: &mut Bus) -> u8 {
+        self.y = self.a;
+        
+        self.set_flag(Flags::Z, self.y == 0x00);
+        self.set_flag(Flags::N, self.y & 0x80 == 1);
+        
+        0
+    }
 	/// Transfer Stack Pointer to Index X
     pub fn TSX(&mut self, _bus: &mut Bus) -> u8 { todo!("TSX") }
     /// Transfer Index X to Accumulator
-    pub fn TXA(&mut self, _bus: &mut Bus) -> u8 { todo!("TXA") }
+    pub fn TXA(&mut self, _bus: &mut Bus) -> u8 {
+        self.a = self.x;
+        
+        self.set_flag(Flags::Z, self.a == 0x00);
+        self.set_flag(Flags::N, self.a & 0x80 == 1);
+        
+        0
+    }
     /// Transfer Index X to Stack Pointer
     pub fn TXS(&mut self, _bus: &mut Bus) -> u8 { todo!("TXS") }
     /// Transfer Index Y to Accumulator
-    pub fn TYA(&mut self, _bus: &mut Bus) -> u8 { todo!("TYA") }
+    pub fn TYA(&mut self, _bus: &mut Bus) -> u8 {
+        self.a = self.y;
+        
+        self.set_flag(Flags::Z, self.a == 0x00);
+        self.set_flag(Flags::N, self.a & 0x80 == 1);
+        
+        0
+    }
 }
