@@ -34,7 +34,24 @@ impl Cpu6502 {
         1
     }
     /// Shift Left One Bit (Memory or Accumulator)
-    pub fn ASL(&mut self, _bus: &mut Bus) -> u8 { todo!("ASL") }
+    pub fn ASL(&mut self, _bus: &mut Bus) -> u8 { 
+        self.fetch(_bus);
+        
+        let tmp: u16 = (self.fetched as u16) << 1;
+        
+        self.set_flag(Flags::C, (tmp & 0xFF00) > 0);
+        self.set_flag(Flags::Z, (tmp & 0x00FF) == 0x00);
+        self.set_flag(Flags::N, tmp & 0x80 == 1);
+        
+        if (self.lookup[self.opcode as usize].addr_mode == Cpu6502::addr_ACC)
+        || (self.lookup[self.opcode as usize].addr_mode == Cpu6502::addr_IMP) {
+            self.a = (tmp & 0x00FF) as u8;
+        } else {
+            self.write(_bus, self.addr_abs, (tmp & 0x00FF) as u8);
+        }
+        
+        0
+    }
     
     /// Branch on Carry Clear
     pub fn BCC(&mut self, _bus: &mut Bus) -> u8 { todo!("BCC") }
@@ -221,7 +238,24 @@ impl Cpu6502 {
         1
     }
 	/// Shift Right One Bit (Memory or Accumulator)
-    pub fn LSR(&mut self, _bus: &mut Bus) -> u8 { todo!("LSR") }
+    pub fn LSR(&mut self, _bus: &mut Bus) -> u8 {
+        self.fetch(_bus);
+        
+        let tmp: u16 = (self.fetched as u16) >> 1;
+        
+        self.set_flag(Flags::C, (self.fetched & 0x0001) == 1);
+        self.set_flag(Flags::Z, (tmp & 0x00FF) == 0x00);
+        self.set_flag(Flags::N, tmp & 0x0080 == 1);
+        
+        if (self.lookup[self.opcode as usize].addr_mode == Cpu6502::addr_ACC)
+        || (self.lookup[self.opcode as usize].addr_mode == Cpu6502::addr_IMP) {
+            self.a = (tmp & 0x00FF) as u8;
+        } else {
+            self.write(_bus, self.addr_abs, (tmp & 0x00FF) as u8);
+        }
+        
+        0
+    }
     
     /// No Operation
     pub fn NOP(&mut self, _bus: &mut Bus) -> u8 { todo!("NOP") }
@@ -272,9 +306,43 @@ impl Cpu6502 {
     }
     
     /// Rotate One Bit Left (Memory or Accumulator)
-    pub fn ROL(&mut self, _bus: &mut Bus) -> u8 { todo!("ROL") }
+    pub fn ROL(&mut self, _bus: &mut Bus) -> u8 {
+        self.fetch(_bus);
+        
+        let tmp: u16 = (self.fetched as u16) << 1 | self.get_flag(Flags::C) as u16;
+        
+        self.set_flag(Flags::C, (tmp & 0xFF00) == 1);
+        self.set_flag(Flags::Z, (tmp & 0x00FF) == 0x00);
+        self.set_flag(Flags::N, tmp & 0x80 == 1);
+        
+        if (self.lookup[self.opcode as usize].addr_mode == Cpu6502::addr_ACC)
+        || (self.lookup[self.opcode as usize].addr_mode == Cpu6502::addr_IMP) {
+            self.a = (tmp & 0x00FF) as u8;
+        } else {
+            self.write(_bus, self.addr_abs, (tmp & 0x00FF) as u8);
+        }
+        
+        0
+    }
 	/// Rotate One Bit Right (Memory or Accumulator)
-    pub fn ROR(&mut self, _bus: &mut Bus) -> u8 { todo!("ROR") }
+    pub fn ROR(&mut self, _bus: &mut Bus) -> u8 {
+        self.fetch(_bus);
+        
+        let tmp: u16 = (self.get_flag(Flags::C) as u16) << 7 | (self.fetched as u16) >> 1;
+        
+        self.set_flag(Flags::C, (self.fetched & 0x01) == 1);
+        self.set_flag(Flags::Z, (tmp & 0x00FF) == 0x00);
+        self.set_flag(Flags::N, tmp & 0x80 == 1);
+        
+        if (self.lookup[self.opcode as usize].addr_mode == Cpu6502::addr_ACC)
+        || (self.lookup[self.opcode as usize].addr_mode == Cpu6502::addr_IMP) {
+            self.a = (tmp & 0x00FF) as u8;
+        } else {
+            self.write(_bus, self.addr_abs, (tmp & 0x00FF) as u8);
+        }
+        
+        0
+    }
     /// Return from Interrupt
     pub fn RTI(&mut self, _bus: &mut Bus) -> u8 { todo!("RTI") }
     /// Return from Subroutine
