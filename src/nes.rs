@@ -5,14 +5,14 @@ pub use bus::Bus;
 pub use devices::cpu6502::{Cpu6502, Flags};
 
 #[derive(Debug)]
-pub struct NES {
+pub struct Nes {
     cpu: devices::cpu6502::Cpu6502,
     bus: bus::Bus,
 }
 
-impl NES {
-    pub fn new() -> NES {
-        NES {
+impl Nes {
+    pub fn new() -> Nes {
+        Nes {
             cpu: devices::cpu6502::Cpu6502::new(),
             bus: bus::Bus {
                 ram: [0; 64 * 1024],

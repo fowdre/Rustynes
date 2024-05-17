@@ -4,7 +4,7 @@ use super::*;
 
 #[test]
 fn test_cpu_read_and_write() {
-    let mut nes = NES::new();
+    let mut nes = Nes::new();
 
     assert_eq!(nes.cpu_read(0x0000), 0x00);
     assert_eq!(nes.cpu_read(0x0001), 0x00);

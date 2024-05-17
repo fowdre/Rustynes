@@ -370,7 +370,7 @@ pub mod cpu6502 {
         }
 
         pub fn get_flag(&self, flag: Flags) -> bool {
-            if self.status & flag as u8 > 0 { true } else { false }
+            self.status & (flag as u8) > 0
         }
         
         pub fn set_flag(&mut self, flag: Flags, value: bool) {
@@ -382,8 +382,8 @@ pub mod cpu6502 {
         }
 
         pub fn fetch(&mut self, bus: &Bus) -> u8 {
-            if (self.lookup[self.opcode as usize].addr_mode != Self::addr_ACC)
-            || (self.lookup[self.opcode as usize].addr_mode != Self::addr_IMP) {
+            if (self.lookup[self.opcode as usize].addr_mode as usize != Self::addr_ACC as usize)
+            || (self.lookup[self.opcode as usize].addr_mode as usize != Self::addr_IMP as usize) {
                 self.fetched = self.read(bus, self.addr_abs);
             }
             self.fetched
@@ -419,7 +419,7 @@ pub mod cpu6502 {
             self.pc = (hi << 8) | lo;
             
             // Reset Flags
-            self.status = 0x00 | Flags::U as u8;
+            self.status = Flags::U as u8;
 
             // Reset custom variables
             self.fetched = 0;

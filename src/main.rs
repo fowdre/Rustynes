@@ -1,10 +1,10 @@
 mod tests;
 
 mod nes;
-use nes::NES;
+use nes::Nes;
 
 fn main() {
-    let mut nes = NES::new();
+    let mut nes = Nes::new();
 
     nes.cpu_tick();
 

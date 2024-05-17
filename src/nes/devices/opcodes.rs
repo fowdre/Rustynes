@@ -17,7 +17,7 @@ impl Cpu6502 {
         // Set Carry Flag if overflowed
         self.set_flag(Flags::C, tmp > 255);
         self.set_flag(Flags::Z, (tmp & 0x00FF) == 0);
-        self.set_flag(Flags::N, tmp & 0x80 == 1);
+        self.set_flag(Flags::N, tmp & 0x80 != 0);
         // Set Overflow Flag if any of the additions overflowed
         self.set_flag(Flags::V, has_overflowed1 || has_overflowed2);
         
@@ -31,7 +31,7 @@ impl Cpu6502 {
         self.a &= self.fetched;
         
         self.set_flag(Flags::Z, self.a == 0x00);
-        self.set_flag(Flags::N, self.a & 0x80 == 1);
+        self.set_flag(Flags::N, self.a & 0x80 != 0);
         
         1
     }
@@ -43,10 +43,10 @@ impl Cpu6502 {
         
         self.set_flag(Flags::C, (tmp & 0xFF00) > 0);
         self.set_flag(Flags::Z, (tmp & 0x00FF) == 0x00);
-        self.set_flag(Flags::N, tmp & 0x80 == 1);
+        self.set_flag(Flags::N, tmp & 0x80 != 0);
         
-        if (self.lookup[self.opcode as usize].addr_mode == Cpu6502::addr_ACC)
-        || (self.lookup[self.opcode as usize].addr_mode == Cpu6502::addr_IMP) {
+        if (self.lookup[self.opcode as usize].addr_mode as usize == Cpu6502::addr_ACC as usize)
+        || (self.lookup[self.opcode as usize].addr_mode as usize == Cpu6502::addr_IMP as usize) {
             self.a = (tmp & 0x00FF) as u8;
         } else {
             self.write(bus, self.addr_abs, (tmp & 0x00FF) as u8);
@@ -59,7 +59,7 @@ impl Cpu6502 {
     pub fn BCC(&mut self, _bus: &mut Bus) -> u8 {
         if !self.get_flag(Flags::C) {
             self.cycles = self.cycles.wrapping_add(1);
-            self.addr_abs = self.pc.wrapping_add(self.addr_rel as u16);
+            self.addr_abs = self.pc.wrapping_add(self.addr_rel);
             
             if (self.addr_abs & 0xFF00) != (self.pc & 0xFF00) {
                 self.cycles = self.cycles.wrapping_add(1);
@@ -74,7 +74,7 @@ impl Cpu6502 {
     pub fn BCS(&mut self, _bus: &mut Bus) -> u8 {
         if self.get_flag(Flags::C) {
             self.cycles = self.cycles.wrapping_add(1);
-            self.addr_abs = self.pc.wrapping_add(self.addr_rel as u16);
+            self.addr_abs = self.pc.wrapping_add(self.addr_rel);
             
             if (self.addr_abs & 0xFF00) != (self.pc & 0xFF00) {
                 self.cycles = self.cycles.wrapping_add(1);
@@ -89,7 +89,7 @@ impl Cpu6502 {
     pub fn BEQ(&mut self, _bus: &mut Bus) -> u8 {
         if self.get_flag(Flags::Z) {
             self.cycles = self.cycles.wrapping_add(1);
-            self.addr_abs = self.pc.wrapping_add(self.addr_rel as u16);
+            self.addr_abs = self.pc.wrapping_add(self.addr_rel);
             
             if (self.addr_abs & 0xFF00) != (self.pc & 0xFF00) {
                 self.cycles = self.cycles.wrapping_add(1);
@@ -107,8 +107,8 @@ impl Cpu6502 {
         let tmp: u16 = (self.a & self.fetched) as u16;
         
         self.set_flag(Flags::Z, (tmp & 0x00FF) == 0x00);
-        self.set_flag(Flags::N, self.fetched & (1 << 7) == 1);
-        self.set_flag(Flags::V, self.fetched & (1 << 6) == 1);
+        self.set_flag(Flags::N, self.fetched & (1 << 7) != 0);
+        self.set_flag(Flags::V, self.fetched & (1 << 6) != 0);
         
         0
     }
@@ -116,7 +116,7 @@ impl Cpu6502 {
     pub fn BMI(&mut self, _bus: &mut Bus) -> u8 {
         if self.get_flag(Flags::N) {
             self.cycles = self.cycles.wrapping_add(1);
-            self.addr_abs = self.pc.wrapping_add(self.addr_rel as u16);
+            self.addr_abs = self.pc.wrapping_add(self.addr_rel);
             
             if (self.addr_abs & 0xFF00) != (self.pc & 0xFF00) {
                 self.cycles = self.cycles.wrapping_add(1);
@@ -131,7 +131,7 @@ impl Cpu6502 {
     pub fn BNE(&mut self, _bus: &mut Bus) -> u8 {
         if !self.get_flag(Flags::Z) {
             self.cycles = self.cycles.wrapping_add(1);
-            self.addr_abs = self.pc.wrapping_add(self.addr_rel as u16);
+            self.addr_abs = self.pc.wrapping_add(self.addr_rel);
             
             if (self.addr_abs & 0xFF00) != (self.pc & 0xFF00) {
                 self.cycles = self.cycles.wrapping_add(1);
@@ -146,7 +146,7 @@ impl Cpu6502 {
     pub fn BPL(&mut self, _bus: &mut Bus) -> u8 {
         if !self.get_flag(Flags::N) {
             self.cycles = self.cycles.wrapping_add(1);
-            self.addr_abs = self.pc.wrapping_add(self.addr_rel as u16);
+            self.addr_abs = self.pc.wrapping_add(self.addr_rel);
             
             if (self.addr_abs & 0xFF00) != (self.pc & 0xFF00) {
                 self.cycles = self.cycles.wrapping_add(1);
@@ -180,7 +180,7 @@ impl Cpu6502 {
     pub fn BVC(&mut self, _bus: &mut Bus) -> u8 {
         if !self.get_flag(Flags::V) {
             self.cycles = self.cycles.wrapping_add(1);
-            self.addr_abs = self.pc.wrapping_add(self.addr_rel as u16);
+            self.addr_abs = self.pc.wrapping_add(self.addr_rel);
             
             if (self.addr_abs & 0xFF00) != (self.pc & 0xFF00) {
                 self.cycles = self.cycles.wrapping_add(1);
@@ -195,7 +195,7 @@ impl Cpu6502 {
     pub fn BVS(&mut self, _bus: &mut Bus) -> u8 {
         if self.get_flag(Flags::V) {
             self.cycles = self.cycles.wrapping_add(1);
-            self.addr_abs = self.pc.wrapping_add(self.addr_rel as u16);
+            self.addr_abs = self.pc.wrapping_add(self.addr_rel);
             
             if (self.addr_abs & 0xFF00) != (self.pc & 0xFF00) {
                 self.cycles = self.cycles.wrapping_add(1);
@@ -239,7 +239,7 @@ impl Cpu6502 {
         
         self.set_flag(Flags::C, self.a >= self.fetched);
         self.set_flag(Flags::Z, (tmp & 0x00FF) == 0x0000);
-        self.set_flag(Flags::N, tmp & 0x0080 == 1);
+        self.set_flag(Flags::N, (tmp & 0x0080) != 0);
         
         1
     }
@@ -251,7 +251,7 @@ impl Cpu6502 {
         
         self.set_flag(Flags::C, self.x >= self.fetched);
         self.set_flag(Flags::Z, (tmp & 0x00FF) == 0x0000);
-        self.set_flag(Flags::N, tmp & 0x0080 == 1);
+        self.set_flag(Flags::N, tmp & 0x0080 != 0);
         
         1
     }
@@ -263,7 +263,7 @@ impl Cpu6502 {
         
         self.set_flag(Flags::C, self.y >= self.fetched);
         self.set_flag(Flags::Z, (tmp & 0x00FF) == 0x0000);
-        self.set_flag(Flags::N, tmp & 0x0080 == 1);
+        self.set_flag(Flags::N, tmp & 0x0080 != 0);
         
         1
     }
@@ -276,7 +276,7 @@ impl Cpu6502 {
         self.write(bus, self.addr_abs, (tmp & 0x00FF) as u8);
         
         self.set_flag(Flags::Z, (tmp & 0x00FF) == 0x0000);
-        self.set_flag(Flags::N, tmp & 0x0080 == 1);
+        self.set_flag(Flags::N, tmp & 0x0080 != 0);
         
         0
     }
@@ -285,7 +285,7 @@ impl Cpu6502 {
         self.x = self.x.wrapping_sub(1);
         
         self.set_flag(Flags::Z, self.x == 0x00);
-        self.set_flag(Flags::N, self.x & 0x80 == 1);
+        self.set_flag(Flags::N, self.x & 0x80 != 0);
         
         0
     }
@@ -294,7 +294,7 @@ impl Cpu6502 {
         self.y = self.y.wrapping_sub(1);
         
         self.set_flag(Flags::Z, self.y == 0x00);
-        self.set_flag(Flags::N, self.y & 0x80 == 1);
+        self.set_flag(Flags::N, self.y & 0x80 != 0);
         
         0
     }
@@ -305,7 +305,7 @@ impl Cpu6502 {
         self.a ^= self.fetched;
         
         self.set_flag(Flags::Z, self.a == 0x00);
-        self.set_flag(Flags::N, self.a & 0x80 == 1);
+        self.set_flag(Flags::N, self.a & 0x80 != 0);
         
         1
     }
@@ -318,7 +318,7 @@ impl Cpu6502 {
         self.write(bus, self.addr_abs, (tmp & 0x00FF) as u8);
         
         self.set_flag(Flags::Z, (tmp & 0x00FF) == 0x0000);
-        self.set_flag(Flags::N, tmp & 0x0080 == 1);
+        self.set_flag(Flags::N, tmp & 0x0080 != 0);
         
         0
     }
@@ -327,7 +327,7 @@ impl Cpu6502 {
         self.x = self.x.wrapping_add(1);
         
         self.set_flag(Flags::Z, self.x == 0x00);
-        self.set_flag(Flags::N, self.x & 0x80 == 1);
+        self.set_flag(Flags::N, self.x & 0x80 != 0);
         
         0
     }
@@ -336,7 +336,7 @@ impl Cpu6502 {
         self.y = self.y.wrapping_add(1);
         
         self.set_flag(Flags::Z, self.y == 0x00);
-        self.set_flag(Flags::N, self.y & 0x80 == 1);
+        self.set_flag(Flags::N, self.y & 0x80 != 0);
         
         0
     }
@@ -367,7 +367,7 @@ impl Cpu6502 {
         self.a = self.fetched;
         
         self.set_flag(Flags::Z, self.a == 0x00);
-        self.set_flag(Flags::N, self.a & 0x80 == 1);
+        self.set_flag(Flags::N, self.a & 0x80 != 0);
         
         1
     }
@@ -377,7 +377,7 @@ impl Cpu6502 {
         self.x = self.fetched;
         
         self.set_flag(Flags::Z, self.x == 0x00);
-        self.set_flag(Flags::N, self.x & 0x80 == 1);
+        self.set_flag(Flags::N, self.x & 0x80 != 0);
         
         1
     }
@@ -387,7 +387,7 @@ impl Cpu6502 {
         self.y = self.fetched;
         
         self.set_flag(Flags::Z, self.y == 0x00);
-        self.set_flag(Flags::N, self.y & 0x80 == 1);
+        self.set_flag(Flags::N, self.y & 0x80 != 0);
         
         1
     }
@@ -397,12 +397,12 @@ impl Cpu6502 {
         
         let tmp: u16 = (self.fetched as u16) >> 1;
         
-        self.set_flag(Flags::C, (self.fetched & 0x0001) == 1);
+        self.set_flag(Flags::C, (self.fetched & 0x0001) != 0);
         self.set_flag(Flags::Z, (tmp & 0x00FF) == 0x00);
-        self.set_flag(Flags::N, tmp & 0x0080 == 1);
+        self.set_flag(Flags::N, tmp & 0x0080 != 0);
         
-        if (self.lookup[self.opcode as usize].addr_mode == Cpu6502::addr_ACC)
-        || (self.lookup[self.opcode as usize].addr_mode == Cpu6502::addr_IMP) {
+        if (self.lookup[self.opcode as usize].addr_mode as usize == Cpu6502::addr_ACC as usize)
+        || (self.lookup[self.opcode as usize].addr_mode as usize == Cpu6502::addr_IMP as usize) {
             self.a = (tmp & 0x00FF) as u8;
         } else {
             self.write(bus, self.addr_abs, (tmp & 0x00FF) as u8);
@@ -425,7 +425,7 @@ impl Cpu6502 {
         self.a |= self.fetched;
         
         self.set_flag(Flags::Z, self.a == 0x00);
-        self.set_flag(Flags::N, self.a & 0x80 == 1);
+        self.set_flag(Flags::N, self.a & 0x80 != 0);
         
         1
     }
@@ -451,7 +451,7 @@ impl Cpu6502 {
         self.a = self.read(bus, 0x0100 + self.sp as u16);
         
         self.set_flag(Flags::Z, self.a == 0x00);
-        self.set_flag(Flags::N, (self.a & 0x80) == 1);
+        self.set_flag(Flags::N, (self.a & 0x80) != 0);
         
         0
     }
@@ -470,12 +470,12 @@ impl Cpu6502 {
         
         let tmp: u16 = (self.fetched as u16) << 1 | self.get_flag(Flags::C) as u16;
         
-        self.set_flag(Flags::C, (tmp & 0xFF00) == 1);
+        self.set_flag(Flags::C, (tmp & 0xFF00) != 0);
         self.set_flag(Flags::Z, (tmp & 0x00FF) == 0x00);
-        self.set_flag(Flags::N, tmp & 0x80 == 1);
+        self.set_flag(Flags::N, tmp & 0x80 != 0);
         
-        if (self.lookup[self.opcode as usize].addr_mode == Cpu6502::addr_ACC)
-        || (self.lookup[self.opcode as usize].addr_mode == Cpu6502::addr_IMP) {
+        if (self.lookup[self.opcode as usize].addr_mode as usize == Cpu6502::addr_ACC as usize)
+        || (self.lookup[self.opcode as usize].addr_mode as usize == Cpu6502::addr_IMP as usize) {
             self.a = (tmp & 0x00FF) as u8;
         } else {
             self.write(bus, self.addr_abs, (tmp & 0x00FF) as u8);
@@ -489,12 +489,12 @@ impl Cpu6502 {
         
         let tmp: u16 = (self.get_flag(Flags::C) as u16) << 7 | (self.fetched as u16) >> 1;
         
-        self.set_flag(Flags::C, (self.fetched & 0x01) == 1);
+        self.set_flag(Flags::C, (self.fetched & 0x01) != 0);
         self.set_flag(Flags::Z, (tmp & 0x00FF) == 0x00);
-        self.set_flag(Flags::N, tmp & 0x80 == 1);
+        self.set_flag(Flags::N, tmp & 0x80 != 0);
         
-        if (self.lookup[self.opcode as usize].addr_mode == Cpu6502::addr_ACC)
-        || (self.lookup[self.opcode as usize].addr_mode == Cpu6502::addr_IMP) {
+        if (self.lookup[self.opcode as usize].addr_mode as usize == Cpu6502::addr_ACC as usize)
+        || (self.lookup[self.opcode as usize].addr_mode as usize == Cpu6502::addr_IMP as usize) {
             self.a = (tmp & 0x00FF) as u8;
         } else {
             self.write(bus, self.addr_abs, (tmp & 0x00FF) as u8);
@@ -535,13 +535,13 @@ impl Cpu6502 {
         // Use two's complement to treat subtraction as addition
         let value: u16 = (self.fetched ^ 0x00FF) as u16;
         
-        let (tmp, has_overflowed1): (u16, bool) = (self.a as u16).overflowing_add(value as u16);
+        let (tmp, has_overflowed1): (u16, bool) = (self.a as u16).overflowing_add(value);
         let (tmp, has_overflowed2): (u16, bool) = tmp.overflowing_add(self.get_flag(Flags::C) as u16);
         
         // Set Carry Flag if overflowed
         self.set_flag(Flags::C, tmp > 255);
         self.set_flag(Flags::Z, (tmp & 0x00FF) == 0);
-        self.set_flag(Flags::N, tmp & 0x80 == 1);
+        self.set_flag(Flags::N, tmp & 0x80 != 0);
         // Set Overflow Flag if any of the additions overflowed
         self.set_flag(Flags::V, has_overflowed1 || has_overflowed2);
         
@@ -591,7 +591,7 @@ impl Cpu6502 {
         self.x = self.a;
         
         self.set_flag(Flags::Z, self.x == 0x00);
-        self.set_flag(Flags::N, self.x & 0x80 == 1);
+        self.set_flag(Flags::N, self.x & 0x80 != 0);
         
         0
     }
@@ -600,7 +600,7 @@ impl Cpu6502 {
         self.y = self.a;
         
         self.set_flag(Flags::Z, self.y == 0x00);
-        self.set_flag(Flags::N, self.y & 0x80 == 1);
+        self.set_flag(Flags::N, self.y & 0x80 != 0);
         
         0
     }
@@ -609,7 +609,7 @@ impl Cpu6502 {
         self.x = self.sp;
         
         self.set_flag(Flags::Z, self.x == 0x00);
-        self.set_flag(Flags::N, self.x & 0x80 == 1);
+        self.set_flag(Flags::N, self.x & 0x80 != 0);
         
         0
     }
@@ -618,7 +618,7 @@ impl Cpu6502 {
         self.a = self.x;
         
         self.set_flag(Flags::Z, self.a == 0x00);
-        self.set_flag(Flags::N, self.a & 0x80 == 1);
+        self.set_flag(Flags::N, self.a & 0x80 != 0);
         
         0
     }
@@ -633,7 +633,7 @@ impl Cpu6502 {
         self.a = self.y;
         
         self.set_flag(Flags::Z, self.a == 0x00);
-        self.set_flag(Flags::N, self.a & 0x80 == 1);
+        self.set_flag(Flags::N, self.a & 0x80 != 0);
         
         0
     }
