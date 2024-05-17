@@ -21,7 +21,7 @@ pub mod cpu6502 {
         pub addr_abs: u16,
         /// Only changed by the relative addressing mode
         pub addr_rel: u16,
-        cycles: u8,
+        pub cycles: u8,
 
         lookup: [Instruction; 256],
     }
@@ -384,7 +384,7 @@ pub mod cpu6502 {
         pub fn clock(&mut self, bus: &Bus) {
             if self.cycles == 0 {
                 self.opcode = self.read(bus, self.pc);
-                self.pc += 1;
+                self.pc = self.pc.wrapping_add(1);
                 self.cycles = self.lookup[self.opcode as usize].cycles;
                 
                 let bonus_cycles_addr_mode = (self.lookup[self.opcode as usize].addr_mode)(self, bus);
