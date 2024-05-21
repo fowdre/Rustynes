@@ -3,3 +3,4 @@ ressources/
 ignore/
 
 .gitignore
+.direnv
