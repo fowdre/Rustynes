@@ -45,8 +45,8 @@ impl Cpu6502 {
         self.set_flag(Flags::Z, (tmp & 0x00FF) == 0x00);
         self.set_flag(Flags::N, tmp & 0x80 != 0);
         
-        if (self.lookup[self.opcode as usize].addr_mode as usize == Cpu6502::addr_ACC as usize)
-        || (self.lookup[self.opcode as usize].addr_mode as usize == Cpu6502::addr_IMP as usize) {
+        if (self.lookup[self.opcode as usize].addr_mode as usize == Self::addr_ACC as usize)
+        || (self.lookup[self.opcode as usize].addr_mode as usize == Self::addr_IMP as usize) {
             self.a = (tmp & 0x00FF) as u8;
         } else {
             self.write(bus, self.addr_abs, (tmp & 0x00FF) as u8);
@@ -401,8 +401,8 @@ impl Cpu6502 {
         self.set_flag(Flags::Z, (tmp & 0x00FF) == 0x00);
         self.set_flag(Flags::N, tmp & 0x0080 != 0);
         
-        if (self.lookup[self.opcode as usize].addr_mode as usize == Cpu6502::addr_ACC as usize)
-        || (self.lookup[self.opcode as usize].addr_mode as usize == Cpu6502::addr_IMP as usize) {
+        if (self.lookup[self.opcode as usize].addr_mode as usize == Self::addr_ACC as usize)
+        || (self.lookup[self.opcode as usize].addr_mode as usize == Self::addr_IMP as usize) {
             self.a = (tmp & 0x00FF) as u8;
         } else {
             self.write(bus, self.addr_abs, (tmp & 0x00FF) as u8);
@@ -474,8 +474,8 @@ impl Cpu6502 {
         self.set_flag(Flags::Z, (tmp & 0x00FF) == 0x00);
         self.set_flag(Flags::N, tmp & 0x80 != 0);
         
-        if (self.lookup[self.opcode as usize].addr_mode as usize == Cpu6502::addr_ACC as usize)
-        || (self.lookup[self.opcode as usize].addr_mode as usize == Cpu6502::addr_IMP as usize) {
+        if (self.lookup[self.opcode as usize].addr_mode as usize == Self::addr_ACC as usize)
+        || (self.lookup[self.opcode as usize].addr_mode as usize == Self::addr_IMP as usize) {
             self.a = (tmp & 0x00FF) as u8;
         } else {
             self.write(bus, self.addr_abs, (tmp & 0x00FF) as u8);
@@ -493,8 +493,8 @@ impl Cpu6502 {
         self.set_flag(Flags::Z, (tmp & 0x00FF) == 0x00);
         self.set_flag(Flags::N, tmp & 0x80 != 0);
         
-        if (self.lookup[self.opcode as usize].addr_mode as usize == Cpu6502::addr_ACC as usize)
-        || (self.lookup[self.opcode as usize].addr_mode as usize == Cpu6502::addr_IMP as usize) {
+        if (self.lookup[self.opcode as usize].addr_mode as usize == Self::addr_ACC as usize)
+        || (self.lookup[self.opcode as usize].addr_mode as usize == Self::addr_IMP as usize) {
             self.a = (tmp & 0x00FF) as u8;
         } else {
             self.write(bus, self.addr_abs, (tmp & 0x00FF) as u8);

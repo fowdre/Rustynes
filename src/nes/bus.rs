@@ -4,7 +4,7 @@ pub struct Bus {
 }
 
 impl Bus {
-    pub fn read(&self, addr: u16, _read_only: bool) -> u8 {
+    pub const fn read(&self, addr: u16, _read_only: bool) -> u8 {
         self.ram[addr as usize]
     }
 

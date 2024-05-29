@@ -361,7 +361,7 @@ pub mod cpu6502 {
             }
         }
     
-        pub fn read(&self, bus: &Bus, addr: u16) -> u8 {
+        pub const fn read(&self, bus: &Bus, addr: u16) -> u8 {
             bus.read(addr, false)
         }
 
@@ -369,7 +369,7 @@ pub mod cpu6502 {
             bus.write(addr, data);
         }
 
-        pub fn get_flag(&self, flag: Flags) -> bool {
+        pub const fn get_flag(&self, flag: Flags) -> bool {
             self.status & (flag as u8) > 0
         }
         
@@ -405,7 +405,7 @@ pub mod cpu6502 {
 
         /// Reset signal
         #[allow(dead_code)]
-        fn reset(&mut self, bus: &mut Bus) {
+        fn reset(&mut self, bus: &Bus) {
             // Reset registers
             self.a = 0;
             self.x = 0;
