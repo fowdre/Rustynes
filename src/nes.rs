@@ -33,4 +33,11 @@ impl Nes {
     pub fn cpu_tick(&mut self) {
         self.cpu.clock(&mut self.bus);
     }
+
+    pub fn get_ram(&self, low: u16, high: u16) -> (u16, u16, &[u8]) {
+        if low > high {
+            return (low, high, &[]); // Otherwise taking the slice panics
+        }
+        (low, high, &self.bus.ram[low as usize..high as usize])
+    }
 }

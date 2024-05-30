@@ -3,8 +3,9 @@ mod tests;
 mod nes;
 use nes::Nes;
 
+pub use raylib::prelude::*;
 mod display;
-use display::*;
+use display::{bytes_to_string, NesDisplay, TextBox};
 
 fn main() {
     let mut nes = Nes::new();
@@ -22,7 +23,7 @@ fn main() {
     let font = NesDisplay::set_font(&mut rl_handle, &rl_thread, "assets/font/Monocraft.ttf", 25);
 
     let text_box = TextBox::new(
-        "Hello, World!\nHello, World!".to_string(),
+        bytes_to_string(nes.get_ram(0x0000, 0x00FF)),
         Vector2::new(10.0, 10.0),
         Color::WHITE,
         Color::WHITE,
