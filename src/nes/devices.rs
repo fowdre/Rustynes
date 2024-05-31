@@ -60,7 +60,7 @@ pub mod cpu6502 {
                 x: 0,
                 y: 0,
                 sp: 0,
-                pc: 0,
+                pc: 0x8000,
                 status: 0,
                 
                 opcode: 0,

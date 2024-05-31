@@ -1,22 +1,8 @@
 pub use raylib::prelude::*;
 
+use super::nes::CpuInfo;
+
 const BYTES_PER_LINE: u8 = 40;
-
-pub struct NesDisplay;
-
-impl NesDisplay {
-    pub fn set_options(handle: &mut RaylibHandle, fps: u32, line_spacing: i32, fullscreen: bool) {
-        handle.set_target_fps(fps);
-        handle.set_text_line_spacing(line_spacing);
-        if fullscreen {
-            handle.toggle_fullscreen();
-        }
-    }
-    
-    pub fn set_font(handle: &mut RaylibHandle, thread: &RaylibThread, path: &str, size: i32) -> Font {
-        handle.load_font_ex(thread, path, size, None).expect("Could not load font")
-    }
-}
 
 pub struct TextBox<'font> {
     outline_rect: Rectangle,
@@ -83,6 +69,14 @@ impl<'font> TextBox<'font> {
         self.outline_rect = outline_rect;
         self.text = text;
     }
+
+    pub fn get_position(&self) -> Vector2 {
+        self.position
+    }
+
+    pub fn get_dimensions(&self) -> Vector2 {
+        Vector2::new(self.outline_rect.width, self.outline_rect.height)
+    }
 }
 
 
@@ -105,44 +99,196 @@ impl std::fmt::Display for BytesLine {
     }
 }
 
-pub fn bytes_to_string(bytes_range: (u16, u16, &[u8])) -> String {
-    // Why `bytes_range` isn't simply a &[u8] is because the range is needed for the display
-    // However if the starting point is different from 0, an offset needs to be applied
+pub struct NesDisplay;
 
-    let mut bytes_repr: Vec<BytesLine> = Vec::new();
-
-    // `BytesLine` is a struct that represents a single line of bytes with ranges
-    // The `Display` impl is what takes care of the string representation
-    let mut local_bytes_line = BytesLine {
-        range_lower: bytes_range.0,
-        range_upper: bytes_range.1,
-        bytes: Vec::new(),
-    };
-    
-    // Basically, create a `BytesLine` for each line of length `BYTES_PER_LINE`
-    let mut byte_count = 0;
-    for b in bytes_range.2 {
-        byte_count += 1;
-        local_bytes_line.bytes.push(*b);
-        if byte_count % BYTES_PER_LINE as i32 == 0 { // Each `BYTES_PER_LINE` bytes, create a new line
-            local_bytes_line.range_lower = bytes_range.0 + (byte_count - BYTES_PER_LINE as i32).clamp(0, byte_count) as u16;
-            local_bytes_line.range_upper = bytes_range.0 + (byte_count - 1) as u16;
-            bytes_repr.push(local_bytes_line.clone());
-            local_bytes_line.bytes.clear();
+impl NesDisplay {
+    pub fn set_options(handle: &mut RaylibHandle, fps: u32, line_spacing: i32, fullscreen: bool) {
+        handle.set_target_fps(fps);
+        handle.set_text_line_spacing(line_spacing);
+        if fullscreen {
+            handle.toggle_fullscreen();
         }
     }
-    // This is for when a line has less than `BYTES_PER_LINE` bytes
-    if !local_bytes_line.bytes.is_empty() {
-        local_bytes_line.range_lower = bytes_range.0 + (byte_count - local_bytes_line.bytes.len() as i32) as u16;
-        local_bytes_line.range_upper = bytes_range.0 + (byte_count - 1) as u16;
-        bytes_repr.push(local_bytes_line);
+    
+    pub fn set_font(handle: &mut RaylibHandle, thread: &RaylibThread, path: &str, size: i32) -> Font {
+        handle.load_font_ex(thread, path, size, None).expect("Could not load font")
     }
 
-    let mut bytes_repr = bytes_repr
-        .iter()
-        .map(|line| line.to_string())
-        .collect::<Vec<String>>()
-        .join("");
-    bytes_repr.pop(); // Remove the leading `\n`
-    bytes_repr
+    pub fn bytes_to_string(bytes_range: (u16, u16, &[u8])) -> String {
+        // Why `bytes_range` isn't simply a &[u8] is because the range is needed for the display
+        // However if the starting point is different from 0, an offset needs to be applied
+
+        let mut bytes_repr: Vec<BytesLine> = Vec::new();
+
+        // `BytesLine` is a struct that represents a single line of bytes with ranges
+        // The `Display` impl is what takes care of the string representation
+        let mut local_bytes_line = BytesLine {
+            range_lower: bytes_range.0,
+            range_upper: bytes_range.1,
+            bytes: Vec::new(),
+        };
+        
+        // Basically, create a `BytesLine` for each line of length `BYTES_PER_LINE`
+        let mut byte_count = 0;
+        for b in bytes_range.2 {
+            byte_count += 1;
+            local_bytes_line.bytes.push(*b);
+            if byte_count % BYTES_PER_LINE as i32 == 0 { // Each `BYTES_PER_LINE` bytes, create a new line
+                local_bytes_line.range_lower = bytes_range.0 + (byte_count - BYTES_PER_LINE as i32).clamp(0, byte_count) as u16;
+                local_bytes_line.range_upper = bytes_range.0 + (byte_count - 1) as u16;
+                bytes_repr.push(local_bytes_line.clone());
+                local_bytes_line.bytes.clear();
+            }
+        }
+        // This is for when a line has less than `BYTES_PER_LINE` bytes
+        if !local_bytes_line.bytes.is_empty() {
+            local_bytes_line.range_lower = bytes_range.0 + (byte_count - local_bytes_line.bytes.len() as i32) as u16;
+            local_bytes_line.range_upper = bytes_range.0 + (byte_count - 1) as u16;
+            bytes_repr.push(local_bytes_line);
+        }
+
+        let mut bytes_repr = bytes_repr
+            .iter()
+            .map(|line| line.to_string())
+            .collect::<Vec<String>>()
+            .join("");
+        bytes_repr.pop(); // Remove the leading `\n`
+        bytes_repr
+    }
+
+    pub fn cpu_info_to_string(cpu_info: CpuInfo) -> String {
+        format!(
+            "PC:\t{pc:04X}\nSP:\t{sp:04X}\nA:\t\t({a}) {a:02X}\nX:\t\t({x}) {x:02X}\nY:\t\t({y}) {y:02X}\n",
+            pc = cpu_info.program_counter,
+            sp = cpu_info.stack_pointer,
+            a = cpu_info.reg_a,
+            x = cpu_info.reg_x,
+            y = cpu_info.reg_y
+        )
+    }
+}
+
+#[derive(Copy, Clone)]
+struct FlagBox {
+    pub box_color: Color,
+    pub character: char,
+    pub is_set: bool,
+}
+
+pub struct FlagsDisplay<'font> {
+    flags: [FlagBox; 8],
+    outline_rects: [Rectangle; 8],
+    outline_color: Color,
+    text_color: Color,
+    font: &'font Font,   
+}
+
+impl<'font> FlagsDisplay<'font> {
+    pub fn new(flags: u8, position: Vector2, size: f32, spacing: f32, font: &'font Font) -> Self {
+        let mut flags_array = [FlagBox {
+            box_color: Color::BLANK,
+            character: ' ',
+            is_set: false,
+        }; 8];
+        let flags_chars = ['C', 'Z', 'I', 'D', 'B', 'U', 'V', 'N'];
+        for (i, f) in flags_array.iter_mut().enumerate() {
+            f.character = flags_chars[i];
+            f.is_set = (flags & (1 << i)) != 0;
+            if f.is_set {
+                f.box_color = Color::BLANK;
+            }
+        }
+
+        let mut outline_rects = [Rectangle::default(); 8];
+
+        let mut accumulator = 0.0;
+        for (i, rect) in outline_rects.iter_mut().enumerate() {
+            *rect = Rectangle {
+                x: position.x + size * i as f32 + accumulator,
+                y: position.y,
+                width: size,
+                height: size,
+            };
+            if i == 3 {
+                accumulator = 0.0;
+            }
+            if i > 3 {
+                rect.x = position.x + size * (i - 4) as f32 + (accumulator - spacing);
+                rect.y += size + spacing;
+            }
+            accumulator += spacing;
+        }
+
+        Self {
+            flags: flags_array,
+            outline_rects,
+            outline_color: Color::BLANK,
+            text_color: Color::BLANK,
+            font,
+        }
+    }
+
+    pub fn set_colors(&mut self, outline: Color, text: Color, flag_active: Color) {
+        self.outline_color = outline;
+        self.text_color = text;
+        for flag in self.flags.iter_mut() {
+            flag.box_color = flag_active;
+        }
+    }
+
+    pub fn draw(&self, handle: &mut RaylibDrawHandle) {
+        for rect in self.outline_rects.iter() {
+            handle.draw_rectangle_lines_ex(*rect, 2.0, self.outline_color);
+        }
+
+        for (i, flag) in self.flags.iter().enumerate() {
+            if flag.is_set {
+                handle.draw_rectangle_rec(self.outline_rects[i], flag.box_color);
+            }
+            handle.draw_rectangle_lines_ex(self.outline_rects[i], 2.0, self.outline_color);
+            handle.draw_text_ex(
+                self.font,
+                &flag.character.to_string(),
+                Vector2::new(self.outline_rects[i].x + 10.0, self.outline_rects[i].y + 5.0),
+                self.font.base_size() as f32,
+                2.0,
+                self.text_color,
+            );
+        }
+    }
+}
+
+pub struct InstructionHistoryDisplay {
+    instructions: Vec<String>,
+    position: Vector2,
+    font: Font,
+}
+
+impl InstructionHistoryDisplay {
+    pub fn new(position: Vector2, font: Font) -> Self {
+        Self {
+            instructions: Vec::new(),
+            position,
+            font,
+        }
+    }
+
+    pub fn add_instruction(&mut self, instruction: String) {
+        self.instructions.push(instruction);
+    }
+
+    pub fn draw(&self, handle: &mut RaylibDrawHandle) {
+        let mut y_offset = 0.0;
+        for instruction in self.instructions.iter() {
+            handle.draw_text_ex(
+                &self.font,
+                instruction,
+                Vector2::new(self.position.x, self.position.y + y_offset),
+                self.font.base_size() as f32,
+                2.0,
+                Color::WHITE,
+            );
+            y_offset += self.font.base_size() as f32 + 5.0;
+        }
+    }
 }
