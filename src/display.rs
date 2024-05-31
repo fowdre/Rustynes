@@ -8,6 +8,7 @@ pub struct TextBox<'font> {
     outline_rect: Rectangle,
     outline_color: Color,
     text: String,
+    temp_text_color: Color,
     text_color: Color,
     position: Vector2,
     font: &'font Font,
@@ -32,6 +33,7 @@ impl<'font> TextBox<'font> {
             outline_rect,
             outline_color,
             text,
+            temp_text_color: text_color,
             text_color,
             position,
             font,
@@ -51,8 +53,7 @@ impl<'font> TextBox<'font> {
         );
     }
 
-    #[allow(dead_code)]
-    fn set_text(&mut self, text: String) {
+    pub fn set_text(&mut self, text: String, color: Option<Color>) {
         let text_dimensions = text
             .lines()
             .map(|line| self.font.measure_text(line, self.font.base_size() as f32, 2.0).x as i32)
@@ -68,6 +69,12 @@ impl<'font> TextBox<'font> {
 
         self.outline_rect = outline_rect;
         self.text = text;
+        if let Some(color) = color {
+            self.temp_text_color = self.text_color;
+            self.text_color = color;
+        } else {
+            self.text_color = self.temp_text_color;
+        }
     }
 
     pub fn get_position(&self) -> Vector2 {
@@ -177,6 +184,7 @@ struct FlagBox {
 
 pub struct FlagsDisplay<'font> {
     flags: [FlagBox; 8],
+    position: Vector2,
     outline_rects: [Rectangle; 8],
     outline_color: Color,
     text_color: Color,
@@ -221,6 +229,7 @@ impl<'font> FlagsDisplay<'font> {
 
         Self {
             flags: flags_array,
+            position,
             outline_rects,
             outline_color: Color::BLANK,
             text_color: Color::BLANK,
@@ -256,37 +265,66 @@ impl<'font> FlagsDisplay<'font> {
             );
         }
     }
+
+    pub fn get_position(&self) -> Vector2 {
+        self.position
+    }
+
+    pub fn get_dimensions(&self) -> Vector2 {
+        Vector2::new(
+            self.outline_rects[3].width + self.outline_rects[3].x - self.outline_rects[0].x,
+            self.outline_rects[7].height + self.outline_rects[7].y - self.outline_rects[0].y,
+        )
+    }
 }
 
-pub struct InstructionHistoryDisplay {
+pub struct InstructionHistoryDisplay<'font> {
     instructions: Vec<String>,
+    count: u8,
     position: Vector2,
-    font: Font,
+    font: &'font Font,
 }
 
-impl InstructionHistoryDisplay {
-    pub fn new(position: Vector2, font: Font) -> Self {
+impl<'font> InstructionHistoryDisplay<'font> {
+    pub fn new(position: Vector2, count: u8, font: &'font Font) -> Self {
         Self {
             instructions: Vec::new(),
+            count,
             position,
             font,
         }
     }
 
-    pub fn add_instruction(&mut self, instruction: String) {
+    pub fn push_instruction(&mut self, instruction: String) {
         self.instructions.push(instruction);
+    }
+
+    pub fn update(&mut self, nes: &super::nes::Nes) {
+        self.instructions.clear();
+        
+        let mut bytes_to_skip = 0;
+        for _ in 0..self.count {
+            let (b, instruction) = nes.get_next_instruction_string(nes.get_cpu_info().program_counter.wrapping_sub((self.count / 2) as u16).wrapping_add(bytes_to_skip));
+            self.push_instruction(instruction);
+            bytes_to_skip += b;
+        }
     }
 
     pub fn draw(&self, handle: &mut RaylibDrawHandle) {
         let mut y_offset = 0.0;
-        for instruction in self.instructions.iter() {
+        for (i, instruction) in self.instructions.iter().enumerate() {
+            let color = if i == (self.count / 2) as usize {
+                Color::LIGHTGREEN
+            } else {
+                Color::WHITE
+            };
             handle.draw_text_ex(
-                &self.font,
+                self.font,
                 instruction,
                 Vector2::new(self.position.x, self.position.y + y_offset),
                 self.font.base_size() as f32,
                 2.0,
-                Color::WHITE,
+                color,
             );
             y_offset += self.font.base_size() as f32 + 5.0;
         }

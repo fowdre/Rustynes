@@ -10,11 +10,19 @@ use display::{NesDisplay, FlagsDisplay, InstructionHistoryDisplay, TextBox};
 fn main() {
     let mut nes = Nes::new();
 
-    nes.cpu_write(0x8000, 0xA2);
-    nes.cpu_write(0x8001, 0x0A);
-    nes.cpu_write(0x8002, 0x8E);
+    // nes.cpu_write(0x8000, 0xA2);
+    // nes.cpu_write(0x8001, 0x0A);
+    // nes.cpu_write(0x8002, 0x8E);
 
-    // nes.cpu_tick();
+    let test_bytes = [0xA2, 0x0A, 0x8E, 0x00, 0x00, 0xA2, 0x03, 0x8E, 0x01, 0x00, 0xAC, 0x00, 0x00, 0xA9, 0x00, 0x18, 0x6D, 0x01, 0x00, 0x88, 0xD0, 0xFA, 0x8D, 0x02, 0x00, 0x00, 0xEA, 0xEA, 0xEA];
+
+    for (i, byte) in test_bytes.iter().enumerate() {
+        nes.cpu_write(0x8000 + i as u16, *byte);
+    }
+
+    // for _ in 0..25 {
+    //     nes.cpu_tick();
+    // }
 
     // println!("{:?}", nes);
 
@@ -59,26 +67,45 @@ fn main() {
     );
     flags_display.set_colors(Color::WHITE, Color::WHITE, Color::GREEN);
 
-    // let history_instruction = InstructionHistoryDisplay::new(
-    //     Vector2::new(10.0, 10.0 + zero_page.get_position().y + zero_page.get_dimensions().y + 5.0 + program_location.get_dimensions().y + 5.0),
-    //     font,
-    // );
-    // let mut instruction_display = TextBox::new(
-    //     nes.get_next_instruction_string(),
-    //     Vector2::new(10.0, 10.0 + zero_page.get_position().y + zero_page.get_dimensions().y + 5.0 + program_location.get_dimensions().y + 5.0),
-    //     Color::WHITE,
-    //     Color::WHITE,
-    //     &font,
-    // );
+    let mut cycles_left_display = TextBox::new(
+        "Next in\n[0] cycles".to_string(),
+        Vector2::new(flags_display.get_position().x, flags_display.get_position().y + flags_display.get_dimensions().y + 9.0),
+        Color::WHITE,
+        Color::WHITE,
+        &font,
+    );
+
+    let mut history_instruction_display = InstructionHistoryDisplay::new(
+        Vector2::new(cycles_left_display.get_position().x - 150.0, 10.0 + zero_page.get_position().y + zero_page.get_dimensions().y + 5.0 + program_location.get_dimensions().y + 5.0),
+        27,
+        &font,
+    );
+    history_instruction_display.update(&nes);
 
     while !rl_handle.window_should_close() {
+        if rl_handle.is_key_pressed(KeyboardKey::KEY_SPACE) {
+            nes.cpu_tick();
+            let cycle = nes.get_cpu_info().cycles;
+            let set_text_color = match cycle {
+                1 => Some(Color::ORANGE),
+                0 => Some(Color::LIGHTGREEN),
+                _ => None,
+            };
+            if cycle == 0 {
+                history_instruction_display.update(&nes);
+            }
+            cycles_left_display.set_text(format!("Next in\n[{}] cycles", nes.get_cpu_info().cycles), set_text_color);
+        }
+        
         let mut rl_draw_handle = rl_handle.begin_drawing(&rl_thread);
 
         rl_draw_handle.clear_background(Color::new(50, 50, 50, 255));
+        
         zero_page.draw(&mut rl_draw_handle);
         program_location.draw(&mut rl_draw_handle);
         cpu_info.draw(&mut rl_draw_handle);
         flags_display.draw(&mut rl_draw_handle);
-        // instruction_display.draw(&mut rl_draw_handle);
+        history_instruction_display.draw(&mut rl_draw_handle);
+        cycles_left_display.draw(&mut rl_draw_handle);
     }
 }
