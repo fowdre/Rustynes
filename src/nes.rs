@@ -30,9 +30,7 @@ impl Nes {
         Self {
             cpu: cpu::cpu6502::Cpu6502::new(),
             ppu: ppu::ppu2c02::Ppu2C02::new(),
-            bus: bus::Bus {
-                cpu_ram: [0; 2 * 1024],
-            },
+            bus: bus::Bus::new(),
             total_clock_ticks: 0,
         }
     }

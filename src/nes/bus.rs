@@ -4,6 +4,12 @@ pub struct Bus {
 }
 
 impl Bus {
+    pub fn new() -> Self {
+        Self {
+            cpu_ram: [0; 2 * 1024],
+        }
+    }
+
     pub const fn cpu_read(&self, addr: u16, _read_only: bool) -> u8 {
         match addr {
             0x0000..=0x1FFF => self.cpu_ram[(addr & 0x07FF) as usize],
