@@ -1,5 +1,6 @@
 pub mod ppu2c02 {
-    
+    use crate::nes::Cartridge;
+
     #[derive(Debug)]
     pub struct Ppu2C02 {
         table_name: [[u8; 1024]; 2],
@@ -42,16 +43,21 @@ pub mod ppu2c02 {
             };
         }
         
-        #[allow(unused_assignments)]
-        pub fn ppu_read(&self, mut addr: u16, read_only: bool) -> u8 {
+        pub fn ppu_read(&self, cartridge: &Cartridge, mut addr: u16, read_only: bool) -> u8 {
+            let ret = 0x0000;
+
             addr &= 0x3FFF;
+            if cartridge.cpu_read(addr, &ret) {
+            }
             
-            0x000
+            ret
         }
 
-        #[allow(unused_assignments)]
-        pub fn ppu_write(&mut self, mut addr: u16, data: u8) {
+        pub fn ppu_write(&mut self, cartridge: &mut Cartridge, mut addr: u16, data: u8) {
             addr &= 0x3FFF;
+
+            if cartridge.cpu_write(addr, data) {
+            }
         }
 
         pub fn clock(&mut self) {

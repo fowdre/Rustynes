@@ -3,7 +3,8 @@ mod opcodes;
 
 
 pub mod cpu6502 {
-    use super::super::Bus;
+    use crate::nes::bus::Bus;
+    use crate::nes::Cartridge;
 
     #[derive(Debug)]
     pub struct Cpu6502 {
@@ -30,8 +31,8 @@ pub mod cpu6502 {
     pub struct Instruction {
         pub name: &'static str,
         pub cycles: u8,
-        pub addr_mode: fn(&mut Cpu6502, &Bus) -> u8,
-        pub operate: fn(&mut Cpu6502, &mut Bus) -> u8,
+        pub addr_mode: fn(&mut Cpu6502, &Bus, &Cartridge) -> u8,
+        pub operate: fn(&mut Cpu6502, &mut Bus, &mut Cartridge) -> u8,
     }
 
     pub enum Flags {
@@ -361,12 +362,12 @@ pub mod cpu6502 {
             }
         }
     
-        pub const fn read(&self, bus: &Bus, addr: u16) -> u8 {
-            bus.cpu_read(addr, false)
+        pub fn read(&self, bus: &Bus, cartridge: &Cartridge, addr: u16) -> u8 {
+            bus.cpu_read(cartridge, addr, false)
         }
 
-        pub fn write(&mut self, bus: &mut Bus, addr: u16, data: u8) {
-            bus.cpu_write(addr, data);
+        pub fn write(&mut self, bus: &mut Bus, cartridge: &mut Cartridge, addr: u16, data: u8) {
+            bus.cpu_write(cartridge, addr, data);
         }
 
         pub const fn get_flag(&self, flag: Flags) -> bool {
@@ -381,30 +382,30 @@ pub mod cpu6502 {
             }
         }
 
-        pub fn fetch(&mut self, bus: &Bus) -> u8 {
+        pub fn fetch(&mut self, bus: &Bus, cartridge: &Cartridge) -> u8 {
             if (self.lookup[self.opcode as usize].addr_mode as usize != Self::addr_ACC as usize)
             || (self.lookup[self.opcode as usize].addr_mode as usize != Self::addr_IMP as usize) {
-                self.fetched = self.read(bus, self.addr_abs);
+                self.fetched = self.read(bus, cartridge, self.addr_abs);
             }
             self.fetched
         }
 
         /// Handle clock cycles
-        pub fn clock(&mut self, bus: &mut Bus) {
+        pub fn clock(&mut self, bus: &mut Bus, cartridge: &mut Cartridge) {
             if self.cycles == 0 {
-                self.opcode = self.read(bus, self.pc);
+                self.opcode = self.read(bus, cartridge, self.pc);
                 self.pc = self.pc.wrapping_add(1);
                 self.cycles = self.lookup[self.opcode as usize].cycles;
                 
-                let bonus_cycles_addr_mode = (self.lookup[self.opcode as usize].addr_mode)(self, bus);
-                let bonus_cycles_operate = (self.lookup[self.opcode as usize].operate)(self, bus);
+                let bonus_cycles_addr_mode = (self.lookup[self.opcode as usize].addr_mode)(self, bus, cartridge);
+                let bonus_cycles_operate = (self.lookup[self.opcode as usize].operate)(self, bus, cartridge);
                 self.cycles += bonus_cycles_addr_mode & bonus_cycles_operate;
             }
             self.cycles -= 1;
         }
 
         /// Reset signal
-        pub fn reset(&mut self, bus: &Bus) {
+        pub fn reset(&mut self, bus: &Bus, cartridge: &Cartridge) {
             // Reset registers
             self.a = 0;
             self.x = 0;
@@ -413,8 +414,8 @@ pub mod cpu6502 {
             self.sp = 0xFD;
             
             // Reset PC address is hardcoded at 0xFFFC and 0xFFFD
-            let lo = self.read(bus, 0xFFFC) as u16;
-            let hi = self.read(bus, 0xFFFD) as u16;
+            let lo = self.read(bus, cartridge, 0xFFFC) as u16;
+            let hi = self.read(bus, cartridge, 0xFFFD) as u16;
             self.pc = (hi << 8) | lo;
             
             // Reset Flags
@@ -430,25 +431,24 @@ pub mod cpu6502 {
         }
 
         /// Interrupt request signal
-        #[allow(dead_code)]
-        fn irq(&mut self, bus: &mut Bus) {
+        fn irq(&mut self, bus: &mut Bus, cartridge: &mut Cartridge) {
             if !self.get_flag(Flags::I) {
                 // Push PC to stack (16 bits to write)
-                self.write(bus, 0x0100 + self.sp as u16, ((self.pc >> 8) & 0x00FF) as u8);
+                self.write(bus, cartridge, 0x0100 + self.sp as u16, ((self.pc >> 8) & 0x00FF) as u8);
                 self.sp = self.sp.wrapping_sub(1);
-                self.write(bus, 0x0100 + self.sp as u16, (self.pc & 0x00FF) as u8);
+                self.write(bus, cartridge, 0x0100 + self.sp as u16, (self.pc & 0x00FF) as u8);
                 self.sp = self.sp.wrapping_sub(1);
 
                 // Push Flags to stack
                 self.set_flag(Flags::B, false);
                 self.set_flag(Flags::U, true);
                 self.set_flag(Flags::I, true);
-                self.write(bus, 0x0100 + self.sp as u16, self.status);
+                self.write(bus, cartridge, 0x0100 + self.sp as u16, self.status);
                 self.sp = self.sp.wrapping_sub(1);
 
                 // New PC address to handle the interrupt is 0xFFFE and 0xFFFF
-                let lo = self.read(bus, 0xFFFE) as u16;
-                let hi = self.read(bus, 0xFFFF) as u16;
+                let lo = self.read(bus, cartridge, 0xFFFE) as u16;
+                let hi = self.read(bus, cartridge, 0xFFFF) as u16;
                 self.pc = (hi << 8) | lo;
 
                 // Manually set cycles because interrupt request takes time
@@ -457,24 +457,23 @@ pub mod cpu6502 {
         }
 
         /// Non-maskable interrupt request signal
-        #[allow(dead_code)]
-        fn nmi(&mut self, bus: &mut Bus) {
+        fn nmi(&mut self, bus: &mut Bus, cartridge: &mut Cartridge) {
             // Push PC to stack (16 bits to write)
-            self.write(bus, 0x0100 + self.sp as u16, ((self.pc >> 8) & 0x00FF) as u8);
+            self.write(bus, cartridge, 0x0100 + self.sp as u16, ((self.pc >> 8) & 0x00FF) as u8);
             self.sp = self.sp.wrapping_sub(1);
-            self.write(bus, 0x0100 + self.sp as u16, (self.pc & 0x00FF) as u8);
+            self.write(bus, cartridge, 0x0100 + self.sp as u16, (self.pc & 0x00FF) as u8);
             self.sp = self.sp.wrapping_sub(1);
 
             // Push Flags to stack
             self.set_flag(Flags::B, false);
             self.set_flag(Flags::U, true);
             self.set_flag(Flags::I, true);
-            self.write(bus, 0x0100 + self.sp as u16, self.status);
+            self.write(bus, cartridge, 0x0100 + self.sp as u16, self.status);
             self.sp = self.sp.wrapping_sub(1);
 
             // New PC address to handle the interrupt is 0xFFFA and 0xFFFB
-            let lo = self.read(bus, 0xFFFA) as u16;
-            let hi = self.read(bus, 0xFFFB) as u16;
+            let lo = self.read(bus, cartridge, 0xFFFA) as u16;
+            let hi = self.read(bus, cartridge, 0xFFFB) as u16;
             self.pc = (hi << 8) | lo;
 
             // Manually set cycles because non-maskable interrupt request takes time
