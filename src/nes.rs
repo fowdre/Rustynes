@@ -1,3 +1,5 @@
+mod cartridge;
+mod ppu;
 mod cpu;
 mod bus;
 
@@ -7,6 +9,7 @@ pub use cpu::cpu6502::{Cpu6502, Flags};
 #[derive(Debug)]
 pub struct Nes {
     cpu: cpu::cpu6502::Cpu6502,
+    ppu: ppu::ppu2c02::Ppu2C02,
     bus: bus::Bus,
 }
 
@@ -23,18 +26,19 @@ impl Nes {
     pub fn new() -> Self {
         Self {
             cpu: cpu::cpu6502::Cpu6502::new(),
+            ppu: ppu::ppu2c02::Ppu2C02 {},
             bus: bus::Bus {
-                ram: [0; 64 * 1024],
+                cpu_ram: [0; 2 * 1024],
             },
         }
     }
     
-    #[allow(dead_code)]
+    // #[allow(dead_code)]
     pub const fn cpu_read(&self, addr: u16) -> u8 {
         self.cpu.read(&self.bus, addr)
     }
 
-    #[allow(dead_code)]
+    // #[allow(dead_code)]
     pub fn cpu_write(&mut self, addr: u16, data: u8) {
         self.cpu.write(&mut self.bus, addr, data);
     }
@@ -47,7 +51,7 @@ impl Nes {
         if low > high {
             return (low, high, &[]); // Otherwise taking the slice panics
         }
-        (low, high, &self.bus.ram[low as usize..high as usize])
+        (low, high, &self.bus.cpu_ram[(low & 0x07FF) as usize..(high & 0x07FF) as usize])
     }
 
     pub const fn get_cpu_info(&self) -> CpuInfo {

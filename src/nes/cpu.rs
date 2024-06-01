@@ -362,11 +362,11 @@ pub mod cpu6502 {
         }
     
         pub const fn read(&self, bus: &Bus, addr: u16) -> u8 {
-            bus.read(addr, false)
+            bus.cpu_read(addr, false)
         }
 
         pub fn write(&mut self, bus: &mut Bus, addr: u16, data: u8) {
-            bus.write(addr, data);
+            bus.cpu_write(addr, data);
         }
 
         pub const fn get_flag(&self, flag: Flags) -> bool {
