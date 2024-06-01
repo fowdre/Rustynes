@@ -8,7 +8,7 @@ pub struct TextBox<'font> {
     outline_rect: Rectangle,
     outline_color: Color,
     text: String,
-    temp_text_color: Color,
+    bak_text_color: Color,
     text_color: Color,
     position: Vector2,
     font: &'font Font,
@@ -33,7 +33,7 @@ impl<'font> TextBox<'font> {
             outline_rect,
             outline_color,
             text,
-            temp_text_color: text_color,
+            bak_text_color: text_color,
             text_color,
             position,
             font,
@@ -70,10 +70,9 @@ impl<'font> TextBox<'font> {
         self.outline_rect = outline_rect;
         self.text = text;
         if let Some(color) = color {
-            self.temp_text_color = self.text_color;
             self.text_color = color;
         } else {
-            self.text_color = self.temp_text_color;
+            self.text_color = self.bak_text_color;
         }
     }
 
@@ -263,6 +262,12 @@ impl<'font> FlagsDisplay<'font> {
                 2.0,
                 self.text_color,
             );
+        }
+    }
+
+    pub fn set_flags(&mut self, flags: u8) {
+        for (i, flag) in self.flags.iter_mut().enumerate() {
+            flag.is_set = (flags & (1 << i)) != 0;
         }
     }
 

@@ -75,19 +75,20 @@ fn main() {
     while !rl_handle.window_should_close() {
         if rl_handle.is_key_pressed(KeyboardKey::KEY_SPACE) {
             let cycle = nes.get_cpu_info().cycles;
-            nes.cpu_tick();
             let set_text_color = match cycle {
                 1 => Some(Color::ORANGE),
                 0 => Some(Color::LIGHTGREEN),
                 _ => None,
             };
+            nes.cpu_tick();
             if cycle == 0 {
-                // zero_page.set_text(NesDisplay::bytes_to_string(nes.get_ram(0x0000, 0x00F0)), None);
-                // program_location.set_text(NesDisplay::bytes_to_string(nes.get_ram(0x8000, 0x80F0)), None);
-                // cpu_info.set_text(NesDisplay::cpu_info_to_string(nes.get_cpu_info()), None);
+                zero_page.set_text(NesDisplay::bytes_to_string(nes.get_ram(0x0000, 0x00F0)), None);
+                program_location.set_text(NesDisplay::bytes_to_string(nes.get_ram(0x8000, 0x80F0)), None);
+                cpu_info.set_text(NesDisplay::cpu_info_to_string(nes.get_cpu_info()), None);
+                flags_display.set_flags(nes.get_cpu_flags());
                 history_instruction_display.update(&nes, nes.get_cpu_info().program_counter);
             }
-            cycles_left_display.set_text(format!("Next in\n[{}] cycles", nes.get_cpu_info().cycles), set_text_color);
+            cycles_left_display.set_text(format!("Next in\n[{}] cycles", cycle), set_text_color);
         }
         
         let mut rl_draw_handle = rl_handle.begin_drawing(&rl_thread);
