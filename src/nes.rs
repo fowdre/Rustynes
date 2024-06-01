@@ -65,116 +65,119 @@ impl Nes {
         self.cpu.status
     }
 
-    pub fn get_next_instruction_string(&self, pc: u16) -> (u16, String) {
-        let opcode = self.cpu.read(&self.bus, pc);
-        let instruction = &self.cpu.lookup[opcode as usize];
-        let mut instruction_string = String::new();
+    pub fn get_instruction_string_range(&self, start: u16, end: u16) -> Vec<String> {
+        let count = start;
+        let mut instruction_string = Vec::new();
 
-        let mut bytes_to_skip = 0;
+        let mut local_pc = start;
+        for _ in count..end {
+            let opcode = self.cpu.read(&self.bus, local_pc);
+            let instruction = &self.cpu.lookup[opcode as usize];
+            
+            match instruction.addr_mode as usize {
+                mode if mode == devices::cpu6502::Cpu6502::addr_ACC as usize => {
+                    instruction_string.push(format!("{opcode:02X} (ACC) {}", instruction.name));
+                    local_pc = local_pc.wrapping_add(1);
+                }
+                mode if mode == devices::cpu6502::Cpu6502::addr_IMP as usize => {
+                    instruction_string.push(format!("{opcode:02X} (IMP) {}", instruction.name));
+                    local_pc = local_pc.wrapping_add(1);
+                }
+                mode if mode == devices::cpu6502::Cpu6502::addr_IMM as usize => {
+                    let data = self.cpu.read(&self.bus, local_pc.wrapping_add(1));
 
-        match instruction.addr_mode as usize {
-            mode if mode == devices::cpu6502::Cpu6502::addr_ACC as usize => {
-                instruction_string.push_str(&format!("{opcode:02X} (ACC) {}", instruction.name));
-                bytes_to_skip = 1;
-            }
-            mode if mode == devices::cpu6502::Cpu6502::addr_IMP as usize => {
-                instruction_string.push_str(&format!("{opcode:02X} (IMP) {}", instruction.name));
-                bytes_to_skip = 1;
-            }
-            mode if mode == devices::cpu6502::Cpu6502::addr_IMM as usize => {
-                let data = self.cpu.read(&self.bus, pc.wrapping_add(1));
-                
-                instruction_string.push_str(&format!("{opcode:02X} (IMM) {} #${data:02X}", instruction.name));
-                bytes_to_skip = 2;
-            }
-            mode if mode == devices::cpu6502::Cpu6502::addr_ABS as usize => {
-                let lo = self.cpu.read(&self.bus, pc.wrapping_add(1));
-                let hi = self.cpu.read(&self.bus, pc.wrapping_add(2));
-                let addr = (hi as u16) << 8 | lo as u16;
-                
-                instruction_string.push_str(&format!("{opcode:02X} (ABS) {} ${addr:04X}", instruction.name));
-                bytes_to_skip = 3;
-            }
-            mode if mode == devices::cpu6502::Cpu6502::addr_ABSx as usize => {
-                let lo = self.cpu.read(&self.bus, pc.wrapping_add(1));
-                let hi = self.cpu.read(&self.bus, pc.wrapping_add(2));
-                let addr = (hi as u16) << 8 | lo as u16;
-                
-                instruction_string.push_str(&format!("{opcode:02X} (ABSx) {} ${addr:04X}, X", instruction.name));
-                bytes_to_skip = 3;
-            }
-            mode if mode == devices::cpu6502::Cpu6502::addr_ABSy as usize => {
-                let lo = self.cpu.read(&self.bus, pc.wrapping_add(1));
-                let hi = self.cpu.read(&self.bus, pc.wrapping_add(2));
-                let addr = (hi as u16) << 8 | lo as u16;
-                
-                instruction_string.push_str(&format!("{opcode:02X} {} ${addr:04X}, Y", instruction.name));
-                bytes_to_skip = 3;
-            }
-            mode if mode == devices::cpu6502::Cpu6502::addr_ZPG as usize => {
-                let addr = self.cpu.read(&self.bus, pc.wrapping_add(1));
-                
-                instruction_string.push_str(&format!("{opcode:02X} {} ${addr:02X}", instruction.name));
-                bytes_to_skip = 2;
-            }
-            mode if mode == devices::cpu6502::Cpu6502::addr_ZPGx as usize => {
-                let addr = self.cpu.read(&self.bus, pc.wrapping_add(1));
-                
-                instruction_string.push_str(&format!("{opcode:02X} {} ${addr:02X}, X", instruction.name));
-                bytes_to_skip = 2;
-            }
-            mode if mode == devices::cpu6502::Cpu6502::addr_ZPGy as usize => {
-                let addr = self.cpu.read(&self.bus, pc.wrapping_add(1));
-                
-                instruction_string.push_str(&format!("{opcode:02X} {} ${addr:02X}, Y", instruction.name));
-                bytes_to_skip = 2;
-            }
-            mode if mode == devices::cpu6502::Cpu6502::addr_REL as usize => {
-                let addr = self.cpu.read(&self.bus, pc.wrapping_add(1));
-                
-                instruction_string.push_str(&format!("{opcode:02X} (REL) {} ${addr:02X} [{:04X}]", instruction.name, pc.wrapping_add(2).wrapping_add(addr as u16)));
-                bytes_to_skip = 2;
-            }
-            mode if mode == devices::cpu6502::Cpu6502::addr_IND as usize => {
-                let lo = self.cpu.read(&self.bus, pc + 1);
-                let hi = self.cpu.read(&self.bus, pc + 2);
-                let ptr = (hi as u16) << 8 | lo as u16;
-                let addr = if lo == 0xFF {
-                    let lo = self.cpu.read(&self.bus, ptr);
-                    let hi = self.cpu.read(&self.bus, ptr & 0xFF00);
-                    (hi as u16) << 8 | lo as u16
-                } else {
-                    let lo = self.cpu.read(&self.bus, ptr);
-                    let hi = self.cpu.read(&self.bus, ptr + 1);
-                    (hi as u16) << 8 | lo as u16
-                };
-                
-                instruction_string.push_str(&format!("{opcode:02X} {} (${addr:04X})", instruction.name));
-                bytes_to_skip = 3;
-            }
-            mode if mode == devices::cpu6502::Cpu6502::addr_INDx as usize => {
-                let addr = self.cpu.read(&self.bus, pc + 1);
-                let lo = self.cpu.read(&self.bus, (addr + self.cpu.x) as u16);
-                let hi = self.cpu.read(&self.bus, (addr + self.cpu.x + 1) as u16);
-                let ptr = (hi as u16) << 8 | lo as u16;
-                
-                instruction_string.push_str(&format!("{opcode:02X} {} (${:02X}, X) @ {:02X} = {ptr:04X}", instruction.name, addr, addr + self.cpu.x));
-                bytes_to_skip = 2;
-            }
-            mode if mode == devices::cpu6502::Cpu6502::addr_INDy as usize => {
-                let addr = self.cpu.read(&self.bus, pc + 1);
-                let lo = self.cpu.read(&self.bus, addr as u16);
-                let hi = self.cpu.read(&self.bus, (addr + 1) as u16);
-                let ptr = (hi as u16) << 8 | lo as u16;
-                
-                instruction_string.push_str(&format!("{opcode:02X} {} (${addr:02X}), Y = {:04X}", instruction.name, ptr + self.cpu.y as u16));
-                bytes_to_skip = 2;
-            }
-            _ => {
-                instruction_string.push_str("Unknown instruction");
+                    instruction_string.push(format!("{opcode:02X} (IMM) {} #${data:02X}", instruction.name));
+                    local_pc = local_pc.wrapping_add(2);
+                }
+                mode if mode == devices::cpu6502::Cpu6502::addr_ABS as usize => {
+                    let lo = self.cpu.read(&self.bus, local_pc.wrapping_add(1));
+                    let hi = self.cpu.read(&self.bus, local_pc.wrapping_add(2));
+                    let addr = (hi as u16) << 8 | lo as u16;
+
+                    instruction_string.push(format!("{opcode:02X} (ABS) {} ${addr:04X}", instruction.name));
+                    local_pc = local_pc.wrapping_add(3);
+                }
+                mode if mode == devices::cpu6502::Cpu6502::addr_ABSx as usize => {
+                    let lo = self.cpu.read(&self.bus, local_pc.wrapping_add(1));
+                    let hi = self.cpu.read(&self.bus, local_pc.wrapping_add(2));
+                    let addr = (hi as u16) << 8 | lo as u16;
+
+                    instruction_string.push(format!("{opcode:02X} (ABSx) {} ${addr:04X}, X", instruction.name));
+                    local_pc = local_pc.wrapping_add(3);
+                }
+                mode if mode == devices::cpu6502::Cpu6502::addr_ABSy as usize => {
+                    let lo = self.cpu.read(&self.bus, local_pc.wrapping_add(1));
+                    let hi = self.cpu.read(&self.bus, local_pc.wrapping_add(2));
+                    let addr = (hi as u16) << 8 | lo as u16;
+
+                    instruction_string.push(format!("{opcode:02X} {} ${addr:04X}, Y", instruction.name));
+                    local_pc = local_pc.wrapping_add(3);
+                }
+                mode if mode == devices::cpu6502::Cpu6502::addr_ZPG as usize => {
+                    let addr = self.cpu.read(&self.bus, local_pc.wrapping_add(1));
+
+                    instruction_string.push(format!("{opcode:02X} {} ${addr:02X}", instruction.name));
+                    local_pc = local_pc.wrapping_add(2);
+                }
+                mode if mode == devices::cpu6502::Cpu6502::addr_ZPGx as usize => {
+                    let addr = self.cpu.read(&self.bus, local_pc.wrapping_add(1));
+
+                    instruction_string.push(format!("{opcode:02X} {} ${addr:02X}, X", instruction.name));
+                    local_pc = local_pc.wrapping_add(2);
+                }
+                mode if mode == devices::cpu6502::Cpu6502::addr_ZPGy as usize => {
+                    let addr = self.cpu.read(&self.bus, local_pc.wrapping_add(1));
+
+                    instruction_string.push(format!("{opcode:02X} {} ${addr:02X}, Y", instruction.name));
+                    local_pc = local_pc.wrapping_add(2);
+                }
+                mode if mode == devices::cpu6502::Cpu6502::addr_REL as usize => {
+                    let addr = self.cpu.read(&self.bus, local_pc.wrapping_add(1));
+
+                    instruction_string.push(format!("{opcode:02X} (REL) {} ${addr:02X} [{:04X}]", instruction.name, local_pc.wrapping_add(2).wrapping_add(addr as u16)));
+                    local_pc = local_pc.wrapping_add(2);
+                }
+                mode if mode == devices::cpu6502::Cpu6502::addr_IND as usize => {
+                    let lo = self.cpu.read(&self.bus, local_pc + 1);
+                    let hi = self.cpu.read(&self.bus, local_pc + 2);
+                    let ptr = (hi as u16) << 8 | lo as u16;
+                    let addr = if lo == 0xFF {
+                        let lo = self.cpu.read(&self.bus, ptr);
+                        let hi = self.cpu.read(&self.bus, ptr & 0xFF00);
+                        (hi as u16) << 8 | lo as u16
+                    } else {
+                        let lo = self.cpu.read(&self.bus, ptr);
+                        let hi = self.cpu.read(&self.bus, ptr + 1);
+                        (hi as u16) << 8 | lo as u16
+                    };
+
+                    instruction_string.push(format!("{opcode:02X} {} (${addr:04X})", instruction.name));
+                    local_pc = local_pc.wrapping_add(3);
+                }
+                mode if mode == devices::cpu6502::Cpu6502::addr_INDx as usize => {
+                    let addr = self.cpu.read(&self.bus, local_pc + 1);
+                    let lo = self.cpu.read(&self.bus, (addr + self.cpu.x) as u16);
+                    let hi = self.cpu.read(&self.bus, (addr + self.cpu.x + 1) as u16);
+                    let ptr = (hi as u16) << 8 | lo as u16;
+
+                    instruction_string.push(format!("{opcode:02X} {} (${:02X}, X) @ {:02X} = {ptr:04X}", instruction.name, addr, addr + self.cpu.x));
+                    local_pc = local_pc.wrapping_add(2);
+                }
+                mode if mode == devices::cpu6502::Cpu6502::addr_INDy as usize => {
+                    let addr = self.cpu.read(&self.bus, local_pc + 1);
+                    let lo = self.cpu.read(&self.bus, addr as u16);
+                    let hi = self.cpu.read(&self.bus, (addr + 1) as u16);
+                    let ptr = (hi as u16) << 8 | lo as u16;
+
+                    instruction_string.push(format!("{opcode:02X} {} (${addr:02X}), Y = {:04X}", instruction.name, ptr + self.cpu.y as u16));
+                    local_pc = local_pc.wrapping_add(2);
+                }
+                _ => {
+                    instruction_string.push("Unknown instruction".to_string());
+                }
             }
         }
 
-        (bytes_to_skip, instruction_string)
+        instruction_string
     }
 }

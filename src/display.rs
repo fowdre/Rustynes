@@ -165,7 +165,7 @@ impl NesDisplay {
 
     pub fn cpu_info_to_string(cpu_info: CpuInfo) -> String {
         format!(
-            "PC:\t{pc:04X}\nSP:\t{sp:04X}\nA:\t\t({a}) {a:02X}\nX:\t\t({x}) {x:02X}\nY:\t\t({y}) {y:02X}\n",
+            "PC:\t{pc:04X}\nSP:\t{sp:04X}\nA:\t\t({a:03}) {a:02X}\nX:\t\t({x:03}) {x:02X}\nY:\t\t({y:03}) {y:02X}\n",
             pc = cpu_info.program_counter,
             sp = cpu_info.stack_pointer,
             a = cpu_info.reg_a,
@@ -288,36 +288,33 @@ pub struct InstructionHistoryDisplay<'font> {
 impl<'font> InstructionHistoryDisplay<'font> {
     pub fn new(position: Vector2, count: u8, font: &'font Font) -> Self {
         Self {
-            instructions: Vec::new(),
+            instructions: Vec::with_capacity(count as usize),
             count,
             position,
             font,
         }
     }
 
-    pub fn push_instruction(&mut self, instruction: String) {
-        self.instructions.push(instruction);
-    }
-
-    pub fn update(&mut self, nes: &super::nes::Nes) {
+    pub fn update(&mut self, nes: &super::nes::Nes, pc: u16) {
         self.instructions.clear();
-        
-        let mut bytes_to_skip = 0;
-        for _ in 0..self.count {
-            let (b, instruction) = nes.get_next_instruction_string(nes.get_cpu_info().program_counter.wrapping_sub((self.count / 2) as u16).wrapping_add(bytes_to_skip));
-            self.push_instruction(instruction);
-            bytes_to_skip += b;
+
+        let tmp = nes.get_instruction_string_range(pc, pc.wrapping_add(self.count as u16));
+        for i in tmp {
+            self.instructions.push(i);
         }
     }
 
     pub fn draw(&self, handle: &mut RaylibDrawHandle) {
         let mut y_offset = 0.0;
         for (i, instruction) in self.instructions.iter().enumerate() {
-            let color = if i == (self.count / 2) as usize {
+            let mut color = if i == 0 {
                 Color::LIGHTGREEN
             } else {
                 Color::WHITE
             };
+            if instruction == "00 (IMP) BRK" {
+                color = Color::DARKGRAY;
+            }
             handle.draw_text_ex(
                 self.font,
                 instruction,
