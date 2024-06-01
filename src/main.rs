@@ -5,7 +5,7 @@ use nes::Nes;
 
 pub use raylib::prelude::*;
 mod display;
-use display::{NesDisplay, FlagsDisplay, InstructionHistoryDisplay, TextBox};
+use display::draw::{NesDisplay, FlagsDisplay, InstructionHistoryDisplay, TextBox};
 
 fn main() {
     let mut nes = Nes::new();
@@ -73,7 +73,7 @@ fn main() {
     history_instruction_display.update(&nes, nes.get_cpu_info().program_counter);
 
     while !rl_handle.window_should_close() {
-        if rl_handle.is_key_pressed(KeyboardKey::KEY_SPACE) {
+        if rl_handle.is_key_down(KeyboardKey::KEY_SPACE) {
             let cycle = nes.get_cpu_info().cycles;
             let set_text_color = match cycle {
                 1 => Some(Color::ORANGE),
