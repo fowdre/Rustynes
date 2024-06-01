@@ -50,7 +50,7 @@ impl Nes {
         (low, high, &self.bus.ram[low as usize..high as usize])
     }
 
-    pub fn get_cpu_info(&self) -> CpuInfo {
+    pub const fn get_cpu_info(&self) -> CpuInfo {
         CpuInfo {
             program_counter: self.cpu.pc,
             reg_a: self.cpu.a,
@@ -61,7 +61,7 @@ impl Nes {
         }
     }
 
-    pub fn get_cpu_flags(&self) -> u8 {
+    pub const fn get_cpu_flags(&self) -> u8 {
         self.cpu.status
     }
 
@@ -138,15 +138,14 @@ impl Nes {
                     local_pc = local_pc.wrapping_add(2);
                 }
                 mode if mode == cpu::cpu6502::Cpu6502::addr_IND as usize => {
-                    let lo = self.cpu.read(&self.bus, local_pc + 1);
+                    let old_lo = self.cpu.read(&self.bus, local_pc + 1);
                     let hi = self.cpu.read(&self.bus, local_pc + 2);
-                    let ptr = (hi as u16) << 8 | lo as u16;
-                    let addr = if lo == 0xFF {
-                        let lo = self.cpu.read(&self.bus, ptr);
+                    let ptr = (hi as u16) << 8 | old_lo as u16;
+                    let lo = self.cpu.read(&self.bus, ptr);
+                    let addr = if old_lo == 0xFF {
                         let hi = self.cpu.read(&self.bus, ptr & 0xFF00);
                         (hi as u16) << 8 | lo as u16
                     } else {
-                        let lo = self.cpu.read(&self.bus, ptr);
                         let hi = self.cpu.read(&self.bus, ptr + 1);
                         (hi as u16) << 8 | lo as u16
                     };

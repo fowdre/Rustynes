@@ -76,11 +76,11 @@ impl<'font> TextBox<'font> {
         }
     }
 
-    pub fn get_position(&self) -> Vector2 {
+    pub const fn get_position(&self) -> Vector2 {
         self.position
     }
 
-    pub fn get_dimensions(&self) -> Vector2 {
+    pub const fn get_dimensions(&self) -> Vector2 {
         Vector2::new(self.outline_rect.width, self.outline_rect.height)
     }
 }
@@ -211,7 +211,7 @@ impl<'font> FlagsDisplay<'font> {
         let mut accumulator = 0.0;
         for (i, rect) in outline_rects.iter_mut().enumerate() {
             *rect = Rectangle {
-                x: position.x + size * i as f32 + accumulator,
+                x: size.mul_add(i as f32, position.x) + accumulator,
                 y: position.y,
                 width: size,
                 height: size,
@@ -220,7 +220,8 @@ impl<'font> FlagsDisplay<'font> {
                 accumulator = 0.0;
             }
             if i > 3 {
-                rect.x = position.x + size * (i - 4) as f32 + (accumulator - spacing);
+                // rect.x = position.x + size * (i - 4) as f32 + (accumulator - spacing);
+                rect.x = size.mul_add((i - 4) as f32, position.x) + accumulator - spacing;
                 rect.y += size + spacing;
             }
             accumulator += spacing;
@@ -271,7 +272,7 @@ impl<'font> FlagsDisplay<'font> {
         }
     }
 
-    pub fn get_position(&self) -> Vector2 {
+    pub const fn get_position(&self) -> Vector2 {
         self.position
     }
 
@@ -312,14 +313,13 @@ impl<'font> InstructionHistoryDisplay<'font> {
     pub fn draw(&self, handle: &mut RaylibDrawHandle) {
         let mut y_offset = 0.0;
         for (i, instruction) in self.instructions.iter().enumerate() {
-            let mut color = if i == 0 {
+            let color = if i == 0 {
                 Color::LIGHTGREEN
+            } else if instruction == "00 (IMP) BRK" {
+                Color::DARKGRAY
             } else {
                 Color::WHITE
             };
-            if instruction == "00 (IMP) BRK" {
-                color = Color::DARKGRAY;
-            }
             handle.draw_text_ex(
                 self.font,
                 instruction,
