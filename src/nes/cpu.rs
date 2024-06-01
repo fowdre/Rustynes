@@ -404,8 +404,7 @@ pub mod cpu6502 {
         }
 
         /// Reset signal
-        #[allow(dead_code)]
-        fn reset(&mut self, bus: &Bus) {
+        pub fn reset(&mut self, bus: &Bus) {
             // Reset registers
             self.a = 0;
             self.x = 0;

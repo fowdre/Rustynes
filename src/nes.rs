@@ -5,12 +5,15 @@ mod bus;
 
 pub use bus::Bus;
 pub use cpu::cpu6502::{Cpu6502, Flags};
+pub use cartridge::Cartridge;
 
 #[derive(Debug)]
 pub struct Nes {
     cpu: cpu::cpu6502::Cpu6502,
     ppu: ppu::ppu2c02::Ppu2C02,
     bus: bus::Bus,
+
+    total_clock_ticks: u128,
 }
 
 pub struct CpuInfo {
@@ -26,21 +29,31 @@ impl Nes {
     pub fn new() -> Self {
         Self {
             cpu: cpu::cpu6502::Cpu6502::new(),
-            ppu: ppu::ppu2c02::Ppu2C02 {},
+            ppu: ppu::ppu2c02::Ppu2C02::new(),
             bus: bus::Bus {
                 cpu_ram: [0; 2 * 1024],
             },
+            total_clock_ticks: 0,
         }
     }
+
+    pub fn load_cartridge(&mut self, cartridge: Cartridge) {
+
+    }
     
-    // #[allow(dead_code)]
-    pub const fn cpu_read(&self, addr: u16) -> u8 {
+    #[allow(dead_code)]
+    pub const fn ram_read(&self, addr: u16) -> u8 {
         self.cpu.read(&self.bus, addr)
     }
 
-    // #[allow(dead_code)]
-    pub fn cpu_write(&mut self, addr: u16, data: u8) {
+    #[allow(dead_code)]
+    pub fn ram_write(&mut self, addr: u16, data: u8) {
         self.cpu.write(&mut self.bus, addr, data);
+    }
+
+    pub fn reset(&mut self) {
+        self.cpu.reset(&self.bus);
+        self.total_clock_ticks = 0;
     }
 
     pub fn cpu_tick(&mut self) {
