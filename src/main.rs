@@ -63,7 +63,7 @@ fn main() {
     );
 
     let mut history_instruction_display = InstructionHistoryDisplay::new(
-        Vector2::new(cycles_left_display.get_position().x - 150.0, 10.0 + zero_page.get_position().y + zero_page.get_dimensions().y + 5.0 + program_location.get_dimensions().y + 5.0),
+        Vector2::new(cycles_left_display.get_position().x - 250.0, 10.0 + zero_page.get_position().y + zero_page.get_dimensions().y + 5.0 + program_location.get_dimensions().y + 5.0),
         28,
         &font,
     );

@@ -136,20 +136,21 @@ impl Nes {
         for _ in count..end {
             let opcode = self.cpu.read(&self.bus, &self.cartridge, local_pc);
             let instruction = &self.cpu.lookup[opcode as usize];
-            
+            let mut format = format!("{local_pc:04X} | {opcode:02X} ");
+
             match instruction.addr_mode as usize {
                 mode if mode == cpu::cpu6502::Cpu6502::addr_ACC as usize => {
-                    instruction_string.push(format!("{opcode:02X} (ACC) {}", instruction.name));
+                    format += &format!("(ACC) {}", instruction.name);
                     local_pc = local_pc.wrapping_add(1);
                 }
                 mode if mode == cpu::cpu6502::Cpu6502::addr_IMP as usize => {
-                    instruction_string.push(format!("{opcode:02X} (IMP) {}", instruction.name));
+                    format += &format!("(IMP) {}", instruction.name);
                     local_pc = local_pc.wrapping_add(1);
                 }
                 mode if mode == cpu::cpu6502::Cpu6502::addr_IMM as usize => {
                     let data = self.cpu.read(&self.bus, &self.cartridge, local_pc.wrapping_add(1));
 
-                    instruction_string.push(format!("{opcode:02X} (IMM) {} #${data:02X}", instruction.name));
+                    format += &format!("(IMM) {} #${data:02X}", instruction.name);
                     local_pc = local_pc.wrapping_add(2);
                 }
                 mode if mode == cpu::cpu6502::Cpu6502::addr_ABS as usize => {
@@ -157,7 +158,7 @@ impl Nes {
                     let hi = self.cpu.read(&self.bus, &self.cartridge, local_pc.wrapping_add(2));
                     let addr = (hi as u16) << 8 | lo as u16;
 
-                    instruction_string.push(format!("{opcode:02X} (ABS) {} ${addr:04X}", instruction.name));
+                    format += &format!("(ABS) {} ${addr:04X}", instruction.name);
                     local_pc = local_pc.wrapping_add(3);
                 }
                 mode if mode == cpu::cpu6502::Cpu6502::addr_ABSx as usize => {
@@ -165,7 +166,7 @@ impl Nes {
                     let hi = self.cpu.read(&self.bus, &self.cartridge, local_pc.wrapping_add(2));
                     let addr = (hi as u16) << 8 | lo as u16;
 
-                    instruction_string.push(format!("{opcode:02X} (ABSx) {} ${addr:04X}, X", instruction.name));
+                    format += &format!("(ABSx) {} ${addr:04X}, X", instruction.name);
                     local_pc = local_pc.wrapping_add(3);
                 }
                 mode if mode == cpu::cpu6502::Cpu6502::addr_ABSy as usize => {
@@ -173,31 +174,31 @@ impl Nes {
                     let hi = self.cpu.read(&self.bus, &self.cartridge, local_pc.wrapping_add(2));
                     let addr = (hi as u16) << 8 | lo as u16;
 
-                    instruction_string.push(format!("{opcode:02X} {} ${addr:04X}, Y", instruction.name));
+                    format += &format!("{} ${addr:04X}, Y", instruction.name);
                     local_pc = local_pc.wrapping_add(3);
                 }
                 mode if mode == cpu::cpu6502::Cpu6502::addr_ZPG as usize => {
                     let addr = self.cpu.read(&self.bus, &self.cartridge, local_pc.wrapping_add(1));
 
-                    instruction_string.push(format!("{opcode:02X} {} ${addr:02X}", instruction.name));
+                    format += &format!("{} ${addr:02X}", instruction.name);
                     local_pc = local_pc.wrapping_add(2);
                 }
                 mode if mode == cpu::cpu6502::Cpu6502::addr_ZPGx as usize => {
                     let addr = self.cpu.read(&self.bus, &self.cartridge, local_pc.wrapping_add(1));
 
-                    instruction_string.push(format!("{opcode:02X} {} ${addr:02X}, X", instruction.name));
+                    format += &format!("{} ${addr:02X}, X", instruction.name);
                     local_pc = local_pc.wrapping_add(2);
                 }
                 mode if mode == cpu::cpu6502::Cpu6502::addr_ZPGy as usize => {
                     let addr = self.cpu.read(&self.bus, &self.cartridge, local_pc.wrapping_add(1));
 
-                    instruction_string.push(format!("{opcode:02X} {} ${addr:02X}, Y", instruction.name));
+                    format += &format!("{} ${addr:02X}, Y", instruction.name);
                     local_pc = local_pc.wrapping_add(2);
                 }
                 mode if mode == cpu::cpu6502::Cpu6502::addr_REL as usize => {
                     let addr = self.cpu.read(&self.bus, &self.cartridge, local_pc.wrapping_add(1));
 
-                    instruction_string.push(format!("{opcode:02X} (REL) {} ${addr:02X} [{:04X}]", instruction.name, local_pc.wrapping_add(2).wrapping_add(addr as u16)));
+                    format += &format!("(REL) {} ${addr:02X} [{:04X}]", instruction.name, local_pc.wrapping_add(2).wrapping_add((addr as i8) as u16));
                     local_pc = local_pc.wrapping_add(2);
                 }
                 mode if mode == cpu::cpu6502::Cpu6502::addr_IND as usize => {
@@ -213,7 +214,7 @@ impl Nes {
                         (hi as u16) << 8 | lo as u16
                     };
 
-                    instruction_string.push(format!("{opcode:02X} {} (${addr:04X})", instruction.name));
+                    format += &format!("{} (${addr:04X})", instruction.name);
                     local_pc = local_pc.wrapping_add(3);
                 }
                 mode if mode == cpu::cpu6502::Cpu6502::addr_INDx as usize => {
@@ -222,7 +223,7 @@ impl Nes {
                     let hi = self.cpu.read(&self.bus, &self.cartridge, (addr + self.cpu.x + 1) as u16);
                     let ptr = (hi as u16) << 8 | lo as u16;
 
-                    instruction_string.push(format!("{opcode:02X} {} (${:02X}, X) @ {:02X} = {ptr:04X}", instruction.name, addr, addr + self.cpu.x));
+                    format += &format!("{} (${:02X}, X) @ {:02X} = {ptr:04X}", instruction.name, addr, addr + self.cpu.x);
                     local_pc = local_pc.wrapping_add(2);
                 }
                 mode if mode == cpu::cpu6502::Cpu6502::addr_INDy as usize => {
@@ -231,13 +232,14 @@ impl Nes {
                     let hi = self.cpu.read(&self.bus, &self.cartridge, (addr + 1) as u16);
                     let ptr = (hi as u16) << 8 | lo as u16;
 
-                    instruction_string.push(format!("{opcode:02X} {} (${addr:02X}), Y = {:04X}", instruction.name, ptr + self.cpu.y as u16));
+                    format += &format!("{} (${addr:02X}), Y = {:04X}", instruction.name, ptr + self.cpu.y as u16);
                     local_pc = local_pc.wrapping_add(2);
                 }
                 _ => {
-                    instruction_string.push("Unknown instruction".to_string());
+                    format += &"Unknown instruction".to_string();
                 }
             }
+            instruction_string.push(format);
         }
 
         instruction_string
