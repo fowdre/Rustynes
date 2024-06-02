@@ -2,6 +2,41 @@ pub mod ppu2c02 {
     use crate::nes::Cartridge;
     pub use raylib::prelude::core::color::*;
 
+    bitfield::bitfield! {
+        struct RegisterStatus(u8);
+        impl Debug;
+        pub unused, _: 5;
+        pub sprite_overflow, set_sprite_overflow: 1;
+        pub sprite_zero_hit, set_sprite_zero_hit: 1;
+        pub vertical_blank,  set_vertical_blank: 1;
+    }
+
+    bitfield::bitfield! {
+        struct RegisterMask(u8);
+        impl Debug;
+        pub grayscale,              set_grayscale: 1;
+        pub render_background_left, set_render_background_left: 1;
+        pub render_sprites_left,    set_render_sprites_left: 1;
+        pub render_background,      set_render_background: 1;
+        pub render_sprites,         set_render_sprites: 1;
+        pub enhance_red,            set_enhance_red: 1;
+        pub enhance_green,          set_enhance_green: 1;
+        pub enhance_blue,           set_enhance_blue: 1;
+    }
+
+    bitfield::bitfield! {
+        struct RegisterControl(u8);
+        impl Debug;
+        pub nametable_x,        set_nametable_x: 1;
+        pub nametable_y,        set_nametable_y: 1;
+        pub increment_mode,     set_increment_mode: 1;
+        pub pattern_sprite,     set_pattern_sprite: 1;
+        pub pattern_background, set_pattern_background: 1;
+        pub sprite_size,        set_sprite_size: 1;
+        pub slave_mode,         set_slave_mode: 1;
+        pub enable_nmi,         set_enable_nmi: 1;
+    }
+
     #[allow(dead_code)]
     #[derive(Debug)]
     pub struct Ppu2C02 {
@@ -17,12 +52,15 @@ pub mod ppu2c02 {
         /// Column
         cycle: i16,
         pub is_frame_complete: bool,
+        
+        reg_status: RegisterStatus,
+        reg_mask: RegisterMask,
+        reg_control: RegisterControl,
 
         screen_palette: [Color; 64],
         pub displayable_name_table: [[Color; 256 * 240]; 2],
         displayable_pattern_table: [[Color; 128 * 128]; 2],
         displayable_screen: [Color; 256 * 240]
-        
     }
 
     impl Ppu2C02 {
@@ -106,6 +144,10 @@ pub mod ppu2c02 {
                 scanline: 0,
                 cycle: 0,
                 is_frame_complete: false,
+
+                reg_status: RegisterStatus(0),
+                reg_mask: RegisterMask(0),
+                reg_control: RegisterControl(0),
 
                 screen_palette,
                 displayable_screen: [Color::BLANK; 256 * 240],
