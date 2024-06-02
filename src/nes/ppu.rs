@@ -8,7 +8,9 @@ pub mod ppu2c02 {
         pub table_pattern: [[u8; 4096]; 2],
         pub table_pallete: [u8; 32],
 
+        /// Row
         scanline: i16,
+        /// Column
         cycle: i16,
         pub is_frame_complete: bool,
 
@@ -150,11 +152,15 @@ pub mod ppu2c02 {
 
         pub fn clock(&mut self) {
             // randomly set the pixel to black or white
-            self.screen[(self.cycle + self.scanline * 256) as usize] = if rand::random() {
-                Color::WHITE
-            } else {
-                Color::BLACK
-            };
+            let index: i32 = self.scanline as i32 * 256 + self.cycle as i32 - 1;
+
+            if index >= 0 && (index as usize) < 256 * 240 {
+                self.screen[index as usize % (256 * 240)] = if rand::random() {
+                    Color::WHITE
+                } else {
+                    Color::BLACK
+                };
+            }
 
             self.cycle += 1;
             

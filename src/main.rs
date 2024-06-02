@@ -75,29 +75,80 @@ fn main() {
     );
     screen_display.update(&mut rl_handle, &rl_thread, nes.get_ppu_screen());
     
-    let mut pause = true;
     while !rl_handle.window_should_close() {
-        if !pause || rl_handle.is_key_pressed(KeyboardKey::KEY_SPACE) || rl_handle.is_key_down(KeyboardKey::KEY_SPACE) && rl_handle.is_key_down(KeyboardKey::KEY_LEFT_CONTROL) {
-            let cycle = nes.get_cpu_info().cycles;
-            let set_text_color = match cycle {
-                1 => Some(Color::ORANGE),
-                0 => Some(Color::LIGHTGREEN),
-                _ => None,
-            };
-            nes.tick();
-            if cycle == 0 {
-                zero_page.set_text(NesDisplay::bytes_to_string(nes.get_ram(0x0000, 0x00F0)), None);
-                program_location.set_text(NesDisplay::bytes_to_string(nes.get_ram(0x8000, 0x80F0)), None);
-                cpu_info.set_text(NesDisplay::cpu_info_to_string(nes.get_cpu_info()), None);
-                flags_display.set_flags(nes.get_cpu_flags());
-                history_instruction_display.update(&nes, nes.get_cpu_info().program_counter);
-                screen_display.update(&mut rl_handle, &rl_thread, nes.get_ppu_screen());
+        // Resume / Pause emulation
+        if rl_handle.is_key_pressed(KeyboardKey::KEY_SPACE) {
+            nes.pause = !nes.pause;
+        }
+
+        let cycle = nes.get_cpu_info().cycles;
+        let set_text_color = match cycle {
+            1 => Some(Color::ORANGE),
+            0 => Some(Color::LIGHTGREEN),
+            _ => None,
+        };
+
+        if !nes.pause {
+            loop {
+                nes.tick();
+                if nes.is_ppu_frame_complete() {
+                    nes.set_ppu_frame_complete(false);
+                    break;
+                }
             }
-            cycles_left_display.set_text(format!("Next in\n[{}] cycles", cycle), set_text_color);
+        } else {
+            // Step into next CPU instruction
+            if rl_handle.is_key_pressed(KeyboardKey::KEY_Q) || (rl_handle.is_key_down(KeyboardKey::KEY_Q) && rl_handle.is_key_down(KeyboardKey::KEY_LEFT_SHIFT)) {
+                loop {
+                    nes.tick();
+                    if nes.is_cpu_instruction_complete() {
+                        break;
+                    }
+                }
+                loop {
+                    nes.tick();
+                    if !nes.is_cpu_instruction_complete() {
+                        break;
+                    }
+                }
+            }
+            // Step into next CPU clock cycle
+            if rl_handle.is_key_pressed(KeyboardKey::KEY_W) || (rl_handle.is_key_down(KeyboardKey::KEY_W) && rl_handle.is_key_down(KeyboardKey::KEY_LEFT_SHIFT)) {
+                loop {
+                    nes.tick();
+                    if nes.is_a_cpu_tick {
+                        break;
+                    }
+                }
+            }
+            // Step into next PPU clock cycle
+            if rl_handle.is_key_pressed(KeyboardKey::KEY_E) || (rl_handle.is_key_down(KeyboardKey::KEY_E) && rl_handle.is_key_down(KeyboardKey::KEY_LEFT_SHIFT)) {
+                nes.tick();
+            }
+            // Step into next PPU frame
+            if rl_handle.is_key_pressed(KeyboardKey::KEY_R) || (rl_handle.is_key_down(KeyboardKey::KEY_R) && rl_handle.is_key_down(KeyboardKey::KEY_LEFT_SHIFT)) {
+                loop {
+                    nes.tick();
+                    if nes.is_ppu_frame_complete() {
+                        nes.set_ppu_frame_complete(false);
+                        break;
+                    }
+                }
+            }
+            // Reset the NES
+            if rl_handle.is_key_pressed(KeyboardKey::KEY_T) {
+                nes.reset();
+            }
         }
-        if rl_handle.is_key_pressed(KeyboardKey::KEY_P) {
-            pause = !pause;
-        }
+
+        zero_page.set_text(NesDisplay::bytes_to_string(nes.get_ram(0x0000, 0x00F0)), None);
+        program_location.set_text(NesDisplay::bytes_to_string(nes.get_ram(0x8000, 0x80F0)), None);
+        cpu_info.set_text(NesDisplay::cpu_info_to_string(nes.get_cpu_info()), None);
+        flags_display.set_flags(nes.get_cpu_flags());
+        history_instruction_display.update(&nes, nes.get_cpu_info().program_counter);
+        screen_display.update(&mut rl_handle, &rl_thread, nes.get_ppu_screen());
+        cycles_left_display.set_text(format!("Next in\n[{}] cycles", cycle), set_text_color);
+
         
         let mut rl_draw_handle = rl_handle.begin_drawing(&rl_thread);
 

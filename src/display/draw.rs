@@ -367,7 +367,6 @@ impl ScreenDisplay {
 
     pub fn update(&mut self, rl_handle: &mut RaylibHandle, rl_thread: &RaylibThread, pixels: &[Color]) {
         let (widith, height): (usize, usize) = (256, 240);
-        // let mut image = Image::gen_image_color(widith as i32, height as i32, Color::BLACK);
         let mut pixel_data = vec![255; widith * height * 4];
 
         for (i, pixel) in pixels.iter().enumerate() {

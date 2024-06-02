@@ -16,6 +16,9 @@ pub struct Nes {
     bus: bus::Bus,
 
     total_clock_ticks: u128,
+
+    pub pause: bool,
+    pub is_a_cpu_tick: bool,
 }
 
 pub struct CpuInfo {
@@ -35,6 +38,9 @@ impl Nes {
             ppu: ppu::ppu2c02::Ppu2C02::new(),
             bus: bus::Bus::new(),
             total_clock_ticks: 0,
+            
+            pause: true,
+            is_a_cpu_tick: false,
         }
     }
 
@@ -57,7 +63,9 @@ impl Nes {
 
     pub fn tick(&mut self) {
         self.ppu.clock();
+        self.is_a_cpu_tick = false;
         if self.total_clock_ticks % 3 == 0 {
+            self.is_a_cpu_tick = true;
             self.cpu.clock(&mut self.bus, &mut self.cartridge);
         }
         self.total_clock_ticks = self.total_clock_ticks.wrapping_add(1);
@@ -87,8 +95,16 @@ impl Nes {
         self.cpu.status
     }
 
+    pub fn is_cpu_instruction_complete(&self) -> bool {
+        self.cpu.cycles == 0
+    }
+
     pub fn is_ppu_frame_complete(&self) -> bool {
         self.ppu.is_frame_complete
+    }
+
+    pub fn set_ppu_frame_complete(&mut self, value: bool) {
+        self.ppu.is_frame_complete = value;
     }
 
     pub fn get_ppu_screen(&self) -> &[ppu::ppu2c02::Color] {
