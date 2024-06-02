@@ -283,14 +283,16 @@ pub mod ppu2c02 {
 
         pub fn clock(&mut self) {
             // randomly set the pixel to black or white
-            let index: i32 = self.scanline as i32 * 256 + self.cycle as i32 - 1;
+            if self.cycle <= 256 && self.scanline <= 240 {
+                let index: i32 = self.scanline as i32 * 256 + self.cycle as i32 - 1;
 
-            if index >= 0 && (index as usize) < 256 * 240 {
-                self.displayable_screen[index as usize % (256 * 240)] = if rand::random() {
-                    Color::WHITE
-                } else {
-                    Color::BLANK
-                };
+                if index >= 0 && (index as usize) < 256 * 240 {
+                    self.displayable_screen[index as usize] = if rand::random() {
+                        Color::WHITE
+                    } else {
+                        Color::BLANK
+                    };
+                }
             }
 
             self.cycle += 1;
