@@ -25,8 +25,8 @@ pub mod ncartridge {
     #[allow(dead_code)]
     #[derive(Debug, Default)]
     pub struct Cartridge {
-        prg_rom: Vec<u8>,
-        chr_rom: Vec<u8>,
+        prg_rom: Vec<u8>, /// Program ROM
+        chr_rom: Vec<u8>, /// Character ROM
 
         mapper_id: u8,
         prg_banks_count: u8,

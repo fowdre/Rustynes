@@ -14,6 +14,7 @@ pub struct Nes {
     cpu: cpu::cpu6502::Cpu6502,
     ppu: ppu::ppu2c02::Ppu2C02,
     bus: bus::Bus,
+    selected_palette: u8,
 
     total_clock_ticks: u128,
 
@@ -41,11 +42,16 @@ impl Nes {
             
             pause: true,
             is_a_cpu_tick: false,
+            selected_palette: 0,
         }
     }
 
     pub fn load_cartridge(&mut self, path: &str) {
         self.cartridge = Cartridge::from_path(path);
+    }
+
+    pub fn cycle_palette(&mut self) {
+        self.selected_palette = (self.selected_palette + 1) & 0x07;
     }
     
     #[allow(dead_code)]
@@ -110,7 +116,7 @@ impl Nes {
     }
 
     pub const fn get_ppu_screen(&self) -> &[ppu::ppu2c02::Color] {
-        &self.ppu.screen
+        self.ppu.get_screen()
     }
 
     #[allow(dead_code)]
@@ -118,9 +124,8 @@ impl Nes {
         &self.ppu.table_name[index]
     }
 
-    #[allow(dead_code)]
-    pub const fn get_ppu_pattern_table(&self, index: usize) -> &[u8] {
-        &self.ppu.table_pattern[index]
+    pub fn get_ppu_pattern_table(&mut self, index: usize) -> &[ppu::ppu2c02::Color] {
+        self.ppu.get_pattern_table(&self.cartridge, index, self.selected_palette)
     }
 
     #[allow(dead_code)]

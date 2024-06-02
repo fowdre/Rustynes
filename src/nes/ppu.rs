@@ -5,8 +5,11 @@ pub mod ppu2c02 {
     #[allow(dead_code)]
     #[derive(Debug)]
     pub struct Ppu2C02 {
+        /// (or VRAM) Background **_layout_**
         pub table_name: [[u8; 1024]; 2],
-        pub table_pattern: [[u8; 4096]; 2],
+        /// Sprites (background & foreground)
+        pub table_pattern: [[u8; 4 * 1024]; 2],
+        /// Colors
         pub table_pallete: [u8; 32],
 
         /// Row
@@ -16,12 +19,15 @@ pub mod ppu2c02 {
         pub is_frame_complete: bool,
 
         screen_palette: [Color; 64],
-        pub screen: [Color; 256 * 240]
+        pub displayable_name_table: [[Color; 256 * 240]; 2],
+        displayable_pattern_table: [[Color; 128 * 128]; 2],
+        displayable_screen: [Color; 256 * 240]
+        
     }
 
     impl Ppu2C02 {
         pub const fn new() -> Self {
-            let mut screen_palette = [Color::BLACK; 64];
+            let mut screen_palette = [Color::BLANK; 64];
             {
                 screen_palette[0x00] = Color::new(84, 84, 84, 255);
 	            screen_palette[0x01] = Color::new(0, 30, 116, 255);
@@ -102,7 +108,9 @@ pub mod ppu2c02 {
                 is_frame_complete: false,
 
                 screen_palette,
-                screen: [Color::BLACK; 256 * 240]
+                displayable_screen: [Color::BLANK; 256 * 240],
+                displayable_name_table: [[Color::BLANK; 256 * 240]; 2],
+                displayable_pattern_table: [[Color::BLANK; 128 * 128]; 2]
             }
         }
         
@@ -143,6 +151,28 @@ pub mod ppu2c02 {
             addr &= 0x3FFF;
             if cartridge.cpu_read(addr, &mut ret) {
             }
+            match addr {
+                0x0000..=0x1FFF => { // Pattern Table
+                    ret = self.table_pattern[((addr & 0x1000) >> 12) as usize][(addr & 0x0FFF) as usize];
+                },
+                0x2000..=0x3EFF => {
+                    // Nametable
+                },
+                0x3F00..=0x3FFF => { // Palette
+                    addr &= 0x001F;
+                    
+                    match addr {
+                        0x0010 => addr = 0x0000,
+                        0x0014 => addr = 0x0004,
+                        0x0018 => addr = 0x0008,
+                        0x001C => addr = 0x000C,
+                        _ => {}
+                    }
+                    
+                    ret = self.table_pallete[addr as usize];
+                },
+                _ => {}
+            }
             
             ret
         }
@@ -153,6 +183,60 @@ pub mod ppu2c02 {
 
             if cartridge.cpu_write(addr, data) {
             }
+            match addr {
+                0x0000..=0x1FFF => { // Pattern Table
+                    self.table_pattern[((addr & 0x1000) >> 12) as usize][(addr & 0x0FFF) as usize] = data;
+                },
+                0x2000..=0x3EFF => {
+                    // Nametable
+                },
+                0x3F00..=0x3FFF => { // Palette
+                    addr &= 0x001F;
+                    
+                    match addr {
+                        0x0010 => addr = 0x0000,
+                        0x0014 => addr = 0x0004,
+                        0x0018 => addr = 0x0008,
+                        0x001C => addr = 0x000C,
+                        _ => {}
+                    }
+                    
+                    self.table_pallete[addr as usize] = data;
+                },
+                _ => {}
+            }
+        }
+
+        pub const fn get_screen(&self) -> &[Color] {
+            &self.displayable_screen
+        }
+
+        pub fn get_palette_from_ram(&self, cartridge: &Cartridge, palette: u8, pixel: u8) -> Color {
+            self.screen_palette[(self.ppu_read(cartridge, 0x3F00 + ((palette << 2) + pixel) as u16, false)) as usize]
+        }
+        
+        pub fn get_pattern_table(&mut self, cartridge: &Cartridge, index: usize, palette: u8) -> &[Color] {
+            for y in 0..16 {
+                for x in 0..16 {
+                    // 256 because 1 tile is 16x16 | A row has 16 tiles | 16 * 16 = 256
+                    let offset = y * 256 + x * 16;
+                    
+                    for row in 0..8 { // For each tile, 8 rows of 8 pixels
+                        let mut lsb = self.ppu_read(cartridge, (index * 0x1000 + offset + row) as u16, false);
+                        let mut msb = self.ppu_read(cartridge, (index * 0x1000 + offset + row + 8) as u16, false);
+    
+                        for col in 0..8 {
+                            let pixel = (lsb & 0x01) + (msb & 0x01);
+                            lsb >>= 1;
+                            msb >>= 1;
+    
+                            self.displayable_pattern_table[index][(y * 8 + row) * 128 + (x * 8 + (7 - col))] = self.get_palette_from_ram(cartridge, palette, pixel);
+                        }
+                    }
+                }
+            }
+            
+            &self.displayable_pattern_table[index]
         }
 
         pub fn clock(&mut self) {
@@ -160,10 +244,10 @@ pub mod ppu2c02 {
             let index: i32 = self.scanline as i32 * 256 + self.cycle as i32 - 1;
 
             if index >= 0 && (index as usize) < 256 * 240 {
-                self.screen[index as usize % (256 * 240)] = if rand::random() {
+                self.displayable_screen[index as usize % (256 * 240)] = if rand::random() {
                     Color::WHITE
                 } else {
-                    Color::BLACK
+                    Color::BLANK
                 };
             }
 

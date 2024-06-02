@@ -339,16 +339,20 @@ impl<'font> InstructionHistoryDisplay<'font> {
 #[allow(dead_code)]
 pub struct ScreenDisplay {
     position: Vector2,
-    pixels: [Color; 256 * 240],
+    dimensions: Vector2,
+    scaled_dimensions: Vector2,
+    pixels: Vec<Color>,
     scale: f32,
     texture: Option<Texture2D>,
 }
 
 impl ScreenDisplay {
-    pub const fn new(position: Vector2, scale: f32) -> Self {
+    pub fn new(position: Vector2, dimensions: Vector2, scale: f32) -> Self {
         Self {
             position,
-            pixels: [Color::BLACK; 256 * 240],
+            dimensions,
+            scaled_dimensions: dimensions * scale,
+            pixels: vec![Color::BLANK; dimensions.x as usize * dimensions.y as usize],
             scale,
             texture: None,
         }
@@ -367,8 +371,8 @@ impl ScreenDisplay {
     }
 
     pub fn update(&mut self, rl_handle: &mut RaylibHandle, rl_thread: &RaylibThread, pixels: &[Color]) {
-        let (widith, height): (usize, usize) = (256, 240);
-        let mut pixel_data = vec![255; widith * height * 4];
+        let (width, height) = (self.dimensions.x as usize, self.dimensions.y as usize);
+        let mut pixel_data = vec![0; width * height * 4];
 
         for (i, pixel) in pixels.iter().enumerate() {
             let offset = i * 4;
@@ -381,7 +385,15 @@ impl ScreenDisplay {
         if let Some(texture) = &mut self.texture {
             texture.update_texture(&pixel_data);
         } else {
-            self.texture = Some(rl_handle.load_texture_from_image(rl_thread, &Image::gen_image_color(widith as i32, height as i32, Color::BLACK)).expect("Could not load texture"));
+            self.texture = Some(rl_handle.load_texture_from_image(rl_thread, &Image::gen_image_color(width as i32, height as i32, Color::BLANK)).expect("Could not load texture"));
         }
+    }
+
+    pub fn get_position(&self) -> Vector2 {
+        self.position
+    }
+
+    pub fn get_dimensions(&self) -> Vector2 {
+        self.scaled_dimensions
     }
 }

@@ -71,14 +71,34 @@ fn main() {
 
     let mut screen_display = ScreenDisplay::new(
         Vector2::new(10.0 * 60.0, 10.0 + program_location.get_dimensions().y + program_location.get_position().y),
+        Vector2::new(256.0, 240.0),
         3.0,
     );
-    screen_display.update(&mut rl_handle, &rl_thread, nes.get_ppu_screen());
+
+    let mut pattern_table_display_1 = ScreenDisplay::new(
+        Vector2::new(program_location.get_position().x, program_location.get_position().y + program_location.get_dimensions().y + 10.0),
+        Vector2::new(128.0, 128.0),
+        3.0,
+    );
+
+    let mut pattern_table_display_2 = ScreenDisplay::new(
+        Vector2::new(pattern_table_display_1.get_position().x, pattern_table_display_1.get_position().y + pattern_table_display_1.get_dimensions().y + 10.0),
+        Vector2::new(128.0, 128.0),
+        3.0,
+    );
     
     while !rl_handle.window_should_close() {
         // Resume / Pause emulation
         if rl_handle.is_key_pressed(KeyboardKey::KEY_SPACE) {
             nes.pause = !nes.pause;
+        }
+        // Reset the NES
+        if rl_handle.is_key_pressed(KeyboardKey::KEY_T) {
+            nes.reset();
+        }
+        // Change palette
+        if rl_handle.is_key_pressed(KeyboardKey::KEY_P) {
+            nes.cycle_palette();
         }
 
         let cycle = nes.get_cpu_info().cycles;
@@ -135,10 +155,6 @@ fn main() {
                     }
                 }
             }
-            // Reset the NES
-            if rl_handle.is_key_pressed(KeyboardKey::KEY_T) {
-                nes.reset();
-            }
         }
 
         zero_page.set_text(NesDisplay::bytes_to_string(nes.get_ram(0x0000, 0x00F0)), None);
@@ -146,9 +162,10 @@ fn main() {
         cpu_info.set_text(NesDisplay::cpu_info_to_string(nes.get_cpu_info()), None);
         flags_display.set_flags(nes.get_cpu_flags());
         history_instruction_display.update(&nes, nes.get_cpu_info().program_counter);
-        screen_display.update(&mut rl_handle, &rl_thread, nes.get_ppu_screen());
         cycles_left_display.set_text(format!("Next in\n[{}] cycles", cycle), set_text_color);
-
+        screen_display.update(&mut rl_handle, &rl_thread, nes.get_ppu_screen());
+        pattern_table_display_1.update(&mut rl_handle, &rl_thread, nes.get_ppu_pattern_table(0));
+        pattern_table_display_2.update(&mut rl_handle, &rl_thread, nes.get_ppu_pattern_table(1));
         
         let mut rl_draw_handle = rl_handle.begin_drawing(&rl_thread);
 
@@ -161,5 +178,7 @@ fn main() {
         history_instruction_display.draw(&mut rl_draw_handle);
         cycles_left_display.draw(&mut rl_draw_handle);
         screen_display.draw(&mut rl_draw_handle);
+        pattern_table_display_1.draw(&mut rl_draw_handle);
+        pattern_table_display_2.draw(&mut rl_draw_handle);
     }
 }

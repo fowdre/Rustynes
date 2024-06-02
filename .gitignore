@@ -1,6 +1,7 @@
+.gitignore
+
 target/
 ressources/
 ignore/
 
-.gitignore
-nestest.nes
+*.nes
