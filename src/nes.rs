@@ -1,11 +1,12 @@
 mod cartridge;
+mod mappers;
 mod ppu;
 mod cpu;
 mod bus;
 
+pub use cartridge::ncartridge::Cartridge;
 pub use bus::Bus;
 pub use cpu::cpu6502::{Cpu6502, Flags};
-pub use cartridge::ncartridge::Cartridge;
 
 #[derive(Debug)]
 pub struct Nes {

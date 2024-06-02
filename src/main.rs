@@ -11,12 +11,6 @@ fn main() {
     let mut nes = Nes::new();
     nes.load_cartridge("nestest.nes");
 
-    // let test_bytes = [0xA2, 0x0A, 0x8E, 0x00, 0x00, 0xA2, 0x03, 0x8E, 0x01, 0x00, 0xAC, 0x00, 0x00, 0xA9, 0x00, 0x18, 0x6D, 0x01, 0x00, 0x88, 0xD0, 0xFA, 0x8D, 0x02, 0x00, 0x00, 0xEA, 0xEA, 0xEA];
-
-    // for (i, byte) in test_bytes.iter().enumerate() {
-    //     nes.cpu_write(0x8000 + i as u16, *byte);
-    // }
-
     let (mut rl_handle, rl_thread) = raylib::init()
         .size(800, 600)
         .title("Rustyness")
@@ -73,8 +67,9 @@ fn main() {
     );
     history_instruction_display.update(&nes, nes.get_cpu_info().program_counter);
 
+    let mut pause = true;
     while !rl_handle.window_should_close() {
-        if rl_handle.is_key_pressed(KeyboardKey::KEY_SPACE) || rl_handle.is_key_down(KeyboardKey::KEY_SPACE) && rl_handle.is_key_down(KeyboardKey::KEY_LEFT_CONTROL) {
+        if !pause || rl_handle.is_key_pressed(KeyboardKey::KEY_SPACE) || rl_handle.is_key_down(KeyboardKey::KEY_SPACE) && rl_handle.is_key_down(KeyboardKey::KEY_LEFT_CONTROL) {
             let cycle = nes.get_cpu_info().cycles;
             let set_text_color = match cycle {
                 1 => Some(Color::ORANGE),
@@ -90,6 +85,9 @@ fn main() {
                 history_instruction_display.update(&nes, nes.get_cpu_info().program_counter);
             }
             cycles_left_display.set_text(format!("Next in\n[{}] cycles", cycle), set_text_color);
+        }
+        if rl_handle.is_key_pressed(KeyboardKey::KEY_P) {
+            pause = !pause;
         }
         
         let mut rl_draw_handle = rl_handle.begin_drawing(&rl_thread);

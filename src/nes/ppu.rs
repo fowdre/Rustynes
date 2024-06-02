@@ -44,10 +44,10 @@ pub mod ppu2c02 {
         }
         
         pub fn ppu_read(&self, cartridge: &Cartridge, mut addr: u16, read_only: bool) -> u8 {
-            let ret = 0x0000;
+            let mut ret = 0x0000;
 
             addr &= 0x3FFF;
-            if cartridge.cpu_read(addr, &ret) {
+            if cartridge.cpu_read(addr, &mut ret) {
             }
             
             ret

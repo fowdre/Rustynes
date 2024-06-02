@@ -1,9 +1,11 @@
 pub mod ncartridge {
+    use crate::nes::mappers::*;
     use std::io::{Read, Seek};
     
     #[repr(C, packed)]
     #[derive(Debug, Copy, Clone)]
     pub struct Header {
+        name: [u8; 4],
         prg_rom_chunks: u8,
         chr_rom_chunks: u8,
         mapper1: u8,
@@ -28,6 +30,8 @@ pub mod ncartridge {
         mapper_id: u8,
         prg_banks_count: u8,
         chr_banks_count: u8,
+
+        mapper: Box<dyn Mapper>
     }
 
     impl Cartridge {
@@ -54,17 +58,29 @@ pub mod ncartridge {
                 1 => {
                     prg_banks_count = header.prg_rom_chunks;
                     prg_rom = vec![0; prg_banks_count as usize * 16 * 1024];
-                    // file.read_exact(&mut prg_rom).unwrap();
-                    file.read_to_end(&mut prg_rom).unwrap();
+                    if file.read_exact(&mut prg_rom).is_err() {
+                        println!("[WARN] PRG rom | no more data to read | Buffer size is {} bytes", prg_rom.len());
+                    }
 
                     chr_banks_count = header.chr_rom_chunks;
                     chr_rom = vec![0; chr_banks_count as usize * 8 * 1024];
-                    // file.read_exact(&mut chr_rom).unwrap();
-                    file.read_to_end(&mut chr_rom).unwrap();
+                    if file.read_exact(&mut chr_rom).is_err() {
+                        println!("[WARN] CHR rom | no more data to read | Buffer size is {} bytes", chr_rom.len());
+                    }
                 },
                 2 => {},
                 _ => {},
             }
+
+            let mapper: Box<dyn Mapper> = match mapper_id {
+                0 => {
+                    Box::new(mapper_000::Mapper000::new(prg_banks_count, chr_banks_count))
+                },
+                _ => {
+                    println!("[WARN] Mapper {} not implemented, using Mapper000 (program will probably not work)", mapper_id);
+                    Box::new(mapper_000::Mapper000::new(prg_banks_count, chr_banks_count))
+                }
+            };
 
             Cartridge {
                 prg_rom,
@@ -72,22 +88,51 @@ pub mod ncartridge {
                 mapper_id,
                 prg_banks_count,
                 chr_banks_count,
+                mapper
             }
         }
 
-        pub fn cpu_read(&self, addr: u16, data: &u8) -> bool {
+        pub fn cpu_read(&self, addr: u16, data: &mut u8) -> bool {
+            let mut mapped_addr: u32 = 0x0000;
+
+            if self.mapper.cpu_map_read(addr, &mut mapped_addr) {
+                *data = self.prg_rom[mapped_addr as usize];
+                return true;
+            }
+
             false
         }
 
         pub fn cpu_write(&mut self, addr: u16, data: u8) -> bool {
+            let mut mapped_addr: u32 = 0x0000;
+
+            if self.mapper.cpu_map_write(addr, &mut mapped_addr) {
+                self.prg_rom[mapped_addr as usize] = data;
+                return true;
+            }
+
             false
         }
 
-        pub fn ppu_read(&self, addr: u16, data: &u8) -> bool {
+        pub fn ppu_read(&self, addr: u16, data: &mut u8) -> bool {
+            let mut mapped_addr: u32 = 0x0000;
+
+            if self.mapper.ppu_map_read(addr, &mut mapped_addr) {
+                *data = self.chr_rom[mapped_addr as usize];
+                return true;
+            }
+
             false
         }
 
         pub fn ppu_write(&mut self, addr: u16, data: u8) -> bool {
+            let mut mapped_addr: u32 = 0x0000;
+
+            if self.mapper.ppu_map_write(addr, &mut mapped_addr) {
+                self.chr_rom[mapped_addr as usize] = data;
+                return true;
+            }
+
             false
         }
     }

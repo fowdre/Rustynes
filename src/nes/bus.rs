@@ -13,13 +13,15 @@ impl Bus {
     }
 
     pub fn cpu_read(&self, cartridge: &Cartridge, addr: u16, _read_only: bool) -> u8 {
-        if cartridge.cpu_read(addr, &0x0000) {
-            return 0x0000;
+        let mut data = 0x0000;
+
+        if cartridge.cpu_read(addr, &mut data) { // Cartidge range
+            return data;
         }
         match addr {
-            0x0000..=0x1FFF => self.cpu_ram[(addr & 0x07FF) as usize],
-            0x2000..=0x3FFF => self.cpu_ram[(addr & 0x0007) as usize],
-            _ => 0x0000
+            0x0000..=0x1FFF => self.cpu_ram[(addr & 0x07FF) as usize], // RAM range
+            0x2000..=0x3FFF => self.cpu_ram[(addr & 0x0007) as usize], // PPU range
+            _ => data
         }
     }
 
@@ -28,8 +30,8 @@ impl Bus {
             return;
         }
         match addr {
-            0x0000..=0x1FFF => self.cpu_ram[(addr & 0x07FF) as usize] = data,
-            0x2000..=0x3FFF => self.cpu_ram[(addr & 0x0007) as usize] = data,
+            0x0000..=0x1FFF => self.cpu_ram[(addr & 0x07FF) as usize] = data, // RAM range
+            0x2000..=0x3FFF => self.cpu_ram[(addr & 0x0007) as usize] = data, // PPU range
             _ => {}
         }
     }
