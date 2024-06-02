@@ -336,6 +336,7 @@ impl<'font> InstructionHistoryDisplay<'font> {
     }
 }
 
+#[allow(dead_code)]
 pub struct ScreenDisplay {
     position: Vector2,
     pixels: [Color; 256 * 240],
@@ -344,7 +345,7 @@ pub struct ScreenDisplay {
 }
 
 impl ScreenDisplay {
-    pub fn new(position: Vector2, scale: f32) -> Self {
+    pub const fn new(position: Vector2, scale: f32) -> Self {
         Self {
             position,
             pixels: [Color::BLACK; 256 * 240],

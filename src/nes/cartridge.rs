@@ -18,10 +18,11 @@ pub mod ncartridge {
 
     impl Header {
         pub fn from_bytes(buffer: &[u8]) -> Self {
-            unsafe { *(buffer.as_ptr() as *const Header) }
+            unsafe { *(buffer.as_ptr() as *const Self) }
         }
     }
 
+    #[allow(dead_code)]
     #[derive(Debug, Default)]
     pub struct Cartridge {
         prg_rom: Vec<u8>,
@@ -57,13 +58,13 @@ pub mod ncartridge {
                 0 => {},
                 1 => {
                     prg_banks_count = header.prg_rom_chunks;
-                    prg_rom = vec![0; prg_banks_count as usize * 16 * 1024];
+                    prg_rom.resize(prg_banks_count as usize * 16 * 1024, 0);
                     if file.read_exact(&mut prg_rom).is_err() {
                         println!("[WARN] PRG rom | no more data to read | Buffer size is {} bytes", prg_rom.len());
                     }
 
                     chr_banks_count = header.chr_rom_chunks;
-                    chr_rom = vec![0; chr_banks_count as usize * 8 * 1024];
+                    chr_rom.resize(chr_banks_count as usize * 8 * 1024, 0);
                     if file.read_exact(&mut chr_rom).is_err() {
                         println!("[WARN] CHR rom | no more data to read | Buffer size is {} bytes", chr_rom.len());
                     }
@@ -82,7 +83,7 @@ pub mod ncartridge {
                 }
             };
 
-            Cartridge {
+            Self {
                 prg_rom,
                 chr_rom,
                 mapper_id,
@@ -114,6 +115,7 @@ pub mod ncartridge {
             false
         }
 
+        #[allow(dead_code)]
         pub fn ppu_read(&self, addr: u16, data: &mut u8) -> bool {
             let mut mapped_addr: u32 = 0x0000;
 
@@ -125,6 +127,7 @@ pub mod ncartridge {
             false
         }
 
+        #[allow(dead_code)]
         pub fn ppu_write(&mut self, addr: u16, data: u8) -> bool {
             let mut mapped_addr: u32 = 0x0000;
 

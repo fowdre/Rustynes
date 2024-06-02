@@ -1,5 +1,6 @@
 use super::Mapper;
 
+#[allow(dead_code)]
 pub struct Mapper000 {
     prg_banks_count: u8,
     chr_banks_count: u8,
@@ -50,7 +51,7 @@ impl Mapper for Mapper000 {
         false
     }
 
-    fn ppu_map_write(&self, addr: u16, _mapped_addr: &mut u32) -> bool {
+    fn ppu_map_write(&self, _addr: u16, _mapped_addr: &mut u32) -> bool {
         false
     }
 }

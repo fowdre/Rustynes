@@ -431,6 +431,7 @@ pub mod cpu6502 {
         }
 
         /// Interrupt request signal
+        #[allow(dead_code)]
         fn irq(&mut self, bus: &mut Bus, cartridge: &mut Cartridge) {
             if !self.get_flag(Flags::I) {
                 // Push PC to stack (16 bits to write)
@@ -457,6 +458,7 @@ pub mod cpu6502 {
         }
 
         /// Non-maskable interrupt request signal
+        #[allow(dead_code)]
         fn nmi(&mut self, bus: &mut Bus, cartridge: &mut Cartridge) {
             // Push PC to stack (16 bits to write)
             self.write(bus, cartridge, 0x0100 + self.sp as u16, ((self.pc >> 8) & 0x00FF) as u8);

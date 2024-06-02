@@ -2,6 +2,7 @@ pub mod ppu2c02 {
     use crate::nes::Cartridge;
     pub use raylib::prelude::core::color::*;
 
+    #[allow(dead_code)]
     #[derive(Debug)]
     pub struct Ppu2C02 {
         pub table_name: [[u8; 1024]; 2],
@@ -19,7 +20,7 @@ pub mod ppu2c02 {
     }
 
     impl Ppu2C02 {
-        pub fn new() -> Self {
+        pub const fn new() -> Self {
             let mut screen_palette = [Color::BLACK; 64];
             {
                 screen_palette[0x00] = Color::new(84, 84, 84, 255);
@@ -104,8 +105,9 @@ pub mod ppu2c02 {
                 screen: [Color::BLACK; 256 * 240]
             }
         }
-
-        pub fn cpu_read(&self, addr: u16, read_only: bool) -> u8 {
+        
+        #[allow(dead_code)]
+        pub const fn cpu_read(&self, addr: u16, _read_only: bool) -> u8 {
             match addr {
                 0x0000 => 0x00, // Control
                 0x0001 => 0x00, // Mask
@@ -119,7 +121,8 @@ pub mod ppu2c02 {
             }
         }
 
-        pub fn cpu_write(&mut self, addr: u16, data: u8) {
+        #[allow(dead_code)]
+        pub fn cpu_write(&mut self, addr: u16, _data: u8) {
             match addr {
                 0x0000 => {}, // Control
                 0x0001 => {}, // Mask
@@ -133,7 +136,8 @@ pub mod ppu2c02 {
             };
         }
         
-        pub fn ppu_read(&self, cartridge: &Cartridge, mut addr: u16, read_only: bool) -> u8 {
+        #[allow(dead_code)]
+        pub fn ppu_read(&self, cartridge: &Cartridge, mut addr: u16, _read_only: bool) -> u8 {
             let mut ret = 0x0000;
 
             addr &= 0x3FFF;
@@ -143,6 +147,7 @@ pub mod ppu2c02 {
             ret
         }
 
+        #[allow(dead_code)]
         pub fn ppu_write(&mut self, cartridge: &mut Cartridge, mut addr: u16, data: u8) {
             addr &= 0x3FFF;
 

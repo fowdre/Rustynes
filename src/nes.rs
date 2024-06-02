@@ -48,10 +48,12 @@ impl Nes {
         self.cartridge = Cartridge::from_path(path);
     }
     
+    #[allow(dead_code)]
     pub fn ram_read(&self, addr: u16) -> u8 {
         self.cpu.read(&self.bus, &self.cartridge, addr)
     }
 
+    #[allow(dead_code)]
     pub fn ram_write(&mut self, addr: u16, data: u8) {
         self.cpu.write(&mut self.bus, &mut self.cartridge, addr, data);
     }
@@ -95,11 +97,11 @@ impl Nes {
         self.cpu.status
     }
 
-    pub fn is_cpu_instruction_complete(&self) -> bool {
+    pub const fn is_cpu_instruction_complete(&self) -> bool {
         self.cpu.cycles == 0
     }
 
-    pub fn is_ppu_frame_complete(&self) -> bool {
+    pub const fn is_ppu_frame_complete(&self) -> bool {
         self.ppu.is_frame_complete
     }
 
@@ -107,19 +109,22 @@ impl Nes {
         self.ppu.is_frame_complete = value;
     }
 
-    pub fn get_ppu_screen(&self) -> &[ppu::ppu2c02::Color] {
+    pub const fn get_ppu_screen(&self) -> &[ppu::ppu2c02::Color] {
         &self.ppu.screen
     }
 
-    pub fn get_ppu_name_table(&self, index: usize) -> &[u8] {
+    #[allow(dead_code)]
+    pub const fn get_ppu_name_table(&self, index: usize) -> &[u8] {
         &self.ppu.table_name[index]
     }
 
-    pub fn get_ppu_pattern_table(&self, index: usize) -> &[u8] {
+    #[allow(dead_code)]
+    pub const fn get_ppu_pattern_table(&self, index: usize) -> &[u8] {
         &self.ppu.table_pattern[index]
     }
 
-    pub fn get_ppu_pallete(&self) -> &[u8] {
+    #[allow(dead_code)]
+    pub const fn get_ppu_pallete(&self) -> &[u8] {
         &self.ppu.table_pallete
     }
 

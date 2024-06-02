@@ -6,7 +6,7 @@ pub struct Bus {
 }
 
 impl Bus {
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         Self {
             cpu_ram: [0; 2 * 1024],
         }

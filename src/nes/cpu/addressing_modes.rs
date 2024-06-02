@@ -4,14 +4,14 @@ use crate::nes::{Cpu6502, Bus, Cartridge};
 #[allow(non_snake_case)]
 impl Cpu6502 {
     /// Accumulator addressing mode
-    pub fn addr_ACC(&mut self, _bus: &Bus, cartridge: &Cartridge) -> u8 {
+    pub fn addr_ACC(&mut self, _bus: &Bus, _cartridge: &Cartridge) -> u8 {
         self.fetched = self.a;
         
         0
     }
 
     /// Immediate addressing mode
-    pub fn addr_IMM(&mut self, _bus: &Bus, cartridge: &Cartridge) -> u8 {
+    pub fn addr_IMM(&mut self, _bus: &Bus, _cartridge: &Cartridge) -> u8 {
         self.addr_abs = self.pc;
         self.pc = self.pc.wrapping_add(1);
         
@@ -95,7 +95,7 @@ impl Cpu6502 {
     }
     
     /// Implied addressing mode
-    pub fn addr_IMP(&mut self, _bus: &Bus, cartridge: &Cartridge) -> u8 {
+    pub fn addr_IMP(&mut self, _bus: &Bus, _cartridge: &Cartridge) -> u8 {
         0
     }
     
