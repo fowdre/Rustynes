@@ -108,8 +108,11 @@ impl std::fmt::Display for BytesLine {
 pub struct NesDisplay;
 
 impl NesDisplay {
-    pub fn set_options(handle: &mut RaylibHandle, fps: u32, line_spacing: i32, fullscreen: bool) {
-        handle.set_target_fps(fps);
+    pub fn set_options(handle: &mut RaylibHandle, fps: Option<u32>, line_spacing: i32, fullscreen: bool) {
+        match fps {
+            Some(fps) => handle.set_target_fps(fps),
+            None => handle.set_target_fps(1000),
+        }
         handle.set_text_line_spacing(line_spacing);
         if fullscreen {
             handle.toggle_fullscreen();
@@ -329,6 +332,56 @@ impl<'font> InstructionHistoryDisplay<'font> {
                 color,
             );
             y_offset += self.font.base_size() as f32 + 5.0;
+        }
+    }
+}
+
+pub struct ScreenDisplay {
+    position: Vector2,
+    pixels: [Color; 256 * 240],
+    scale: f32,
+    texture: Option<Texture2D>,
+}
+
+impl ScreenDisplay {
+    pub fn new(position: Vector2, scale: f32) -> Self {
+        Self {
+            position,
+            pixels: [Color::BLACK; 256 * 240],
+            scale,
+            texture: None,
+        }
+    }
+
+    pub fn draw(&mut self, handle: &mut RaylibDrawHandle) {
+        if let Some(texture) = &self.texture {
+            handle.draw_texture_ex(
+                texture,
+                Vector2::new(self.position.x, self.position.y),
+                0.0,
+                self.scale,
+                Color::WHITE,
+            );
+        }
+    }
+
+    pub fn update(&mut self, rl_handle: &mut RaylibHandle, rl_thread: &RaylibThread, pixels: &[Color]) {
+        let (widith, height): (usize, usize) = (256, 240);
+        // let mut image = Image::gen_image_color(widith as i32, height as i32, Color::BLACK);
+        let mut pixel_data = vec![255; widith * height * 4];
+
+        for (i, pixel) in pixels.iter().enumerate() {
+            let offset = i * 4;
+            pixel_data[offset] = pixel.r;
+            pixel_data[offset + 1] = pixel.g;
+            pixel_data[offset + 2] = pixel.b;
+            pixel_data[offset + 3] = 255;
+        }
+
+        if let Some(texture) = &mut self.texture {
+            texture.update_texture(&pixel_data);
+        } else {
+            self.texture = Some(rl_handle.load_texture_from_image(rl_thread, &Image::gen_image_color(widith as i32, height as i32, Color::BLACK)).expect("Could not load texture"));
         }
     }
 }

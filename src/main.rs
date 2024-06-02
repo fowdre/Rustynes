@@ -5,18 +5,20 @@ use nes::Nes;
 
 pub use raylib::prelude::*;
 mod display;
-use display::draw::{NesDisplay, FlagsDisplay, InstructionHistoryDisplay, TextBox};
+use display::draw::{FlagsDisplay, InstructionHistoryDisplay, NesDisplay, ScreenDisplay, TextBox};
 
 fn main() {
     let mut nes = Nes::new();
     nes.load_cartridge("nestest.nes");
+    nes.reset();
 
     let (mut rl_handle, rl_thread) = raylib::init()
         .size(800, 600)
         .title("Rustyness")
         .build();
 
-    NesDisplay::set_options(&mut rl_handle, 60, 20, true);
+    NesDisplay::set_options(&mut rl_handle, None, 20, true);
+
     let font = NesDisplay::set_font(&mut rl_handle, &rl_thread, "assets/font/Monocraft.ttf", 25);
 
     let mut zero_page = TextBox::new(
@@ -67,6 +69,12 @@ fn main() {
     );
     history_instruction_display.update(&nes, nes.get_cpu_info().program_counter);
 
+    let mut screen_display = ScreenDisplay::new(
+        Vector2::new(10.0 * 60.0, 10.0 + program_location.get_dimensions().y + program_location.get_position().y),
+        3.0,
+    );
+    screen_display.update(&mut rl_handle, &rl_thread, nes.get_ppu_screen());
+    
     let mut pause = true;
     while !rl_handle.window_should_close() {
         if !pause || rl_handle.is_key_pressed(KeyboardKey::KEY_SPACE) || rl_handle.is_key_down(KeyboardKey::KEY_SPACE) && rl_handle.is_key_down(KeyboardKey::KEY_LEFT_CONTROL) {
@@ -76,13 +84,14 @@ fn main() {
                 0 => Some(Color::LIGHTGREEN),
                 _ => None,
             };
-            nes.cpu_tick();
+            nes.tick();
             if cycle == 0 {
                 zero_page.set_text(NesDisplay::bytes_to_string(nes.get_ram(0x0000, 0x00F0)), None);
                 program_location.set_text(NesDisplay::bytes_to_string(nes.get_ram(0x8000, 0x80F0)), None);
                 cpu_info.set_text(NesDisplay::cpu_info_to_string(nes.get_cpu_info()), None);
                 flags_display.set_flags(nes.get_cpu_flags());
                 history_instruction_display.update(&nes, nes.get_cpu_info().program_counter);
+                screen_display.update(&mut rl_handle, &rl_thread, nes.get_ppu_screen());
             }
             cycles_left_display.set_text(format!("Next in\n[{}] cycles", cycle), set_text_color);
         }
@@ -100,5 +109,6 @@ fn main() {
         flags_display.draw(&mut rl_draw_handle);
         history_instruction_display.draw(&mut rl_draw_handle);
         cycles_left_display.draw(&mut rl_draw_handle);
+        screen_display.draw(&mut rl_draw_handle);
     }
 }

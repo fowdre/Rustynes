@@ -55,9 +55,15 @@ impl Nes {
         self.total_clock_ticks = 0;
     }
 
-    pub fn cpu_tick(&mut self) {
-        self.cpu.clock(&mut self.bus, &mut self.cartridge);
+    pub fn tick(&mut self) {
+        self.ppu.clock();
+        if self.total_clock_ticks % 3 == 0 {
+            self.cpu.clock(&mut self.bus, &mut self.cartridge);
+        }
+        self.total_clock_ticks = self.total_clock_ticks.wrapping_add(1);
     }
+
+    // Draw helper methods
 
     pub fn get_ram(&self, low: u16, high: u16) -> (u16, u16, &[u8]) {
         if low > high {
@@ -79,6 +85,26 @@ impl Nes {
 
     pub const fn get_cpu_flags(&self) -> u8 {
         self.cpu.status
+    }
+
+    pub fn is_ppu_frame_complete(&self) -> bool {
+        self.ppu.is_frame_complete
+    }
+
+    pub fn get_ppu_screen(&self) -> &[ppu::ppu2c02::Color] {
+        &self.ppu.screen
+    }
+
+    pub fn get_ppu_name_table(&self, index: usize) -> &[u8] {
+        &self.ppu.table_name[index]
+    }
+
+    pub fn get_ppu_pattern_table(&self, index: usize) -> &[u8] {
+        &self.ppu.table_pattern[index]
+    }
+
+    pub fn get_ppu_pallete(&self) -> &[u8] {
+        &self.ppu.table_pallete
     }
 
     pub fn get_instruction_string_range(&self, start: u16, end: u16) -> Vec<String> {
