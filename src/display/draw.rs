@@ -337,12 +337,10 @@ impl<'font> InstructionHistoryDisplay<'font> {
     }
 }
 
-#[allow(dead_code)]
 pub struct ScreenDisplay {
     position: Vector2,
     dimensions: Vector2,
     scaled_dimensions: Vector2,
-    pixels: Vec<Color>,
     scale: f32,
     texture: Option<Texture2D>,
 }
@@ -353,7 +351,6 @@ impl ScreenDisplay {
             position,
             dimensions,
             scaled_dimensions: dimensions * scale,
-            pixels: vec![Color::BLANK; dimensions.x as usize * dimensions.y as usize],
             scale,
             texture: None,
         }

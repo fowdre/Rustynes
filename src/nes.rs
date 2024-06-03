@@ -56,16 +56,6 @@ impl Nes {
     pub fn cycle_palette(&mut self) {
         self.selected_palette = (self.selected_palette + 1) & 0x07;
     }
-    
-    #[allow(dead_code)]
-    pub fn ram_read(&mut self, addr: u16) -> u8 {
-        self.cpu.read(&mut self.cartridge, &mut self.ppu, &self.bus, addr)
-    }
-
-    #[allow(dead_code)]
-    pub fn ram_write(&mut self, addr: u16, data: u8) {
-        self.cpu.write(&mut self.cartridge, &mut self.ppu, &mut self.bus, addr, data);
-    }
 
     pub fn reset(&mut self) {
         self.cpu.reset(&mut self.cartridge, &mut self.ppu, &mut self.bus);

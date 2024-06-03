@@ -115,7 +115,6 @@ pub mod ncartridge {
             false
         }
 
-        #[allow(dead_code)]
         pub fn ppu_read(&self, addr: u16, data: &mut u8) -> bool {
             let mut mapped_addr: u32 = 0x0000;
 

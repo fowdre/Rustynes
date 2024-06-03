@@ -5,7 +5,6 @@ pub mod ppu2c02 {
     pub use raylib::prelude::core::color::*;
     use super::registers::*;
 
-    #[allow(dead_code)]
     #[derive(Debug)]
     pub struct Ppu2C02 {
         /// (or VRAM) Background **_layout_**
@@ -135,7 +134,6 @@ pub mod ppu2c02 {
             }
         }
         
-        #[allow(dead_code)]
         pub fn cpu_read(&mut self, cartridge: &Cartridge, addr: u16, read_only: bool) -> u8 {
             let mut ret = 0x0000;
 
@@ -171,7 +169,6 @@ pub mod ppu2c02 {
             ret
         }
 
-        #[allow(dead_code)]
         pub fn cpu_write(&mut self, cartridge: &mut Cartridge, addr: u16, data: u8) {
             match addr {
                 0x0000 => { // Control
@@ -205,7 +202,6 @@ pub mod ppu2c02 {
             };
         }
         
-        #[allow(dead_code)]
         pub fn ppu_read(&self, cartridge: &Cartridge, mut addr: u16, _read_only: bool) -> u8 {
             let mut ret = 0x0000;
             addr &= 0x3FFF;
@@ -236,7 +232,6 @@ pub mod ppu2c02 {
             ret
         }
 
-        #[allow(dead_code)]
         pub fn ppu_write(&mut self, cartridge: &mut Cartridge, mut addr: u16, data: u8) {
             addr &= 0x3FFF;
 
