@@ -144,22 +144,22 @@ impl Nes {
             let instruction = &self.cpu.lookup[opcode as usize];
             let mut format = format!("{local_pc:04X} | {opcode:02X} ");
 
-            match instruction.addr_mode as usize {
-                mode if mode == cpu::cpu6502::Cpu6502::addr_ACC as usize => {
+            match instruction.addr_mode {
+                cpu::cpu6502::ADDRESSING_MODES::ACC => {
                     format += &format!("(ACC) {}", instruction.name);
                     local_pc = local_pc.wrapping_add(1);
                 }
-                mode if mode == cpu::cpu6502::Cpu6502::addr_IMP as usize => {
+                cpu::cpu6502::ADDRESSING_MODES::IMP => {
                     format += &format!("(IMP) {}", instruction.name);
                     local_pc = local_pc.wrapping_add(1);
                 }
-                mode if mode == cpu::cpu6502::Cpu6502::addr_IMM as usize => {
+                cpu::cpu6502::ADDRESSING_MODES::IMM => {
                     let data = self.cpu.read(&mut self.cartridge, &mut self.ppu, &self.bus, local_pc.wrapping_add(1));
 
                     format += &format!("(IMM) {} #${data:02X}", instruction.name);
                     local_pc = local_pc.wrapping_add(2);
                 }
-                mode if mode == cpu::cpu6502::Cpu6502::addr_ABS as usize => {
+                cpu::cpu6502::ADDRESSING_MODES::ABS => {
                     let lo = self.cpu.read(&mut self.cartridge, &mut self.ppu, &self.bus, local_pc.wrapping_add(1));
                     let hi = self.cpu.read(&mut self.cartridge, &mut self.ppu, &self.bus, local_pc.wrapping_add(2));
                     let addr = (hi as u16) << 8 | lo as u16;
@@ -167,7 +167,7 @@ impl Nes {
                     format += &format!("(ABS) {} ${addr:04X}", instruction.name);
                     local_pc = local_pc.wrapping_add(3);
                 }
-                mode if mode == cpu::cpu6502::Cpu6502::addr_ABSx as usize => {
+                cpu::cpu6502::ADDRESSING_MODES::ABSX => {
                     let lo = self.cpu.read(&mut self.cartridge, &mut self.ppu, &self.bus, local_pc.wrapping_add(1));
                     let hi = self.cpu.read(&mut self.cartridge, &mut self.ppu, &self.bus, local_pc.wrapping_add(2));
                     let addr = (hi as u16) << 8 | lo as u16;
@@ -175,7 +175,7 @@ impl Nes {
                     format += &format!("(ABSx) {} ${addr:04X}, X", instruction.name);
                     local_pc = local_pc.wrapping_add(3);
                 }
-                mode if mode == cpu::cpu6502::Cpu6502::addr_ABSy as usize => {
+                cpu::cpu6502::ADDRESSING_MODES::ABSY => {
                     let lo = self.cpu.read(&mut self.cartridge, &mut self.ppu, &self.bus, local_pc.wrapping_add(1));
                     let hi = self.cpu.read(&mut self.cartridge, &mut self.ppu, &self.bus, local_pc.wrapping_add(2));
                     let addr = (hi as u16) << 8 | lo as u16;
@@ -183,31 +183,31 @@ impl Nes {
                     format += &format!("{} ${addr:04X}, Y", instruction.name);
                     local_pc = local_pc.wrapping_add(3);
                 }
-                mode if mode == cpu::cpu6502::Cpu6502::addr_ZPG as usize => {
+                cpu::cpu6502::ADDRESSING_MODES::ZPG => {
                     let addr = self.cpu.read(&mut self.cartridge, &mut self.ppu, &self.bus, local_pc.wrapping_add(1));
 
                     format += &format!("{} ${addr:02X}", instruction.name);
                     local_pc = local_pc.wrapping_add(2);
                 }
-                mode if mode == cpu::cpu6502::Cpu6502::addr_ZPGx as usize => {
+                cpu::cpu6502::ADDRESSING_MODES::ZPGX => {
                     let addr = self.cpu.read(&mut self.cartridge, &mut self.ppu, &self.bus, local_pc.wrapping_add(1));
 
                     format += &format!("{} ${addr:02X}, X", instruction.name);
                     local_pc = local_pc.wrapping_add(2);
                 }
-                mode if mode == cpu::cpu6502::Cpu6502::addr_ZPGy as usize => {
+                cpu::cpu6502::ADDRESSING_MODES::ZPGY => {
                     let addr = self.cpu.read(&mut self.cartridge, &mut self.ppu, &self.bus, local_pc.wrapping_add(1));
 
                     format += &format!("{} ${addr:02X}, Y", instruction.name);
                     local_pc = local_pc.wrapping_add(2);
                 }
-                mode if mode == cpu::cpu6502::Cpu6502::addr_REL as usize => {
+                cpu::cpu6502::ADDRESSING_MODES::REL => {
                     let addr = self.cpu.read(&mut self.cartridge, &mut self.ppu, &self.bus, local_pc.wrapping_add(1));
 
                     format += &format!("(REL) {} ${addr:02X} [{:04X}]", instruction.name, local_pc.wrapping_add(2).wrapping_add((addr as i8) as u16));
                     local_pc = local_pc.wrapping_add(2);
                 }
-                mode if mode == cpu::cpu6502::Cpu6502::addr_IND as usize => {
+                cpu::cpu6502::ADDRESSING_MODES::IND => {
                     let old_lo = self.cpu.read(&mut self.cartridge, &mut self.ppu, &self.bus, local_pc + 1);
                     let hi = self.cpu.read(&mut self.cartridge, &mut self.ppu, &self.bus, local_pc + 2);
                     let ptr = (hi as u16) << 8 | old_lo as u16;
@@ -223,7 +223,7 @@ impl Nes {
                     format += &format!("{} (${addr:04X})", instruction.name);
                     local_pc = local_pc.wrapping_add(3);
                 }
-                mode if mode == cpu::cpu6502::Cpu6502::addr_INDx as usize => {
+                cpu::cpu6502::ADDRESSING_MODES::INDX => {
                     let addr = self.cpu.read(&mut self.cartridge, &mut self.ppu, &self.bus, local_pc + 1);
                     let lo = self.cpu.read(&mut self.cartridge, &mut self.ppu, &self.bus, (addr + self.cpu.x) as u16);
                     let hi = self.cpu.read(&mut self.cartridge, &mut self.ppu, &self.bus, (addr + self.cpu.x + 1) as u16);
@@ -232,7 +232,7 @@ impl Nes {
                     format += &format!("{} (${:02X}, X) @ {:02X} = {ptr:04X}", instruction.name, addr, addr + self.cpu.x);
                     local_pc = local_pc.wrapping_add(2);
                 }
-                mode if mode == cpu::cpu6502::Cpu6502::addr_INDy as usize => {
+                cpu::cpu6502::ADDRESSING_MODES::INDY => {
                     let addr = self.cpu.read(&mut self.cartridge, &mut self.ppu, &self.bus, local_pc + 1);
                     let lo = self.cpu.read(&mut self.cartridge, &mut self.ppu, &self.bus, addr as u16);
                     let hi = self.cpu.read(&mut self.cartridge, &mut self.ppu, &self.bus, (addr + 1) as u16);

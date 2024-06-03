@@ -1,4 +1,5 @@
 use crate::nes::{Cartridge, Cpu6502, Flags, Ppu2C02, Bus};
+use crate::nes::cpu::cpu6502::ADDRESSING_MODES;
 
 #[allow(non_snake_case)]
 impl Cpu6502 {
@@ -45,8 +46,8 @@ impl Cpu6502 {
         self.set_flag(Flags::Z, (tmp & 0x00FF) == 0x00);
         self.set_flag(Flags::N, tmp & 0x80 != 0);
         
-        if (self.lookup[self.opcode as usize].addr_mode as usize == Self::addr_ACC as usize)
-        || (self.lookup[self.opcode as usize].addr_mode as usize == Self::addr_IMP as usize) {
+        if (self.lookup[self.opcode as usize].addr_mode == ADDRESSING_MODES::ACC)
+        || (self.lookup[self.opcode as usize].addr_mode == ADDRESSING_MODES::IMP) {
             self.a = (tmp & 0x00FF) as u8;
         } else {
             self.write(cartridge, ppu, bus, self.addr_abs, (tmp & 0x00FF) as u8);
@@ -401,8 +402,8 @@ impl Cpu6502 {
         self.set_flag(Flags::Z, (tmp & 0x00FF) == 0x00);
         self.set_flag(Flags::N, tmp & 0x0080 != 0);
         
-        if (self.lookup[self.opcode as usize].addr_mode as usize == Self::addr_ACC as usize)
-        || (self.lookup[self.opcode as usize].addr_mode as usize == Self::addr_IMP as usize) {
+        if (self.lookup[self.opcode as usize].addr_mode == ADDRESSING_MODES::ACC)
+        || (self.lookup[self.opcode as usize].addr_mode == ADDRESSING_MODES::IMP) {
             self.a = (tmp & 0x00FF) as u8;
         } else {
             self.write(cartridge, ppu, bus, self.addr_abs, (tmp & 0x00FF) as u8);
@@ -474,8 +475,8 @@ impl Cpu6502 {
         self.set_flag(Flags::Z, (tmp & 0x00FF) == 0x00);
         self.set_flag(Flags::N, tmp & 0x80 != 0);
         
-        if (self.lookup[self.opcode as usize].addr_mode as usize == Self::addr_ACC as usize)
-        || (self.lookup[self.opcode as usize].addr_mode as usize == Self::addr_IMP as usize) {
+        if (self.lookup[self.opcode as usize].addr_mode == ADDRESSING_MODES::ACC)
+        || (self.lookup[self.opcode as usize].addr_mode == ADDRESSING_MODES::IMP) {
             self.a = (tmp & 0x00FF) as u8;
         } else {
             self.write(cartridge, ppu, bus, self.addr_abs, (tmp & 0x00FF) as u8);
@@ -493,8 +494,8 @@ impl Cpu6502 {
         self.set_flag(Flags::Z, (tmp & 0x00FF) == 0x00);
         self.set_flag(Flags::N, tmp & 0x80 != 0);
         
-        if (self.lookup[self.opcode as usize].addr_mode as usize == Self::addr_ACC as usize)
-        || (self.lookup[self.opcode as usize].addr_mode as usize == Self::addr_IMP as usize) {
+        if (self.lookup[self.opcode as usize].addr_mode == ADDRESSING_MODES::ACC)
+        || (self.lookup[self.opcode as usize].addr_mode == ADDRESSING_MODES::IMP) {
             self.a = (tmp & 0x00FF) as u8;
         } else {
             self.write(cartridge, ppu, bus, self.addr_abs, (tmp & 0x00FF) as u8);
