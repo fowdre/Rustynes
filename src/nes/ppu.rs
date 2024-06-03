@@ -19,6 +19,7 @@ pub mod ppu2c02 {
         scanline: i16,
         /// Column
         cycle: i16,
+        pub nmi: bool,
         pub is_frame_complete: bool,
         
         reg_status: RegisterStatus,
@@ -116,6 +117,7 @@ pub mod ppu2c02 {
 
                 scanline: 0,
                 cycle: 0,
+                nmi: false,
                 is_frame_complete: false,
 
                 reg_status: RegisterStatus::from_bits(0),
@@ -143,7 +145,6 @@ pub mod ppu2c02 {
                 0x0001 => { // Mask
                 }
                 0x0002 => { // Status
-                    self.reg_status.set_vertical_blank(true);
                     ret = (self.reg_status.into_bits() & 0xE0) | (self.reg_status.into_bits() & 0x1F);
                     self.reg_status.set_vertical_blank(false);
                     self.address_latch = 0;
@@ -198,6 +199,7 @@ pub mod ppu2c02 {
                 },
                 0x0007 => { // PPU Data
                     self.ppu_write(cartridge, self.ppu_address, data);
+                    self.ppu_address = self.ppu_address.wrapping_add(1);
                 },
                 _ => {}
             };
@@ -295,6 +297,17 @@ pub mod ppu2c02 {
         }
 
         pub fn clock(&mut self) {
+            if self.scanline == -1 && self.cycle == 1 {
+                self.reg_status.set_vertical_blank(false);
+            }
+
+            if self.scanline == 241 && self.cycle == 1 {
+                self.reg_status.set_vertical_blank(true);
+                if self.reg_control.enable_nmi() {
+                    self.nmi = true;
+                }
+            }
+
             // randomly set the pixel to black or white
             if self.cycle <= 256 && self.scanline <= 240 {
                 let index: i32 = self.scanline as i32 * 256 + self.cycle as i32 - 1;

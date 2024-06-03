@@ -7,9 +7,11 @@ pub use raylib::prelude::*;
 mod display;
 use display::draw::{FlagsDisplay, InstructionHistoryDisplay, NesDisplay, ScreenDisplay, TextBox};
 
+const FPS: f32 = 60.0;
+
 fn main() {
     let mut nes = Nes::new();
-    nes.load_cartridge("nestest.nes");
+    nes.load_cartridge("./ROMS/nestest.nes");
     nes.reset();
 
     let (mut rl_handle, rl_thread) = raylib::init()
@@ -112,7 +114,7 @@ fn main() {
             if nes.time > 0.0 {
                 nes.time -= frame_time;
             } else {
-                nes.time += (1.0 / 60.0) - frame_time;
+                nes.time += (1.0 / FPS) - frame_time;
 
                 loop {
                     nes.tick();

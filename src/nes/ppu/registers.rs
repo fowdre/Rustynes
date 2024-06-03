@@ -30,5 +30,5 @@ pub struct RegisterControl {
     pattern_backgroun: bool,
     sprite_size: bool,
     slave_mode: bool,
-    enable_nmi: bool
+    pub enable_nmi: bool
 }

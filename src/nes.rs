@@ -79,6 +79,12 @@ impl Nes {
             self.is_a_cpu_tick = true;
             self.cpu.clock(&mut self.cartridge, &mut self.ppu, &mut self.bus);
         }
+
+        if self.ppu.nmi {
+            self.ppu.nmi = false;
+            self.cpu.nmi(&mut self.cartridge, &mut self.ppu, &mut self.bus);
+        }
+
         self.total_clock_ticks = self.total_clock_ticks.wrapping_add(1);
     }
 
