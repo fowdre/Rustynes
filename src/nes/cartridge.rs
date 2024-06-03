@@ -38,7 +38,7 @@ pub mod ncartridge {
     impl Cartridge {
         pub fn from_path(path: &str) -> Self {
             let mut file = std::fs::File::open(path).unwrap();
-            let mut buffer: [u8; 12] = [0; 12];
+            let mut buffer: [u8; 16] = [0; 16];
             
             file.read_exact(&mut buffer).unwrap();
             let header = Header::from_bytes(&buffer);
