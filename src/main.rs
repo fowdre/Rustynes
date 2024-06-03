@@ -87,6 +87,7 @@ fn main() {
     );
     
     while !rl_handle.window_should_close() {
+        let frame_time = rl_handle.get_frame_time();
         // Resume / Pause emulation
         if rl_handle.is_key_pressed(KeyboardKey::KEY_SPACE) {
             nes.pause = !nes.pause;
@@ -108,11 +109,17 @@ fn main() {
         };
 
         if !nes.pause {
-            loop {
-                nes.tick();
-                if nes.is_ppu_frame_complete() {
-                    nes.set_ppu_frame_complete(false);
-                    break;
+            if nes.time > 0.0 {
+                nes.time -= frame_time;
+            } else {
+                nes.time += (1.0 / 60.0) - frame_time;
+
+                loop {
+                    nes.tick();
+                    if nes.is_ppu_frame_complete() {
+                        nes.set_ppu_frame_complete(false);
+                        break;
+                    }
                 }
             }
         } else {

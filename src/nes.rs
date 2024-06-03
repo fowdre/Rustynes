@@ -19,6 +19,7 @@ pub struct Nes {
 
     total_clock_ticks: u128,
 
+    pub time: f32,
     pub pause: bool,
     pub is_a_cpu_tick: bool,
 }
@@ -41,6 +42,7 @@ impl Nes {
             bus: Bus::new(),
             total_clock_ticks: 0,
             
+            time: 0.0,
             pause: true,
             is_a_cpu_tick: false,
             selected_palette: 0,
