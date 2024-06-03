@@ -1,41 +1,9 @@
+mod registers;
+
 pub mod ppu2c02 {
     use crate::nes::Cartridge;
     pub use raylib::prelude::core::color::*;
-
-    bitfield::bitfield! {
-        struct RegisterStatus(u8);
-        impl Debug;
-        pub unused, _: 5;
-        pub sprite_overflow, set_sprite_overflow: 1;
-        pub sprite_zero_hit, set_sprite_zero_hit: 1;
-        pub vertical_blank,  set_vertical_blank: 1;
-    }
-
-    bitfield::bitfield! {
-        struct RegisterMask(u8);
-        impl Debug;
-        pub grayscale,              set_grayscale: 1;
-        pub render_background_left, set_render_background_left: 1;
-        pub render_sprites_left,    set_render_sprites_left: 1;
-        pub render_background,      set_render_background: 1;
-        pub render_sprites,         set_render_sprites: 1;
-        pub enhance_red,            set_enhance_red: 1;
-        pub enhance_green,          set_enhance_green: 1;
-        pub enhance_blue,           set_enhance_blue: 1;
-    }
-
-    bitfield::bitfield! {
-        struct RegisterControl(u8);
-        impl Debug;
-        pub nametable_x,        set_nametable_x: 1;
-        pub nametable_y,        set_nametable_y: 1;
-        pub increment_mode,     set_increment_mode: 1;
-        pub pattern_sprite,     set_pattern_sprite: 1;
-        pub pattern_background, set_pattern_background: 1;
-        pub sprite_size,        set_sprite_size: 1;
-        pub slave_mode,         set_slave_mode: 1;
-        pub enable_nmi,         set_enable_nmi: 1;
-    }
+    use super::registers::*;
 
     #[allow(dead_code)]
     #[derive(Debug)]
@@ -56,6 +24,11 @@ pub mod ppu2c02 {
         reg_status: RegisterStatus,
         reg_mask: RegisterMask,
         reg_control: RegisterControl,
+
+        /// Knowing if we're writing to the low or high byte
+        address_latch: u8,
+        ppu_data_buffer: u8,
+        ppu_address: u16,
 
         screen_palette: [Color; 64],
         pub displayable_name_table: [[Color; 256 * 240]; 2],
@@ -145,9 +118,13 @@ pub mod ppu2c02 {
                 cycle: 0,
                 is_frame_complete: false,
 
-                reg_status: RegisterStatus(0),
-                reg_mask: RegisterMask(0),
-                reg_control: RegisterControl(0),
+                reg_status: RegisterStatus::from_bits(0),
+                reg_mask: RegisterMask::from_bits(0),
+                reg_control: RegisterControl::from_bits(0),
+
+                address_latch: 0,
+                ppu_data_buffer: 0,
+                ppu_address: 0,
 
                 screen_palette,
                 displayable_screen: [Color::BLANK; 256 * 240],
@@ -157,31 +134,71 @@ pub mod ppu2c02 {
         }
         
         #[allow(dead_code)]
-        pub const fn cpu_read(&self, addr: u16, _read_only: bool) -> u8 {
+        pub fn cpu_read(&mut self, cartridge: &Cartridge, addr: u16, read_only: bool) -> u8 {
+            let mut ret = 0x0000;
+
             match addr {
-                0x0000 => 0x00, // Control
-                0x0001 => 0x00, // Mask
-                0x0002 => 0x00, // Status
-                0x0003 => 0x00, // OAM Address
-                0x0004 => 0x00, // OAM Data
-                0x0005 => 0x00, // Scroll
-                0x0006 => 0x00, // PPU Address
-                0x0007 => 0x00, // PPU Data
-                _ => 0x00
-            }
+                0x0000 => { // Control
+                }
+                0x0001 => { // Mask
+                }
+                0x0002 => { // Status
+                    self.reg_status.set_vertical_blank(true);
+                    ret = (self.reg_status.into_bits() & 0xE0) | (self.reg_status.into_bits() & 0x1F);
+                    self.reg_status.set_vertical_blank(false);
+                    self.address_latch = 0;
+                }
+                0x0003 => { // OAM Address
+                }
+                0x0004 => { // OAM Data
+                }
+                0x0005 => { // Scroll
+                }
+                0x0006 => { // PPU Address
+                }
+                0x0007 => { // PPU Data
+                    ret = self.ppu_data_buffer;
+                    self.ppu_data_buffer = self.ppu_read(cartridge, self.ppu_address, read_only);
+
+                    if self.ppu_address >= 0x3F00 {
+                        ret = self.ppu_data_buffer;
+                    }
+                }
+                _ => {}
+            };
+
+            ret
         }
 
         #[allow(dead_code)]
-        pub fn cpu_write(&mut self, addr: u16, _data: u8) {
+        pub fn cpu_write(&mut self, cartridge: &mut Cartridge, addr: u16, data: u8) {
             match addr {
-                0x0000 => {}, // Control
-                0x0001 => {}, // Mask
-                0x0002 => {}, // Status
-                0x0003 => {}, // OAM Address
-                0x0004 => {}, // OAM Data
-                0x0005 => {}, // Scroll
-                0x0006 => {}, // PPU Address
-                0x0007 => {}, // PPU Data
+                0x0000 => { // Control
+                    self.reg_control = RegisterControl::from_bits(data);
+                },
+                0x0001 => { // Mask
+                    self.reg_mask = RegisterMask::from_bits(data);
+                },
+                0x0002 => { // Status
+                },
+                0x0003 => { // OAM Address
+                },
+                0x0004 => { // OAM Data
+                },
+                0x0005 => { // Scroll
+                },
+                0x0006 => { // PPU Address
+                    if self.address_latch == 0 {
+                        self.ppu_address = (self.ppu_address & 0x00FF) | ((data as u16) << 8);
+                        self.address_latch = 1;
+                    } else {
+                        self.ppu_address = (self.ppu_address & 0xFF00) | data as u16;
+                        self.address_latch = 0;
+                    }
+                },
+                0x0007 => { // PPU Data
+                    self.ppu_write(cartridge, self.ppu_address, data);
+                },
                 _ => {}
             };
         }
@@ -189,33 +206,31 @@ pub mod ppu2c02 {
         #[allow(dead_code)]
         pub fn ppu_read(&self, cartridge: &Cartridge, mut addr: u16, _read_only: bool) -> u8 {
             let mut ret = 0x0000;
-
             addr &= 0x3FFF;
-            if cartridge.cpu_read(addr, &mut ret) {
+
+            if cartridge.ppu_read(addr, &mut ret) {
+            } else {
+                match addr {
+                    0x0000..=0x1FFF => { // Pattern
+                        ret = self.table_pattern[((addr & 0x1000) >> 12) as usize][(addr & 0x0FFF) as usize];
+                    },
+                    0x2000..=0x3EFF => { // Name Table
+                    },
+                    0x3F00..=0x3FFF => { // Palette
+                        addr &= 0x001F;
+                        match addr {
+                            0x0010 => addr = 0x0000,
+                            0x0014 => addr = 0x0004,
+                            0x0018 => addr = 0x0008,
+                            0x001C => addr = 0x000C,
+                            _ => {}
+                        }
+                        ret = self.table_pallete[addr as usize];
+                    },
+                    _ => {}
+                }
             }
-            match addr {
-                0x0000..=0x1FFF => { // Pattern Table
-                    ret = self.table_pattern[((addr & 0x1000) >> 12) as usize][(addr & 0x0FFF) as usize];
-                },
-                0x2000..=0x3EFF => {
-                    // Nametable
-                },
-                0x3F00..=0x3FFF => { // Palette
-                    addr &= 0x001F;
-                    
-                    match addr {
-                        0x0010 => addr = 0x0000,
-                        0x0014 => addr = 0x0004,
-                        0x0018 => addr = 0x0008,
-                        0x001C => addr = 0x000C,
-                        _ => {}
-                    }
-                    
-                    ret = self.table_pallete[addr as usize];
-                },
-                _ => {}
-            }
-            
+
             ret
         }
 
@@ -224,28 +239,26 @@ pub mod ppu2c02 {
             addr &= 0x3FFF;
 
             if cartridge.cpu_write(addr, data) {
-            }
-            match addr {
-                0x0000..=0x1FFF => { // Pattern Table
-                    self.table_pattern[((addr & 0x1000) >> 12) as usize][(addr & 0x0FFF) as usize] = data;
-                },
-                0x2000..=0x3EFF => {
-                    // Nametable
-                },
-                0x3F00..=0x3FFF => { // Palette
-                    addr &= 0x001F;
-                    
-                    match addr {
-                        0x0010 => addr = 0x0000,
-                        0x0014 => addr = 0x0004,
-                        0x0018 => addr = 0x0008,
-                        0x001C => addr = 0x000C,
-                        _ => {}
-                    }
-                    
-                    self.table_pallete[addr as usize] = data;
-                },
-                _ => {}
+            } else {
+                match addr {
+                    0x0000..=0x1FFF => { // Pattern
+                        self.table_pattern[((addr & 0x1000) >> 12) as usize][(addr & 0x0FFF) as usize] = data;
+                    },
+                    0x2000..=0x3EFF => { // Name Table
+                    },
+                    0x3F00..=0x3FFF => { // Palette
+                        addr &= 0x001F;
+                        match addr {
+                            0x0010 => addr = 0x0000,
+                            0x0014 => addr = 0x0004,
+                            0x0018 => addr = 0x0008,
+                            0x001C => addr = 0x000C,
+                            _ => {}
+                        }
+                        self.table_pallete[addr as usize] = data;
+                    },
+                    _ => {}
+                }
             }
         }
 
@@ -253,32 +266,32 @@ pub mod ppu2c02 {
             &self.displayable_screen
         }
 
-        pub fn get_palette_from_ram(&self, cartridge: &Cartridge, palette: u8, pixel: u8) -> Color {
-            self.screen_palette[(self.ppu_read(cartridge, 0x3F00 + ((palette << 2) + pixel) as u16, false)) as usize]
+        pub fn get_palette_from_ram(&self, cartridge: &Cartridge, palette: u8, pixel: u8) -> &Color {
+            &self.screen_palette[self.ppu_read(cartridge, 0x3F00 + (palette << 2) as u16 + pixel as u16, false) as usize]
         }
-        
-        pub fn get_pattern_table(&mut self, cartridge: &Cartridge, index: usize, palette: u8) -> &[Color] {
-            for y in 0..16 {
-                for x in 0..16 {
-                    // 256 because 1 tile is 16x16 | A row has 16 tiles | 16 * 16 = 256
+
+        pub fn get_pattern_table(&mut self, cartridge: &Cartridge, index: u8, palette: u8) -> &[Color] {
+            for y in 0_u16..16 {
+                for x in 0_u16..16 {
                     let offset = y * 256 + x * 16;
                     
-                    for row in 0..8 { // For each tile, 8 rows of 8 pixels
-                        let mut lsb = self.ppu_read(cartridge, (index * 0x1000 + offset + row) as u16, false);
-                        let mut msb = self.ppu_read(cartridge, (index * 0x1000 + offset + row + 8) as u16, false);
-    
-                        for col in 0..8 {
-                            let pixel = (lsb & 0x01) + (msb & 0x01);
-                            lsb >>= 1;
-                            msb >>= 1;
-    
-                            self.displayable_pattern_table[index][(y * 8 + row) * 128 + (x * 8 + (7 - col))] = self.get_palette_from_ram(cartridge, palette, pixel);
+                    for row in 0_u16..8 {
+
+                        let mut tile_lsb = self.ppu_read(cartridge, index as u16 * 0x1000 + offset + row    , false);
+                        let mut tile_msb = self.ppu_read(cartridge, index as u16 * 0x1000 + offset + row + 8, false);
+
+                        for col in 0_u16..8 {
+                            let pixel = (tile_lsb & 0x01) + (tile_msb & 0x01);
+                            tile_lsb >>= 1;
+                            tile_msb >>= 1;
+
+                            self.displayable_pattern_table[index as usize][((y * 8 + row) * 128 + (x * 8 + (7 - col))) as usize] = *self.get_palette_from_ram(cartridge, palette, pixel);
                         }
                     }
                 }
             }
             
-            &self.displayable_pattern_table[index]
+            &self.displayable_pattern_table[index as usize]
         }
 
         pub fn clock(&mut self) {

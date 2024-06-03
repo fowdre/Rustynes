@@ -120,12 +120,11 @@ impl Nes {
         self.ppu.get_screen()
     }
 
-    #[allow(dead_code)]
     pub const fn get_ppu_name_table(&self, index: usize) -> &[u8] {
         &self.ppu.table_name[index]
     }
 
-    pub fn get_ppu_pattern_table(&mut self, index: usize) -> &[ppu::ppu2c02::Color] {
+    pub fn get_ppu_pattern_table(&mut self, index: u8) -> &[ppu::ppu2c02::Color] {
         self.ppu.get_pattern_table(&self.cartridge, index, self.selected_palette)
     }
 
@@ -240,9 +239,6 @@ impl Nes {
 
                     format += &format!("{} (${addr:02X}), Y = {:04X}", instruction.name, ptr + self.cpu.y as u16);
                     local_pc = local_pc.wrapping_add(2);
-                }
-                _ => {
-                    format += &"Unknown instruction".to_string();
                 }
             }
             instruction_string.push(format);

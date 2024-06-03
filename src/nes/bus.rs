@@ -21,7 +21,7 @@ impl Bus {
         }
         match addr {
             0x0000..=0x1FFF => self.cpu_ram[(addr & 0x07FF) as usize], // RAM range
-            0x2000..=0x3FFF => ppu.cpu_read(addr & 0x0007, read_only), // PPU range
+            0x2000..=0x3FFF => ppu.cpu_read(cartridge, addr & 0x0007, read_only), // PPU range
             _ => ret
         }
     }
@@ -32,7 +32,7 @@ impl Bus {
         }
         match addr {
             0x0000..=0x1FFF => self.cpu_ram[(addr & 0x07FF) as usize] = data, // RAM range
-            0x2000..=0x3FFF => ppu.cpu_write(addr & 0x0007, data), // PPU range
+            0x2000..=0x3FFF => ppu.cpu_write(cartridge, addr & 0x0007, data), // PPU range
             _ => {}
         }
     }
