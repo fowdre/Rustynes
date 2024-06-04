@@ -8,7 +8,7 @@ pub mod cpu6502 {
     use crate::nes::bus::Bus;
     
     #[allow(non_camel_case_types, clippy::upper_case_acronyms)]
-    #[derive(Debug, PartialEq)]
+    #[derive(Debug, PartialEq, Eq)]
     pub enum ADDRESSING_MODES {
         /// Accumulator
         ACC,

@@ -395,3 +395,14 @@ impl ScreenDisplay {
         self.scaled_dimensions
     }
 }
+
+pub fn draw_string(handle: &mut RaylibDrawHandle, string: &str, position: Vector2, font: &Font, color: Color) {
+    handle.draw_text_ex(
+        font,
+        string,
+        position,
+        font.base_size() as f32,
+        2.0,
+        color,
+    );
+}

@@ -1,7 +1,7 @@
 mod registers;
 
 pub mod ppu2c02 {
-    use crate::nes::Cartridge;
+    use crate::nes::{Cartridge, Mirror};
     pub use raylib::prelude::core::color::*;
     use super::registers::*;
 
@@ -119,9 +119,9 @@ pub mod ppu2c02 {
                 nmi: false,
                 is_frame_complete: false,
 
-                reg_status: RegisterStatus::from_bits(0),
-                reg_mask: RegisterMask::from_bits(0),
-                reg_control: RegisterControl::from_bits(0),
+                reg_status: RegisterStatus::new(),
+                reg_mask: RegisterMask::new(),
+                reg_control: RegisterControl::new(),
 
                 address_latch: 0,
                 ppu_data_buffer: 0,
@@ -213,6 +213,29 @@ pub mod ppu2c02 {
                         ret = self.table_pattern[((addr & 0x1000) >> 12) as usize][(addr & 0x0FFF) as usize];
                     },
                     0x2000..=0x3EFF => { // Name Table
+                        addr &= 0x0FFF;
+                        
+                        match cartridge.mirror {
+                            Mirror::Vertical => {
+                                match addr {
+                                    0x0000..=0x03FF => ret = self.table_name[0][(addr & 0x03FF) as usize],
+                                    0x0400..=0x07FF => ret = self.table_name[1][(addr & 0x03FF) as usize],
+                                    0x0800..=0x0BFF => ret = self.table_name[0][(addr & 0x03FF) as usize],
+                                    0x0C00..=0x0FFF => ret = self.table_name[1][(addr & 0x03FF) as usize],
+                                    _ => {}
+                                }
+                            },
+                            Mirror::Horizontal => {
+                                match addr {
+                                    0x0000..=0x03FF => ret = self.table_name[0][(addr & 0x03FF) as usize],
+                                    0x0400..=0x07FF => ret = self.table_name[0][(addr & 0x03FF) as usize],
+                                    0x0800..=0x0BFF => ret = self.table_name[1][(addr & 0x03FF) as usize],
+                                    0x0C00..=0x0FFF => ret = self.table_name[1][(addr & 0x03FF) as usize],
+                                    _ => {}
+                                }
+                            },
+                            _ => {}
+                        }
                     },
                     0x3F00..=0x3FFF => { // Palette
                         addr &= 0x001F;
@@ -224,6 +247,7 @@ pub mod ppu2c02 {
                             _ => {}
                         }
                         ret = self.table_pallete[addr as usize];
+                        // ret = self.table_pallete[addr as usize] & (if self.reg_mask.into_bits() != 0 { 0x30 } else { 0x3F })
                     },
                     _ => {}
                 }
@@ -235,13 +259,35 @@ pub mod ppu2c02 {
         pub fn ppu_write(&mut self, cartridge: &mut Cartridge, mut addr: u16, data: u8) {
             addr &= 0x3FFF;
 
-            if cartridge.cpu_write(addr, data) {
+            if cartridge.ppu_write(addr, data) {
             } else {
                 match addr {
                     0x0000..=0x1FFF => { // Pattern
                         self.table_pattern[((addr & 0x1000) >> 12) as usize][(addr & 0x0FFF) as usize] = data;
                     },
                     0x2000..=0x3EFF => { // Name Table
+                        addr &= 0x0FFF;
+                        match cartridge.mirror {
+                            Mirror::Vertical => {
+                                match addr {
+                                    0x0000..=0x03FF => self.table_name[0][(addr & 0x03FF) as usize] = data,
+                                    0x0400..=0x07FF => self.table_name[1][(addr & 0x03FF) as usize] = data,
+                                    0x0800..=0x0BFF => self.table_name[0][(addr & 0x03FF) as usize] = data,
+                                    0x0C00..=0x0FFF => self.table_name[1][(addr & 0x03FF) as usize] = data,
+                                    _ => {}
+                                }
+                            },
+                            Mirror::Horizontal => {
+                                match addr {
+                                    0x0000..=0x03FF => self.table_name[0][(addr & 0x03FF) as usize] = data,
+                                    0x0400..=0x07FF => self.table_name[0][(addr & 0x03FF) as usize] = data,
+                                    0x0800..=0x0BFF => self.table_name[1][(addr & 0x03FF) as usize] = data,
+                                    0x0C00..=0x0FFF => self.table_name[1][(addr & 0x03FF) as usize] = data,
+                                    _ => {}
+                                }
+                            },
+                            _ => {}
+                        }
                     },
                     0x3F00..=0x3FFF => { // Palette
                         addr &= 0x001F;
@@ -265,6 +311,7 @@ pub mod ppu2c02 {
 
         pub fn get_palette_from_ram(&self, cartridge: &Cartridge, palette: u8, pixel: u8) -> &Color {
             &self.screen_palette[self.ppu_read(cartridge, 0x3F00 + (palette << 2) as u16 + pixel as u16, false) as usize]
+            // &self.screen_palette[(self.ppu_read(cartridge, 0x3F00 + (palette << 2) as u16 + pixel as u16, false) & 0x3F) as usize]
         }
 
         pub fn get_pattern_table(&mut self, cartridge: &Cartridge, index: u8, palette: u8) -> &[Color] {
@@ -278,7 +325,7 @@ pub mod ppu2c02 {
                         let mut tile_msb = self.ppu_read(cartridge, index as u16 * 0x1000 + offset + row + 8, false);
 
                         for col in 0_u16..8 {
-                            let pixel = (tile_lsb & 0x01) + (tile_msb & 0x01);
+                            let pixel = (tile_lsb & 0x01) + ((tile_msb & 0x01) << 1);
                             tile_lsb >>= 1;
                             tile_msb >>= 1;
 
@@ -304,17 +351,17 @@ pub mod ppu2c02 {
             }
 
             // randomly set the pixel to black or white
-            if self.cycle <= 256 && self.scanline <= 240 {
-                let index: i32 = self.scanline as i32 * 256 + self.cycle as i32 - 1;
+            // if self.cycle <= 256 && self.scanline <= 240 {
+            //     let index: i32 = self.scanline as i32 * 256 + self.cycle as i32 - 1;
 
-                if index >= 0 && (index as usize) < 256 * 240 {
-                    self.displayable_screen[index as usize] = if rand::random() {
-                        Color::WHITE
-                    } else {
-                        Color::BLANK
-                    };
-                }
-            }
+            //     if index >= 0 && (index as usize) < 256 * 240 {
+            //         self.displayable_screen[index as usize] = if rand::random() {
+            //             Color::WHITE
+            //         } else {
+            //             Color::BLANK
+            //         };
+            //     }
+            // }
 
             self.cycle += 1;
             

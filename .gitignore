@@ -4,4 +4,4 @@ target/
 ressources/
 ignore/
 
-*.nes
+ROMS/

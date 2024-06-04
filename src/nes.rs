@@ -4,7 +4,7 @@ mod ppu;
 mod cpu;
 mod bus;
 
-pub use cartridge::ncartridge::Cartridge;
+pub use cartridge::ncartridge::{Cartridge, Mirror};
 pub use cpu::cpu6502::{Cpu6502, Flags};
 pub use ppu::ppu2c02::Ppu2C02;
 pub use bus::Bus;
@@ -13,7 +13,7 @@ pub use bus::Bus;
 pub struct Nes {
     cartridge: Cartridge,
     cpu: Cpu6502,
-    ppu: Ppu2C02,
+    pub ppu: Ppu2C02,
     bus: Bus,
     selected_palette: u8,
 

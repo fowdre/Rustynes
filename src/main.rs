@@ -10,8 +10,16 @@ use display::draw::{FlagsDisplay, InstructionHistoryDisplay, NesDisplay, ScreenD
 const FPS: f32 = 60.0;
 
 fn main() {
+    let args: Vec<String> = std::env::args().collect();
+    
     let mut nes = Nes::new();
-    nes.load_cartridge("./ROMS/nestest.nes");
+    if args.len() == 1 {
+        nes.load_cartridge("./ROMS/nestest.nes");
+    } else {
+        nes.load_cartridge(&args[1]);
+    }
+    // nes.load_cartridge("./ROMS/donkey kong.nes");
+    // nes.load_cartridge("./ROMS/Ice Climber (U).nes");
     nes.reset();
 
     let (mut rl_handle, rl_thread) = raylib::init()
@@ -188,5 +196,14 @@ fn main() {
         screen_display.draw(&mut rl_draw_handle);
         pattern_table_display_1.draw(&mut rl_draw_handle);
         pattern_table_display_2.draw(&mut rl_draw_handle);
+
+        let screen_pos = screen_display.get_position();
+        // display::draw::draw_string(&mut rl_draw_handle, &format!{"{:<8X}", 123}, Vector2::new(screen_pos.x, screen_pos.y), &font, Color::WHITE);
+
+        for y in 0..30 {
+            for x in 0..32 {
+                display::draw::draw_string(&mut rl_draw_handle, &format!{"{:<8X}", nes.ppu.table_name[0][y * 32 + x]}, Vector2::new(screen_pos.x + (x * 24) as f32, screen_pos.y + (y * 24) as f32), &font, Color::WHITE);
+            }
+        }
     }
 }

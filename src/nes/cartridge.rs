@@ -22,6 +22,15 @@ pub mod ncartridge {
         }
     }
 
+    #[derive(Debug, Default)]
+    pub enum Mirror {
+        #[default]
+        Horizontal,
+        Vertical,
+        OneScreenLo,
+        OneScreenHi,
+    }
+
     #[allow(dead_code)]
     #[derive(Debug, Default)]
     pub struct Cartridge {
@@ -29,6 +38,7 @@ pub mod ncartridge {
         chr_rom: Vec<u8>, /// Character ROM
 
         mapper_id: u8,
+        pub mirror: Mirror,
         prg_banks_count: u8,
         chr_banks_count: u8,
 
@@ -50,6 +60,7 @@ pub mod ncartridge {
             let mut prg_rom = Vec::new();
             let mut chr_rom = Vec::new();
             let mapper_id = ((header.mapper2 >> 4) << 4) | (header.mapper1 >> 4);
+            let mirror = if header.mapper1 & 0x01 != 0 { Mirror::Vertical } else { Mirror::Horizontal };
             let mut prg_banks_count = 0;
             let mut chr_banks_count = 0;
 
@@ -87,6 +98,7 @@ pub mod ncartridge {
                 prg_rom,
                 chr_rom,
                 mapper_id,
+                mirror,
                 prg_banks_count,
                 chr_banks_count,
                 mapper
