@@ -2,7 +2,7 @@ mod devices;
 mod bus;
 
 pub use bus::Bus;
-pub use devices::cpu6502::{Cpu6502, Flags};
+pub use devices::cpu6502::{Cpu6502, Flags, ADDRESSING_MODES};
 
 #[derive(Debug)]
 pub struct Nes {
@@ -74,22 +74,22 @@ impl Nes {
             let opcode = self.cpu.read(&self.bus, local_pc);
             let instruction = &self.cpu.lookup[opcode as usize];
             
-            match instruction.addr_mode as usize {
-                mode if mode == devices::cpu6502::Cpu6502::addr_ACC as usize => {
+            match instruction.addr_mode {
+                ADDRESSING_MODES::ACC => {
                     instruction_string.push(format!("{opcode:02X} (ACC) {}", instruction.name));
                     local_pc = local_pc.wrapping_add(1);
                 }
-                mode if mode == devices::cpu6502::Cpu6502::addr_IMP as usize => {
+                ADDRESSING_MODES::IMP => {
                     instruction_string.push(format!("{opcode:02X} (IMP) {}", instruction.name));
                     local_pc = local_pc.wrapping_add(1);
                 }
-                mode if mode == devices::cpu6502::Cpu6502::addr_IMM as usize => {
+                ADDRESSING_MODES::IMM => {
                     let data = self.cpu.read(&self.bus, local_pc.wrapping_add(1));
 
                     instruction_string.push(format!("{opcode:02X} (IMM) {} #${data:02X}", instruction.name));
                     local_pc = local_pc.wrapping_add(2);
                 }
-                mode if mode == devices::cpu6502::Cpu6502::addr_ABS as usize => {
+                ADDRESSING_MODES::ABS => {
                     let lo = self.cpu.read(&self.bus, local_pc.wrapping_add(1));
                     let hi = self.cpu.read(&self.bus, local_pc.wrapping_add(2));
                     let addr = (hi as u16) << 8 | lo as u16;
@@ -97,7 +97,7 @@ impl Nes {
                     instruction_string.push(format!("{opcode:02X} (ABS) {} ${addr:04X}", instruction.name));
                     local_pc = local_pc.wrapping_add(3);
                 }
-                mode if mode == devices::cpu6502::Cpu6502::addr_ABX as usize => {
+                ADDRESSING_MODES::ABX => {
                     let lo = self.cpu.read(&self.bus, local_pc.wrapping_add(1));
                     let hi = self.cpu.read(&self.bus, local_pc.wrapping_add(2));
                     let addr = (hi as u16) << 8 | lo as u16;
@@ -105,7 +105,7 @@ impl Nes {
                     instruction_string.push(format!("{opcode:02X} (ABSx) {} ${addr:04X}, X", instruction.name));
                     local_pc = local_pc.wrapping_add(3);
                 }
-                mode if mode == devices::cpu6502::Cpu6502::addr_ABY as usize => {
+                ADDRESSING_MODES::ABY => {
                     let lo = self.cpu.read(&self.bus, local_pc.wrapping_add(1));
                     let hi = self.cpu.read(&self.bus, local_pc.wrapping_add(2));
                     let addr = (hi as u16) << 8 | lo as u16;
@@ -113,31 +113,31 @@ impl Nes {
                     instruction_string.push(format!("{opcode:02X} {} ${addr:04X}, Y", instruction.name));
                     local_pc = local_pc.wrapping_add(3);
                 }
-                mode if mode == devices::cpu6502::Cpu6502::addr_ZP0 as usize => {
+                ADDRESSING_MODES::ZP0 => {
                     let addr = self.cpu.read(&self.bus, local_pc.wrapping_add(1));
 
                     instruction_string.push(format!("{opcode:02X} {} ${addr:02X}", instruction.name));
                     local_pc = local_pc.wrapping_add(2);
                 }
-                mode if mode == devices::cpu6502::Cpu6502::addr_ZPX as usize => {
+                ADDRESSING_MODES::ZPX => {
                     let addr = self.cpu.read(&self.bus, local_pc.wrapping_add(1));
 
                     instruction_string.push(format!("{opcode:02X} {} ${addr:02X}, X", instruction.name));
                     local_pc = local_pc.wrapping_add(2);
                 }
-                mode if mode == devices::cpu6502::Cpu6502::addr_ZPY as usize => {
+                ADDRESSING_MODES::ZPY => {
                     let addr = self.cpu.read(&self.bus, local_pc.wrapping_add(1));
 
                     instruction_string.push(format!("{opcode:02X} {} ${addr:02X}, Y", instruction.name));
                     local_pc = local_pc.wrapping_add(2);
                 }
-                mode if mode == devices::cpu6502::Cpu6502::addr_REL as usize => {
+                ADDRESSING_MODES::REL => {
                     let addr = self.cpu.read(&self.bus, local_pc.wrapping_add(1));
 
                     instruction_string.push(format!("{opcode:02X} (REL) {} ${addr:02X} [{:04X}]", instruction.name, local_pc.wrapping_add(2).wrapping_add(addr as u16)));
                     local_pc = local_pc.wrapping_add(2);
                 }
-                mode if mode == devices::cpu6502::Cpu6502::addr_IND as usize => {
+                ADDRESSING_MODES::IND => {
                     let lo = self.cpu.read(&self.bus, local_pc + 1);
                     let hi = self.cpu.read(&self.bus, local_pc + 2);
                     let ptr = (hi as u16) << 8 | lo as u16;
@@ -154,7 +154,7 @@ impl Nes {
                     instruction_string.push(format!("{opcode:02X} {} (${addr:04X})", instruction.name));
                     local_pc = local_pc.wrapping_add(3);
                 }
-                mode if mode == devices::cpu6502::Cpu6502::addr_INDx as usize => {
+                ADDRESSING_MODES::IZX => {
                     let addr = self.cpu.read(&self.bus, local_pc + 1);
                     let lo = self.cpu.read(&self.bus, (addr + self.cpu.x) as u16);
                     let hi = self.cpu.read(&self.bus, (addr + self.cpu.x + 1) as u16);
@@ -163,7 +163,7 @@ impl Nes {
                     instruction_string.push(format!("{opcode:02X} {} (${:02X}, X) @ {:02X} = {ptr:04X}", instruction.name, addr, addr + self.cpu.x));
                     local_pc = local_pc.wrapping_add(2);
                 }
-                mode if mode == devices::cpu6502::Cpu6502::addr_INDy as usize => {
+                ADDRESSING_MODES::IZY => {
                     let addr = self.cpu.read(&self.bus, local_pc + 1);
                     let lo = self.cpu.read(&self.bus, addr as u16);
                     let hi = self.cpu.read(&self.bus, (addr + 1) as u16);
