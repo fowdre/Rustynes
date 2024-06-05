@@ -25,10 +25,23 @@ pub mod ppu2c02 {
         reg_mask: RegisterMask,
         reg_control: RegisterControl,
 
+        vram_addr: RegisterLoopy,
+        tram_addr: RegisterLoopy,
+        fine_x: u8,
+
+        bg_next_tile_id: u8,
+        bg_next_tile_attribute: u8,
+        bg_next_tile_lsb: u8,
+        bg_next_tile_msb: u8,
+
+        bg_shifter_pattern_lo: u16,
+        bg_shifter_pattern_hi: u16,
+        bg_shifter_attribute_lo: u16,
+        bg_shifter_attribute_hi: u16,
+
         /// Knowing if we're writing to the low or high byte
         address_latch: u8,
         ppu_data_buffer: u8,
-        ppu_address: u16,
 
         screen_palette: [Color; 64],
         pub displayable_name_table: [[Color; 256 * 240]; 2],
@@ -123,9 +136,22 @@ pub mod ppu2c02 {
                 reg_mask: RegisterMask::new(),
                 reg_control: RegisterControl::new(),
 
+                vram_addr: RegisterLoopy::new(),
+                tram_addr: RegisterLoopy::new(),
+                fine_x: 0,
+
+                bg_next_tile_id: 0,
+                bg_next_tile_attribute: 0,
+                bg_next_tile_lsb: 0,
+                bg_next_tile_msb: 0,
+
+                bg_shifter_pattern_lo: 0,
+                bg_shifter_pattern_hi: 0,
+                bg_shifter_attribute_lo: 0,
+                bg_shifter_attribute_hi: 0,
+
                 address_latch: 0,
                 ppu_data_buffer: 0,
-                ppu_address: 0,
 
                 screen_palette,
                 displayable_screen: [Color::BLANK; 256 * 240],
@@ -157,11 +183,12 @@ pub mod ppu2c02 {
                 }
                 0x0007 => { // PPU Data
                     ret = self.ppu_data_buffer;
-                    self.ppu_data_buffer = self.ppu_read(cartridge, self.ppu_address, read_only);
+                    self.ppu_data_buffer = self.ppu_read(cartridge, self.vram_addr.into_bits(), read_only);
 
-                    if self.ppu_address >= 0x3F00 {
+                    if self.vram_addr.into_bits() > 0x3F00 {
                         ret = self.ppu_data_buffer;
                     }
+                    self.vram_addr = RegisterLoopy::from_bits(self.vram_addr.into_bits().wrapping_add(if self.reg_control.increment_mode() { 32 } else { 1 }));
                 }
                 _ => {}
             };
@@ -173,6 +200,8 @@ pub mod ppu2c02 {
             match addr {
                 0x0000 => { // Control
                     self.reg_control = RegisterControl::from_bits(data);
+                    self.tram_addr.set_nametable_x(self.reg_control.nametable_x());
+                    self.tram_addr.set_nametable_y(self.reg_control.nametable_y());
                 },
                 0x0001 => { // Mask
                     self.reg_mask = RegisterMask::from_bits(data);
@@ -184,19 +213,29 @@ pub mod ppu2c02 {
                 0x0004 => { // OAM Data
                 },
                 0x0005 => { // Scroll
+                    if self.address_latch == 0 {
+                        self.fine_x = data & 0x07;
+                        self.tram_addr.set_coarse_x((data >> 3) as usize);
+                        self.address_latch = 1;
+                    } else {
+                        self.tram_addr.set_fine_y((data & 0x07) as usize);
+                        self.tram_addr.set_coarse_y((data >> 3) as usize);
+                        self.address_latch = 0;
+                    }
                 },
                 0x0006 => { // PPU Address
                     if self.address_latch == 0 {
-                        self.ppu_address = (self.ppu_address & 0x00FF) | ((data as u16) << 8);
+                        self.tram_addr = RegisterLoopy::from_bits((self.tram_addr.into_bits() & 0x00FF) | (data as u16) << 8);
                         self.address_latch = 1;
                     } else {
-                        self.ppu_address = (self.ppu_address & 0xFF00) | data as u16;
+                        self.tram_addr = RegisterLoopy::from_bits((self.tram_addr.into_bits() & 0xFF00) | data as u16);
+                        self.vram_addr = self.tram_addr;
                         self.address_latch = 0;
                     }
                 },
                 0x0007 => { // PPU Data
-                    self.ppu_write(cartridge, self.ppu_address, data);
-                    self.ppu_address = self.ppu_address.wrapping_add(1);
+                    self.ppu_write(cartridge, self.vram_addr.into_bits(), data);
+                    self.vram_addr = RegisterLoopy::from_bits(self.vram_addr.into_bits().wrapping_add(if self.reg_control.increment_mode() { 32 } else { 1 }));
                 },
                 _ => {}
             };
@@ -338,9 +377,128 @@ pub mod ppu2c02 {
             &self.displayable_pattern_table[index as usize]
         }
 
-        pub fn clock(&mut self) {
-            if self.scanline == -1 && self.cycle == 1 {
-                self.reg_status.set_vertical_blank(false);
+        pub fn increment_scroll_x(&mut self) {
+            if self.reg_mask.render_background() || self.reg_mask.render_sprites() {
+                if self.vram_addr.coarse_x() == 31 {
+                    self.vram_addr.set_coarse_x(0);
+                    self.vram_addr.set_nametable_x(!self.vram_addr.nametable_x());
+                } else {
+                    self.vram_addr.set_coarse_x(self.vram_addr.coarse_x().wrapping_add(1));
+                }
+            }
+        }
+
+        pub fn increment_scroll_y(&mut self) {
+            if self.reg_mask.render_background() || self.reg_mask.render_sprites() {
+                if self.vram_addr.fine_y() < 7 {
+                    self.vram_addr.set_fine_y(self.vram_addr.fine_y().wrapping_add(1));
+                } else {
+                    self.vram_addr.set_fine_y(0);
+                
+                    if self.vram_addr.coarse_y() == 29 {
+                        self.vram_addr.set_coarse_y(0);
+                        self.vram_addr.set_nametable_y(!self.vram_addr.nametable_y());
+                    } else if self.vram_addr.coarse_y() == 31 {
+                        self.vram_addr.set_coarse_y(0);
+                    } else {
+                        self.vram_addr.set_coarse_y(self.vram_addr.coarse_y().wrapping_add(1));
+                    }
+                }
+            }
+        }
+
+        pub fn transfer_address_x(&mut self) {
+            if self.reg_mask.render_background() || self.reg_mask.render_sprites() {
+                self.vram_addr.set_nametable_x(self.tram_addr.nametable_x());
+                self.vram_addr.set_coarse_x(self.tram_addr.coarse_x());
+            }
+        }
+
+        pub fn transfer_address_y(&mut self) {
+            if self.reg_mask.render_background() || self.reg_mask.render_sprites() {
+                self.vram_addr.set_fine_y(self.tram_addr.fine_y());
+                self.vram_addr.set_nametable_y(self.tram_addr.nametable_y());
+                self.vram_addr.set_coarse_y(self.tram_addr.coarse_y());
+            }
+        }
+
+        pub fn load_background_shifters(&mut self) {
+            self.bg_shifter_pattern_lo = (self.bg_shifter_pattern_lo & 0xFF00) | self.bg_next_tile_lsb as u16;
+            self.bg_shifter_pattern_hi = (self.bg_shifter_pattern_hi & 0xFF00) | self.bg_next_tile_msb as u16;
+        
+            self.bg_shifter_attribute_lo = (self.bg_shifter_attribute_lo & 0xFF00) | if self.bg_next_tile_attribute & 0b01 != 0 { 0xFF } else { 0x00 };
+            self.bg_shifter_attribute_hi = (self.bg_shifter_attribute_hi & 0xFF00) | if self.bg_next_tile_attribute & 0b10 != 0 { 0xFF } else { 0x00 };
+        }
+        
+        pub fn update_shifters(&mut self) {
+            if self.reg_mask.render_background() {
+                self.bg_shifter_pattern_lo <<= 1;
+                self.bg_shifter_pattern_hi <<= 1;
+        
+                self.bg_shifter_attribute_lo <<= 1;
+                self.bg_shifter_attribute_hi <<= 1;
+            }
+        }
+
+        pub fn clock(&mut self, cartridge: &Cartridge) {
+            if self.scanline >= -1 && self.scanline < 240 {
+                if self.scanline == -1 && self.cycle == 1 {
+                    self.reg_status.set_vertical_blank(false);
+                }
+
+                if (self.cycle >= 2 && self.cycle < 258) || (self.cycle >= 321 && self.cycle < 338) {
+                    self.update_shifters();
+
+                    match (self.cycle - 1) % 8 {
+                        0 => {
+                            self.load_background_shifters();
+                            self.bg_next_tile_id = self.ppu_read(cartridge, 0x2000 | (self.vram_addr.into_bits() & 0x0FFF), false)
+                        },
+                        2 => {
+                            self.bg_next_tile_attribute = self.ppu_read(cartridge, 0x23C0
+                                | ((self.vram_addr.nametable_y() as u16) << 11)
+                                | ((self.vram_addr.nametable_x() as u16) << 10)
+                                | (((self.vram_addr.coarse_y() >> 2) as u16) << 3)
+                                | ((self.vram_addr.coarse_x() >> 2) as u16),
+                                false);
+                            if self.vram_addr.coarse_y() & 0x02 != 0 {
+                                self.bg_next_tile_attribute >>= 4;
+                            }
+                            if self.vram_addr.coarse_x() & 0x02 != 0 {
+                                self.bg_next_tile_attribute >>= 2;
+                            }
+                            self.bg_next_tile_attribute &= 0x03;
+                        },
+                        4 => {
+                            self.bg_next_tile_lsb = self.ppu_read(cartridge,
+                                ((self.reg_control.pattern_background() as u16) << 12)
+                                + ((self.bg_next_tile_id as u16) << 4)
+                                + (self.vram_addr.fine_y() as u16),
+                                false)
+                        },
+                        6 => {
+                            self.bg_next_tile_msb = self.ppu_read(cartridge,
+                                ((self.reg_control.pattern_background() as u16) << 12)
+                                + ((self.bg_next_tile_id as u16) << 4)
+                                + (self.vram_addr.fine_y() as u16) + 8,
+                                false)
+                        },
+                        7 => self.increment_scroll_x(),
+                        _ => {}
+                    }
+
+                    if self.cycle == 256 {
+                        self.increment_scroll_y();
+                    }
+
+                    if self.cycle == 257 {
+                        self.transfer_address_x();
+                    }
+
+                    if self.scanline == -1 && self.cycle >= 280 && self.cycle < 305 {
+                        self.transfer_address_y();
+                    }
+                }
             }
 
             if self.scanline == 241 && self.cycle == 1 {
@@ -350,18 +508,26 @@ pub mod ppu2c02 {
                 }
             }
 
-            // randomly set the pixel to black or white
-            // if self.cycle <= 256 && self.scanline <= 240 {
-            //     let index: i32 = self.scanline as i32 * 256 + self.cycle as i32 - 1;
+            let mut bg_pixel = 0x00_u8;
+            let mut bg_palette = 0x00_u8;
 
-            //     if index >= 0 && (index as usize) < 256 * 240 {
-            //         self.displayable_screen[index as usize] = if rand::random() {
-            //             Color::WHITE
-            //         } else {
-            //             Color::BLANK
-            //         };
-            //     }
-            // }
+            if self.reg_mask.render_background() {
+                let bit_mux = 0x8000 >> self.fine_x;
+                
+                let p0_pixel = ((self.bg_shifter_pattern_lo & bit_mux) > 0) as u8;
+                let p1_pixel = ((self.bg_shifter_pattern_hi & bit_mux) > 0) as u8;
+                bg_pixel = (p1_pixel << 1) | p0_pixel;
+
+                let bg_pal0 = ((self.bg_shifter_attribute_lo & bit_mux) > 0) as u8;
+                let bg_pal1 = ((self.bg_shifter_attribute_hi & bit_mux) > 0) as u8;
+                bg_palette = (bg_pal1 << 1) | bg_pal0;
+            }
+
+            let x = self.cycle - 1;
+            let y = self.scanline;
+            if (0..256).contains(&x) && (0..240).contains(&y) {
+                self.displayable_screen[(y as i32 * 256 + x as i32) as usize] = *self.get_palette_from_ram(cartridge, bg_palette, bg_pixel);
+            }
 
             self.cycle += 1;
             

@@ -63,7 +63,7 @@ impl Nes {
     }
 
     pub fn tick(&mut self) {
-        self.ppu.clock();
+        self.ppu.clock(&self.cartridge);
         self.is_a_cpu_tick = false;
         if self.total_clock_ticks % 3 == 0 {
             self.is_a_cpu_tick = true;
