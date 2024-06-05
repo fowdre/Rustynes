@@ -1,5 +1,9 @@
+.gitignore
+
 target/
 ressources/
 ignore/
 
-.gitignore
+ROMS/
+trace*.txt
+*.log

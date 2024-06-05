@@ -31,7 +31,7 @@ impl Cpu6502 {
     }
     
     /// Absolute addressing mode with X offset
-    pub fn addr_ABSx(&mut self, bus: &Bus) -> u8 {
+    pub fn addr_ABX(&mut self, bus: &Bus) -> u8 {
         let lo = self.read(bus, self.pc) as u16;
         self.pc = self.pc.wrapping_add(1);
         
@@ -49,7 +49,7 @@ impl Cpu6502 {
     }
     
     /// Absolute addressing mode with Y offset
-    pub fn addr_ABSy(&mut self, bus: &Bus) -> u8 {
+    pub fn addr_ABY(&mut self, bus: &Bus) -> u8 {
         let lo = self.read(bus, self.pc) as u16;
         self.pc = self.pc.wrapping_add(1);
         
@@ -67,7 +67,7 @@ impl Cpu6502 {
     }
     
     /// Zero Page addressing mode
-    pub fn addr_ZPG(&mut self, bus: &Bus) -> u8 {
+    pub fn addr_ZP0(&mut self, bus: &Bus) -> u8 {
         self.addr_abs = self.read(bus, self.pc) as u16;
         self.pc = self.pc.wrapping_add(1);
         self.addr_abs &= 0x00FF;
@@ -76,7 +76,7 @@ impl Cpu6502 {
     }
     
     /// Zero Page addressing mode with X offset
-    pub fn addr_ZPGx(&mut self, bus: &Bus) -> u8 {
+    pub fn addr_ZPX(&mut self, bus: &Bus) -> u8 {
         self.addr_abs = self.read(bus, self.pc) as u16 + self.x as u16;
         self.pc = self.pc.wrapping_add(1);
         self.addr_abs &= 0x00FF;
@@ -85,7 +85,7 @@ impl Cpu6502 {
     }
     
     /// Zero Page addressing mode with Y offset
-    pub fn addr_ZPGy(&mut self, bus: &Bus) -> u8 {
+    pub fn addr_ZPY(&mut self, bus: &Bus) -> u8 {
         self.addr_abs = self.read(bus, self.pc) as u16 + self.y as u16;
         self.pc = self.pc.wrapping_add(1);
         self.addr_abs &= 0x00FF;
@@ -131,7 +131,7 @@ impl Cpu6502 {
     }
     
     /// Indirect addressing mode with X offset (zero page)
-    pub fn addr_INDx(&mut self, bus: &Bus) -> u8 {
+    pub fn addr_IZX(&mut self, bus: &Bus) -> u8 {
         let t = self.read(bus, self.pc) as u16;
         self.pc = self.pc.wrapping_add(1);
         
@@ -144,7 +144,7 @@ impl Cpu6502 {
     }
     
     /// Indirect addressing mode with Y offset (zero page)
-    pub fn addr_INDy(&mut self, bus: &Bus) -> u8 {
+    pub fn addr_IZY(&mut self, bus: &Bus) -> u8 {
         let t = self.read(bus, self.pc) as u16;
         self.pc = self.pc.wrapping_add(1);
         
