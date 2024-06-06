@@ -1,4 +1,4 @@
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 pub struct Bus {
     pub ram: [u8; 64 * 1024],
 }

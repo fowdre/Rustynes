@@ -4,9 +4,23 @@ mod bus;
 pub use bus::Bus;
 pub use devices::cpu6502::{Cpu6502, Flags, ADDRESSING_MODES};
 
+pub struct NesSnapshot {
+    cpu: devices::cpu6502::Cpu6502,
+    bus: bus::Bus,
+}
+
+impl NesSnapshot {
+    pub fn update_internals(&mut self, cpu: &Cpu6502) {
+        self.cpu.a = cpu.a;
+        self.cpu.x = cpu.x;
+        self.cpu.y = cpu.y;
+        self.cpu.sp = cpu.sp;
+    }
+}
+
 #[derive(Debug)]
 pub struct Nes {
-    cpu: devices::cpu6502::Cpu6502,
+    pub cpu: devices::cpu6502::Cpu6502,
     bus: bus::Bus,
 }
 
@@ -39,8 +53,87 @@ impl Nes {
         self.cpu.write(&mut self.bus, addr, data);
     }
 
+    pub fn nestest_format_log(&mut self, snapshot: &NesSnapshot) {
+        use std::fmt::Write;
+        
+        let mut line = String::new();
+
+        let instruction = &snapshot.cpu.lookup[snapshot.cpu.read(&snapshot.bus, snapshot.cpu.pc) as usize];
+
+        // opcode
+        write!(&mut line, "{:04X}  ", snapshot.cpu.pc).unwrap();
+        // operands
+        let operands_nb = instruction.addr_mode.get_operands_nb();
+        let operands = (0..operands_nb + 1).map(|i| snapshot.cpu.read(&snapshot.bus, snapshot.cpu.pc + i as u16));
+        for operand in operands.clone() {
+            write!(&mut line, "{:02X} ", operand).unwrap();
+        }
+        match operands_nb {
+            0 => write!(&mut line, "       ").unwrap(),
+            1 => write!(&mut line, "    ").unwrap(),
+            2 => write!(&mut line, " ").unwrap(),
+            _ => {}
+        }
+        // instruction name
+        write!(&mut line, "{} ", instruction.name).unwrap();
+        // detailed operands
+        match instruction.addr_mode {
+            ADDRESSING_MODES::ACC => todo!("ACC"),
+            ADDRESSING_MODES::ZPX => todo!("ZPX"),
+            ADDRESSING_MODES::ZPY => todo!("ZPY"),
+            ADDRESSING_MODES::ABX => todo!("ABX"),
+            ADDRESSING_MODES::ABY => todo!("ABY"),
+            ADDRESSING_MODES::IND => todo!("IND"),
+            ADDRESSING_MODES::IZX => todo!("IZX"),
+            ADDRESSING_MODES::IZY => todo!("IZY"),
+            _ => {}
+        }
+        write!(&mut line, "{}", instruction.addr_mode.format_operands(&operands.collect::<Vec<u8>>(), snapshot.cpu.pc)).unwrap();
+        write!(&mut line, "                    ").unwrap();
+        // accumulator
+        write!(&mut line, "A:{:02X} ", snapshot.cpu.a).unwrap();
+        // x register
+        write!(&mut line, "X:{:02X} ", snapshot.cpu.x).unwrap();
+        // y register
+        write!(&mut line, "Y:{:02X} ", snapshot.cpu.y).unwrap();
+        // flags
+        write!(&mut line, "P:{:02X} ", snapshot.cpu.status).unwrap();
+        // stack pointer
+        write!(&mut line, "SP:{:02X}", snapshot.cpu.sp).unwrap();
+
+        println!("{}", line);
+    }
+
     pub fn cpu_tick(&mut self) {
+        
+        let mut snapshot = NesSnapshot {
+            cpu: self.cpu,
+            bus: self.bus,
+        };
+
+        let mut display_nestest = false;
+        if self.cpu.cycles == 0 {
+            display_nestest = true;
+        }
+        
+        // dbg!(self.cpu.status);
         self.cpu.clock(&mut self.bus);
+        // dbg!(self.cpu.status);
+
+        if display_nestest {
+            snapshot.update_internals(&self.cpu);
+            self.nestest_format_log(&snapshot);
+        }
+            
+    }
+
+    pub fn reset(&mut self) {
+        // self.cpu.reset(&mut self.bus);
+        self.cpu.pc = 0xC000;
+        self.cpu.sp = 0xFD;
+        self.cpu.status = 0;
+        self.cpu.set_flag(Flags::U, true);
+        self.cpu.set_flag(Flags::I, true);
     }
 
     pub fn get_ram(&self, low: u16, high: u16) -> (u16, u16, &[u8]) {
@@ -171,9 +264,6 @@ impl Nes {
 
                     instruction_string.push(format!("{opcode:02X} {} (${addr:02X}), Y = {:04X}", instruction.name, ptr + self.cpu.y as u16));
                     local_pc = local_pc.wrapping_add(2);
-                }
-                _ => {
-                    instruction_string.push("Unknown instruction".to_string());
                 }
             }
         }

@@ -6,7 +6,7 @@ pub mod cpu6502 {
     use super::super::Bus;
 
     #[allow(non_camel_case_types, clippy::upper_case_acronyms)]
-    #[derive(Debug, PartialEq, Eq)]
+    #[derive(Debug, Copy, Clone, PartialEq, Eq)]
     pub enum ADDRESSING_MODES {
         /// Accumulator
         ACC,
@@ -36,7 +36,50 @@ pub mod cpu6502 {
         IZY,
     }
 
-    #[derive(Debug)]
+    impl ADDRESSING_MODES {
+        pub fn get_operands_nb(&self) -> u8 {
+            match self {
+                ADDRESSING_MODES::ACC => 0,
+                ADDRESSING_MODES::IMP => 0,
+                ADDRESSING_MODES::IMM => 1,
+                ADDRESSING_MODES::ZP0 => 1,
+                ADDRESSING_MODES::ZPX => 1,
+                ADDRESSING_MODES::ZPY => 1,
+                ADDRESSING_MODES::REL => 1,
+                ADDRESSING_MODES::ABS => 2,
+                ADDRESSING_MODES::ABX => 2,
+                ADDRESSING_MODES::ABY => 2,
+                ADDRESSING_MODES::IND => 2,
+                ADDRESSING_MODES::IZX => 1,
+                ADDRESSING_MODES::IZY => 1,
+            }
+        }
+
+        pub fn format_operands(&self, bytes: &[u8], pc: u16) -> String {
+            if bytes.is_empty() {
+                return "".to_string();
+            }
+            let index = 1;
+            // dbg!(self);
+            match self {
+                ADDRESSING_MODES::ACC => format!("{}", bytes[index]),
+                ADDRESSING_MODES::IMP => "        ".to_string(),
+                ADDRESSING_MODES::IMM => format!("#${:02X}    ", bytes[index]),
+                ADDRESSING_MODES::ZP0 => format!("${:02X} = 00", bytes[index]),
+                ADDRESSING_MODES::ZPX => format!("${}, X", bytes[index]),
+                ADDRESSING_MODES::ZPY => format!("${}, Y", bytes[index]),
+                ADDRESSING_MODES::REL => format!("${:04X}   ", pc.wrapping_add(2).wrapping_add(bytes[index] as u16)),
+                ADDRESSING_MODES::ABS => format!("${:02X}{:02X}   ", bytes[index + 1], bytes[index]),
+                ADDRESSING_MODES::ABX => format!("${}, X", bytes[index]),
+                ADDRESSING_MODES::ABY => format!("${}, Y", bytes[index]),
+                ADDRESSING_MODES::IND => format!("(${})", bytes[index]),
+                ADDRESSING_MODES::IZX => format!("(${}, X)", bytes[index]),
+                ADDRESSING_MODES::IZY => format!("(${}), Y", bytes[index]),
+            }
+        }
+    }
+
+    #[derive(Debug, Copy, Clone)]
     pub struct Cpu6502 {
         pub a: u8,
         pub x: u8,
@@ -57,7 +100,7 @@ pub mod cpu6502 {
         pub lookup: [Instruction; 256],
     }
 
-    #[derive(Debug)]
+    #[derive(Debug, Copy, Clone)]
     pub struct Instruction {
         pub name: &'static str,
         pub cycles: u8,
@@ -91,7 +134,7 @@ pub mod cpu6502 {
                 a: 0,
                 x: 0,
                 y: 0,
-                sp: 0,
+                sp: 0xFD,
                 pc: 0xC000,
                 status: 0,
                 
@@ -425,12 +468,17 @@ pub mod cpu6502 {
         pub fn clock(&mut self, bus: &mut Bus) {
             if self.cycles == 0 {
                 self.opcode = self.read(bus, self.pc);
+                
+                self.set_flag(Flags::U, true);
+                
                 self.pc = self.pc.wrapping_add(1);
                 self.cycles = self.lookup[self.opcode as usize].cycles;
                 
                 let bonus_cycles_addr_mode = (self.lookup[self.opcode as usize].addr_mode_fn)(self, bus);
                 let bonus_cycles_operate = (self.lookup[self.opcode as usize].operate)(self, bus);
                 self.cycles += bonus_cycles_addr_mode & bonus_cycles_operate;
+
+                self.set_flag(Flags::U, true);
             }
             self.cycles -= 1;
         }

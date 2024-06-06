@@ -7,14 +7,24 @@ pub use raylib::prelude::*;
 mod display;
 use display::draw::{NesDisplay, FlagsDisplay, InstructionHistoryDisplay, TextBox};
 
+use std::io::prelude::*;
+
+fn load_test_rom() -> Vec<u8> {
+    let mut rom = Vec::new();
+    let mut file = std::fs::File::open("ROMS/nestest.nes").unwrap();
+    file.read_to_end(&mut rom).unwrap();
+    rom
+}
+
 fn main() {
     let mut nes = Nes::new();
 
-    let test_bytes = [0xA2, 0x0A, 0x8E, 0x00, 0x00, 0xA2, 0x03, 0x8E, 0x01, 0x00, 0xAC, 0x00, 0x00, 0xA9, 0x00, 0x18, 0x6D, 0x01, 0x00, 0x88, 0xD0, 0xFA, 0x8D, 0x02, 0x00, 0x00, 0xEA, 0xEA, 0xEA];
-
+    let test_bytes = &load_test_rom()[0x0010..0x0010 + 0x4000];
     for (i, byte) in test_bytes.iter().enumerate() {
         nes.cpu_write(0x8000 + i as u16, *byte);
+        nes.cpu_write(0xC000 + i as u16, *byte);
     }
+    nes.reset();
 
     let (mut rl_handle, rl_thread) = raylib::init()
         .size(800, 600)
