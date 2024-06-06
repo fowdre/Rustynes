@@ -110,21 +110,21 @@ pub mod cpu6502 {
     }
 
     pub enum Flags {
-        /// Carry
+        /// bit 0 | Carry
         C = (1 << 0),
-        /// Zero
+        /// bit 1 | Zero
         Z = (1 << 1),
-        /// Interrupt Disable
+        /// bit 2 | Interrupt Disable
         I = (1 << 2),
-        /// Decimal Mode
+        /// bit 3 | Decimal Mode
         D = (1 << 3),
-        /// Break Command
+        /// bit 4 | Break Command
         B = (1 << 4),
-        /// Unused
+        /// bit 5 | Unused
         U = (1 << 5),
-        /// Overflow
+        /// bit 6 | Overflow
         V = (1 << 6),
-        /// Negative
+        /// bit 7 | Negative
         N = (1 << 7),
     }
 

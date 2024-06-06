@@ -108,8 +108,10 @@ impl std::fmt::Display for BytesLine {
 pub struct NesDisplay;
 
 impl NesDisplay {
-    pub fn set_options(handle: &mut RaylibHandle, fps: u32, line_spacing: i32, fullscreen: bool) {
-        handle.set_target_fps(fps);
+    pub fn set_options(handle: &mut RaylibHandle, fps: Option<u32>, line_spacing: i32, fullscreen: bool) {
+        if let Some(fps) = fps {
+            handle.set_target_fps(fps);
+        }
         handle.set_text_line_spacing(line_spacing);
         if fullscreen {
             handle.toggle_fullscreen();

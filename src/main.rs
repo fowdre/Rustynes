@@ -31,7 +31,7 @@ fn main() {
         .title("Rustyness")
         .build();
 
-    NesDisplay::set_options(&mut rl_handle, 60, 20, true);
+    NesDisplay::set_options(&mut rl_handle, None, 20, true);
     let font = NesDisplay::set_font(&mut rl_handle, &rl_thread, "assets/font/Monocraft.ttf", 25);
 
     let mut zero_page = TextBox::new(
@@ -82,8 +82,13 @@ fn main() {
     );
     history_instruction_display.update(&nes, nes.get_cpu_info().program_counter);
 
+    let mut is_paused = true;
     while !rl_handle.window_should_close() {
-        if rl_handle.is_key_pressed(KeyboardKey::KEY_SPACE) || rl_handle.is_key_down(KeyboardKey::KEY_SPACE) && rl_handle.is_key_down(KeyboardKey::KEY_LEFT_CONTROL) {
+        if rl_handle.is_key_pressed(KeyboardKey::KEY_SPACE) {
+            is_paused = !is_paused;
+        }
+
+        if !is_paused || rl_handle.is_key_pressed(KeyboardKey::KEY_SPACE) || rl_handle.is_key_down(KeyboardKey::KEY_SPACE) && rl_handle.is_key_down(KeyboardKey::KEY_LEFT_CONTROL) {
             let cycle = nes.get_cpu_info().cycles;
             let set_text_color = match cycle {
                 1 => Some(Color::ORANGE),
