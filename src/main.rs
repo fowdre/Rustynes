@@ -18,6 +18,7 @@ fn load_test_rom() -> Vec<u8> {
     rom
 }
 
+#[allow(clippy::too_many_lines)]
 fn main() {
     let mut nes = Nes::new();
 

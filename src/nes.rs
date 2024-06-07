@@ -95,11 +95,11 @@ impl Nes {
         println!("{line}");
     }
 
-    pub fn is_current_tick_cpu(&self) -> bool {
+    pub const fn is_current_tick_cpu(&self) -> bool {
         self.cpu.cycles == 0
     }
 
-    pub fn is_cpu_instruction_complete(&self) -> bool {
+    pub const fn is_cpu_instruction_complete(&self) -> bool {
         self.cpu.cycles == 0
     }
 
