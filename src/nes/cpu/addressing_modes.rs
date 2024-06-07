@@ -1,7 +1,7 @@
-use super::super::{Cpu6502, Bus};
+use crate::nes::{Component6502, Bus};
 
 #[allow(non_snake_case)]
-impl Cpu6502 {
+impl Component6502 {
     /// Accumulator addressing mode
     pub fn addr_ACC(&mut self, _bus: &Bus) {
         self.fetched = self.a;
@@ -78,6 +78,7 @@ impl Cpu6502 {
     }
     
     /// Implied addressing mode
+    #[allow(clippy::unused_self)]
     pub fn addr_IMP(&mut self, _bus: &Bus) {
     }
     

@@ -1,6 +1,8 @@
+#![allow(clippy::cast_precision_loss)]
+
 use raylib::prelude::*;
 
-use super::super::nes::{Nes, CpuInfo};
+use crate::nes::{Nes, CpuInfo};
 
 const BYTES_PER_LINE: u8 = 40;
 
@@ -18,14 +20,14 @@ impl<'font> TextBox<'font> {
     pub fn new(text: String, position: Vector2, text_color: Color, outline_color: Color, font: &'font Font) -> Self {
         let text_dimensions = text
             .lines()
-            .map(|line| font.measure_text(line, font.base_size() as f32, 2.0).x as i32)
-            .max()
-            .unwrap_or(0);
+            .map(|line| font.measure_text(line, font.base_size() as f32, 2.0).x)
+            .max_by(|a, b| a.partial_cmp(b)
+            .unwrap_or(std::cmp::Ordering::Equal));
 
         let outline_rect = Rectangle {
             x: position.x,
             y: position.y,
-            width: (10 + text_dimensions) as f32,
+            width: 10.0 + text_dimensions.unwrap_or(0.0),
             height: 10.0 + font.measure_text(&text, font.base_size() as f32, 2.0).y,
         };
 
@@ -56,14 +58,14 @@ impl<'font> TextBox<'font> {
     pub fn set_text(&mut self, text: String, color: Option<Color>) {
         let text_dimensions = text
             .lines()
-            .map(|line| self.font.measure_text(line, self.font.base_size() as f32, 2.0).x as i32)
-            .max()
-            .unwrap_or(0);
+            .map(|line| self.font.measure_text(line, self.font.base_size() as f32, 2.0).x)
+            .max_by(|a, b| a.partial_cmp(b)
+            .unwrap_or(std::cmp::Ordering::Equal));
 
         let outline_rect = Rectangle {
             x: self.position.x,
             y: self.position.y,
-            width: (10 + text_dimensions) as f32,
+            width: 10.0 + text_dimensions.unwrap_or(0.0),
             height: 10.0 + self.font.measure_text(&text, self.font.base_size() as f32, 2.0).y,
         };
 
@@ -76,11 +78,11 @@ impl<'font> TextBox<'font> {
         }
     }
 
-    pub fn get_position(&self) -> Vector2 {
+    pub const fn get_position(&self) -> Vector2 {
         self.position
     }
 
-    pub fn get_dimensions(&self) -> Vector2 {
+    pub const fn get_dimensions(&self) -> Vector2 {
         Vector2::new(self.outline_rect.width, self.outline_rect.height)
     }
 }
@@ -121,7 +123,8 @@ impl NesDisplay {
     pub fn set_font(handle: &mut RaylibHandle, thread: &RaylibThread, path: &str, size: i32) -> Font {
         handle.load_font_ex(thread, path, size, None).expect("Could not load font")
     }
-
+    
+    #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss, clippy::cast_possible_wrap)]
     pub fn bytes_to_string(bytes_range: (u16, u16, &[u8])) -> String {
         // Why `bytes_range` isn't simply a &[u8] is because the range is needed for the display
         // However if the starting point is different from 0, an offset needs to be applied
@@ -155,16 +158,15 @@ impl NesDisplay {
             bytes_repr.push(local_bytes_line);
         }
 
-        let mut bytes_repr = bytes_repr
+        let mut bytes_repr: String = bytes_repr
             .iter()
-            .map(|line| line.to_string())
-            .collect::<Vec<String>>()
-            .join("");
+            .map(ToString::to_string)
+            .collect();
         bytes_repr.pop(); // Remove the leading `\n`
         bytes_repr
     }
 
-    pub fn cpu_info_to_string(cpu_info: CpuInfo) -> String {
+    pub fn cpu_info_to_string(cpu_info: &CpuInfo) -> String {
         format!(
             "PC:\t{pc:04X}\nSP:\t{sp:04X}\nA:\t\t({a:03}) {a:02X}\nX:\t\t({x:03}) {x:02X}\nY:\t\t({y:03}) {y:02X}\n",
             pc = cpu_info.program_counter,
@@ -213,6 +215,7 @@ impl<'font> FlagsDisplay<'font> {
         let mut accumulator = 0.0;
         for (i, rect) in outline_rects.iter_mut().enumerate() {
             *rect = Rectangle {
+                #[allow(clippy::suboptimal_flops)]
                 x: position.x + size * i as f32 + accumulator,
                 y: position.y,
                 width: size,
@@ -221,6 +224,7 @@ impl<'font> FlagsDisplay<'font> {
             if i == 3 {
                 accumulator = 0.0;
             }
+            #[allow(clippy::suboptimal_flops)]
             if i > 3 {
                 rect.x = position.x + size * (i - 4) as f32 + (accumulator - spacing);
                 rect.y += size + spacing;
@@ -241,13 +245,13 @@ impl<'font> FlagsDisplay<'font> {
     pub fn set_colors(&mut self, outline: Color, text: Color, flag_active: Color) {
         self.outline_color = outline;
         self.text_color = text;
-        for flag in self.flags.iter_mut() {
+        for flag in &mut self.flags {
             flag.box_color = flag_active;
         }
     }
 
     pub fn draw(&self, handle: &mut RaylibDrawHandle) {
-        for rect in self.outline_rects.iter() {
+        for rect in &self.outline_rects {
             handle.draw_rectangle_lines_ex(*rect, 2.0, self.outline_color);
         }
 
@@ -273,7 +277,7 @@ impl<'font> FlagsDisplay<'font> {
         }
     }
 
-    pub fn get_position(&self) -> Vector2 {
+    pub const fn get_position(&self) -> Vector2 {
         self.position
     }
 
@@ -314,14 +318,11 @@ impl<'font> InstructionHistoryDisplay<'font> {
     pub fn draw(&self, handle: &mut RaylibDrawHandle) {
         let mut y_offset = 0.0;
         for (i, instruction) in self.instructions.iter().enumerate() {
-            let mut color = if i == 0 {
+            let color = if instruction == "00 (IMP) BRK" { Color::DARKGRAY } else if i == 0 {
                 Color::LIGHTGREEN
             } else {
                 Color::WHITE
             };
-            if instruction == "00 (IMP) BRK" {
-                color = Color::DARKGRAY;
-            }
             handle.draw_text_ex(
                 self.font,
                 instruction,

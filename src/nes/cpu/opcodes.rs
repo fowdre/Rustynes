@@ -1,9 +1,11 @@
-use super::super::{Flags, Cpu6502, Bus};
-use super::cpu6502::ADDRESSING_MODES;
+#![allow(clippy::cast_lossless, clippy::verbose_bit_mask)]
+
+use crate::nes::{Bus, Component6502, Flags, ADDRESSING_MODES, STACK_ADDRESS};
 
 #[allow(non_snake_case)]
-impl Cpu6502 {
+impl Component6502 {
     /// Illegal opcode
+    #[allow(clippy::unused_self)]
     pub fn xxx(&mut self, _bus: &mut Bus) {
     }
 
@@ -64,13 +66,13 @@ impl Cpu6502 {
         self.pc = self.pc.wrapping_add(1);
         
         self.set_flag(Flags::I, true);
-        self.write(bus, 0x0100 + self.sp as u16, ((self.pc >> 8) & 0x00FF) as u8);
+        self.write(bus, STACK_ADDRESS + self.sp as u16, ((self.pc >> 8) & 0x00FF) as u8);
         self.sp = self.sp.wrapping_sub(1);
-        self.write(bus, 0x0100 + self.sp as u16, (self.pc & 0x00FF) as u8);
+        self.write(bus, STACK_ADDRESS + self.sp as u16, (self.pc & 0x00FF) as u8);
         self.sp = self.sp.wrapping_sub(1);
         
         self.set_flag(Flags::B, true);
-        self.write(bus, 0x0100 + self.sp as u16, self.status);
+        self.write(bus, STACK_ADDRESS + self.sp as u16, self.status);
         self.sp = self.sp.wrapping_sub(1);
         self.set_flag(Flags::B, false);
         
@@ -90,39 +92,39 @@ impl Cpu6502 {
     }
     
     /// Branch on Carry Clear
-    pub fn BCC(&mut self, _bus: &mut Bus) {
+    pub fn BCC(&mut self, bus: &mut Bus) {
         if !self.get_flag(Flags::C) {
-            self.branch(_bus);
+            self.branch(bus);
         }
     }
 	/// Branch on Carry Set
-    pub fn BCS(&mut self, _bus: &mut Bus) {
+    pub fn BCS(&mut self, bus: &mut Bus) {
         if self.get_flag(Flags::C) {
-            self.branch(_bus);
+            self.branch(bus);
         }
     }
     /// Branch on Result Zero
-    pub fn BEQ(&mut self, _bus: &mut Bus) {
+    pub fn BEQ(&mut self, bus: &mut Bus) {
         if self.get_flag(Flags::Z) {
-            self.branch(_bus);
+            self.branch(bus);
         }
     }
     /// Branch on Result Minus
-    pub fn BMI(&mut self, _bus: &mut Bus) {
+    pub fn BMI(&mut self, bus: &mut Bus) {
         if self.get_flag(Flags::N) {
-            self.branch(_bus);
+            self.branch(bus);
         }
     }
 	/// Branch on Result not Zero
-    pub fn BNE(&mut self, _bus: &mut Bus) {
+    pub fn BNE(&mut self, bus: &mut Bus) {
         if !self.get_flag(Flags::Z) {
-            self.branch(_bus);
+            self.branch(bus);
         }
     }
     /// Branch on Result Plus
-    pub fn BPL(&mut self, _bus: &mut Bus) {
+    pub fn BPL(&mut self, bus: &mut Bus) {
         if !self.get_flag(Flags::N) {
-            self.branch(_bus);
+            self.branch(bus);
         }
     }
     /// Branch on Overflow Clear
@@ -267,9 +269,9 @@ impl Cpu6502 {
     pub fn JSR(&mut self, bus: &mut Bus) {
         self.pc = self.pc.wrapping_sub(1);
         
-        self.write(bus, 0x0100 + self.sp as u16, ((self.pc >> 8) & 0x00FF) as u8);
+        self.write(bus, STACK_ADDRESS + self.sp as u16, ((self.pc >> 8) & 0x00FF) as u8);
         self.sp = self.sp.wrapping_sub(1);
-        self.write(bus, 0x0100 + self.sp as u16, (self.pc & 0x00FF) as u8);
+        self.write(bus, STACK_ADDRESS + self.sp as u16, (self.pc & 0x00FF) as u8);
         self.sp = self.sp.wrapping_sub(1);
         
         self.pc = self.addr_abs;
@@ -318,6 +320,7 @@ impl Cpu6502 {
     }
     
     /// No Operation
+    #[allow(clippy::unused_self)]
     pub fn NOP(&mut self, _bus: &mut Bus) {
     }
     
@@ -332,21 +335,21 @@ impl Cpu6502 {
     
     /// Push Accumulator on Stack
     pub fn PHA(&mut self, bus: &mut Bus) {
-        self.write(bus, 0x0100 + self.sp as u16, self.a);
+        self.write(bus, STACK_ADDRESS + self.sp as u16, self.a);
         self.sp = self.sp.wrapping_sub(1);
     }
 	/// Push Processor Status on Stack
     pub fn PHP(&mut self, bus: &mut Bus) {
         self.set_flag(Flags::B, true);
         self.set_flag(Flags::U, true);
-        self.write(bus, 0x0100 + self.sp as u16, self.status);
+        self.write(bus, STACK_ADDRESS + self.sp as u16, self.status);
         self.sp = self.sp.wrapping_sub(1);
         self.set_flag(Flags::B, false);
     }
     /// Pull Accumulator from Stack
     pub fn PLA(&mut self, bus: &mut Bus) {
         self.sp = self.sp.wrapping_add(1);
-        self.a = self.read(bus, 0x0100 + self.sp as u16);
+        self.a = self.read(bus, STACK_ADDRESS + self.sp as u16);
         
         self.set_flag(Flags::Z, self.a == 0x00);
         self.set_flag(Flags::N, (self.a & 0x80) != 0);
@@ -354,7 +357,7 @@ impl Cpu6502 {
     /// Pull Processor Status from Stack
     pub fn PLP(&mut self, bus: &mut Bus) {
         self.sp = self.sp.wrapping_add(1);
-        self.status = self.read(bus, 0x0100 + self.sp as u16);
+        self.status = self.read(bus, STACK_ADDRESS + self.sp as u16);
         self.status &= !(Flags::B as u8);
         self.set_flag(Flags::U, true);
     }
@@ -396,21 +399,21 @@ impl Cpu6502 {
     /// Return from Interrupt
     pub fn RTI(&mut self, bus: &mut Bus) {
         self.sp = self.sp.wrapping_add(1);
-        self.status = self.read(bus, 0x0100 + self.sp as u16);
+        self.status = self.read(bus, STACK_ADDRESS + self.sp as u16);
         self.status &= !(Flags::B as u8);
         self.set_flag(Flags::U, true);
         
         self.sp = self.sp.wrapping_add(1);
-        self.pc = self.read(bus, 0x0100 + self.sp as u16) as u16;
+        self.pc = self.read(bus, STACK_ADDRESS + self.sp as u16) as u16;
         self.sp = self.sp.wrapping_add(1);
-        self.pc |= (self.read(bus, 0x0100 + self.sp as u16) as u16) << 8;
+        self.pc |= (self.read(bus, STACK_ADDRESS + self.sp as u16) as u16) << 8;
     }
     /// Return from Subroutine
     pub fn RTS(&mut self, bus: &mut Bus) {
         self.sp = self.sp.wrapping_add(1);
-        self.pc = self.read(bus, 0x0100 + self.sp as u16) as u16;
+        self.pc = self.read(bus, STACK_ADDRESS + self.sp as u16) as u16;
         self.sp = self.sp.wrapping_add(1);
-        self.pc |= (self.read(bus, 0x0100 + self.sp as u16) as u16) << 8;
+        self.pc |= (self.read(bus, STACK_ADDRESS + self.sp as u16) as u16) << 8;
         
         self.pc = self.pc.wrapping_add(1);
     }

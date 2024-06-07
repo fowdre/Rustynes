@@ -1,17 +1,20 @@
-mod devices;
+mod cpu;
 mod bus;
 
+pub use cpu::{Component6502, Flags, ADDRESSING_MODES};
 pub use bus::Bus;
-pub use devices::cpu6502::{Cpu6502, Flags, ADDRESSING_MODES};
 
-pub struct NesSnapshot {
-    cpu: devices::cpu6502::Cpu6502,
+const STACK_ADDRESS: u16 = 0x0100;
+
+#[cfg(feature = "nestest")]
+pub struct Snapshot {
+    cpu: Component6502,
     bus: bus::Bus,
 }
 
 #[derive(Debug)]
 pub struct Nes {
-    pub cpu: devices::cpu6502::Cpu6502,
+    cpu: Component6502,
     bus: bus::Bus,
 }
 
@@ -27,7 +30,7 @@ pub struct CpuInfo {
 impl Nes {
     pub fn new() -> Self {
         Self {
-            cpu: devices::cpu6502::Cpu6502::new(),
+            cpu: Component6502::new(),
             bus: bus::Bus {
                 ram: [0; 64 * 1024],
             },
@@ -44,7 +47,8 @@ impl Nes {
         self.cpu.write(&mut self.bus, addr, data);
     }
 
-    pub fn nestest_format_log(&mut self, snapshot: &NesSnapshot) {
+    #[cfg(feature = "nestest")]
+    pub fn nestest_format_log(snapshot: &Snapshot) {
         use std::fmt::Write;
         
         let mut line = String::new();
@@ -55,9 +59,9 @@ impl Nes {
         write!(&mut line, "{:04X}  ", snapshot.cpu.pc).unwrap();
         // operands
         let operands_nb = instruction.addr_mode.get_operands_nb();
-        let operands = (0..operands_nb + 1).map(|i| snapshot.cpu.read(&snapshot.bus, snapshot.cpu.pc.wrapping_add(i as u16)));
+        let operands = (0..=operands_nb).map(|i| snapshot.cpu.read(&snapshot.bus, snapshot.cpu.pc.wrapping_add(i as u16)));
         for operand in operands.clone() {
-            write!(&mut line, "{:02X} ", operand).unwrap();
+            write!(&mut line, "{operand:02X} ").unwrap();
         }
         match operands_nb {
             0 => write!(&mut line, "      ").unwrap(),
@@ -82,22 +86,24 @@ impl Nes {
         // stack pointer
         write!(&mut line, "SP:{:02X}", snapshot.cpu.sp).unwrap();
 
-        println!("{}", line);
+        println!("{line}");
     }
 
     pub fn cpu_tick(&mut self) {
-        
-        let snapshot = NesSnapshot {
+        #[cfg(feature = "nestest")]
+        let snapshot = Snapshot {
             cpu: self.cpu,
             bus: self.bus,
         };
 
+        #[cfg(feature = "nestest")]
         let display_log = self.cpu.cycles == 0;
 
         self.cpu.clock(&mut self.bus);
         
+        #[cfg(feature = "nestest")]
         if display_log {
-            self.nestest_format_log(&snapshot);
+            Self::nestest_format_log(&snapshot);
         }
     }
 
@@ -117,7 +123,7 @@ impl Nes {
         (low, high, &self.bus.ram[low as usize..high as usize])
     }
 
-    pub fn get_cpu_info(&self) -> CpuInfo {
+    pub const fn get_cpu_info(&self) -> CpuInfo {
         CpuInfo {
             program_counter: self.cpu.pc,
             reg_a: self.cpu.a,
@@ -128,7 +134,7 @@ impl Nes {
         }
     }
 
-    pub fn get_cpu_flags(&self) -> u8 {
+    pub const fn get_cpu_flags(&self) -> u8 {
         self.cpu.status
     }
 
@@ -209,13 +215,9 @@ impl Nes {
                     let hi = self.cpu.read(&self.bus, local_pc + 2);
                     let ptr = (hi as u16) << 8 | lo as u16;
                     let addr = if lo == 0xFF {
-                        let lo = self.cpu.read(&self.bus, ptr);
-                        let hi = self.cpu.read(&self.bus, ptr & 0xFF00);
-                        (hi as u16) << 8 | lo as u16
+                        (self.cpu.read(&self.bus, ptr & 0xFF00) as u16) | (self.cpu.read(&self.bus, ptr) as u16) << 8
                     } else {
-                        let lo = self.cpu.read(&self.bus, ptr);
-                        let hi = self.cpu.read(&self.bus, ptr + 1);
-                        (hi as u16) << 8 | lo as u16
+                        (self.cpu.read(&self.bus, ptr + 1) as u16) << 8 | self.cpu.read(&self.bus, ptr) as u16
                     };
 
                     instruction_string.push(format!("{opcode:02X} {} (${addr:04X})", instruction.name));

@@ -1,13 +1,13 @@
-mod tests;
+#![allow(clippy::cast_lossless)]
 
 mod nes;
 use nes::Nes;
 
-pub use raylib::prelude::*;
 mod display;
 use display::draw::{NesDisplay, FlagsDisplay, InstructionHistoryDisplay, TextBox};
 
-use std::io::prelude::*;
+use std::io::Read;
+use raylib::prelude::*;
 
 fn load_test_rom() -> Vec<u8> {
     let mut rom = Vec::new();
@@ -20,6 +20,7 @@ fn main() {
     let mut nes = Nes::new();
 
     let test_bytes = &load_test_rom()[0x0010..0x0010 + 0x4000];
+    #[allow(clippy::cast_possible_truncation)]
     for (i, byte) in test_bytes.iter().enumerate() {
         nes.cpu_write(0x8000 + i as u16, *byte);
         nes.cpu_write(0xC000 + i as u16, *byte);
@@ -51,7 +52,7 @@ fn main() {
     );
 
     let mut cpu_info = TextBox::new(
-        NesDisplay::cpu_info_to_string(nes.get_cpu_info()),
+        NesDisplay::cpu_info_to_string(&nes.get_cpu_info()),
         Vector2::new(10.0 + 10.0 + zero_page.get_dimensions().x, 10.0),
         Color::WHITE,
         Color::WHITE,
@@ -99,11 +100,11 @@ fn main() {
             if cycle == 0 {
                 zero_page.set_text(NesDisplay::bytes_to_string(nes.get_ram(0x0000, 0x00F0)), None);
                 program_location.set_text(NesDisplay::bytes_to_string(nes.get_ram(0x8000, 0x80F0)), None);
-                cpu_info.set_text(NesDisplay::cpu_info_to_string(nes.get_cpu_info()), None);
+                cpu_info.set_text(NesDisplay::cpu_info_to_string(&nes.get_cpu_info()), None);
                 flags_display.set_flags(nes.get_cpu_flags());
                 history_instruction_display.update(&nes, nes.get_cpu_info().program_counter);
             }
-            cycles_left_display.set_text(format!("Next in\n[{}] cycles", cycle), set_text_color);
+            cycles_left_display.set_text(format!("Next in\n[{cycle}] cycles"), set_text_color);
         }
         
         let mut rl_draw_handle = rl_handle.begin_drawing(&rl_thread);
