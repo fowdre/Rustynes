@@ -9,6 +9,8 @@ use display::draw::{NesDisplay, FlagsDisplay, InstructionHistoryDisplay, TextBox
 use std::io::Read;
 use raylib::prelude::*;
 
+const FPS: f32 = 60.0;
+
 fn load_test_rom() -> Vec<u8> {
     let mut rom = Vec::new();
     let mut file = std::fs::File::open("ROMS/nestest.nes").unwrap();
@@ -83,29 +85,74 @@ fn main() {
     );
     history_instruction_display.update(&nes, nes.get_cpu_info().program_counter);
 
-    let mut is_paused = true;
     while !rl_handle.window_should_close() {
+        let frame_time = rl_handle.get_frame_time();
+        
+        // Resume / Pause
         if rl_handle.is_key_pressed(KeyboardKey::KEY_SPACE) {
-            is_paused = !is_paused;
+            nes.pause = !nes.pause;
+        }
+        // Reset
+        if rl_handle.is_key_pressed(KeyboardKey::KEY_R) {
+            nes.reset();
         }
 
-        if !is_paused || rl_handle.is_key_pressed(KeyboardKey::KEY_Q) || rl_handle.is_key_down(KeyboardKey::KEY_Q) && rl_handle.is_key_down(KeyboardKey::KEY_LEFT_CONTROL) {
-            let cycle = nes.get_cpu_info().cycles;
-            let set_text_color = match cycle {
-                1 => Some(Color::ORANGE),
-                0 => Some(Color::LIGHTGREEN),
-                _ => None,
-            };
-            nes.cpu_tick();
-            if cycle == 0 {
-                zero_page.set_text(NesDisplay::bytes_to_string(nes.get_ram(0x0000, 0x00F0)), None);
-                program_location.set_text(NesDisplay::bytes_to_string(nes.get_ram(0x8000, 0x80F0)), None);
-                cpu_info.set_text(NesDisplay::cpu_info_to_string(&nes.get_cpu_info()), None);
-                flags_display.set_flags(nes.get_cpu_flags());
-                history_instruction_display.update(&nes, nes.get_cpu_info().program_counter);
+        if !nes.pause {
+            if nes.timer > 0.0 {
+                nes.timer -= frame_time;
+            } else {
+                nes.timer += (1.0 / FPS) - frame_time;
+
+                loop {
+                    nes.tick();
+                    if !nes.is_cpu_instruction_complete() {
+                        break;
+                    }
+                }
             }
-            cycles_left_display.set_text(format!("Next in\n[{cycle}] cycles"), set_text_color);
+        } else if let Some(key) = rl_handle.get_key_pressed() {
+            match key {
+                // Step into next CPU clock cycle
+                KeyboardKey::KEY_S if nes.is_current_tick_cpu() && rl_handle.get_key_pressed() == Some(KeyboardKey::KEY_LEFT_CONTROL) => {
+                    loop {
+                        nes.tick();
+                        if nes.is_cpu_instruction_complete() {
+                            break;
+                        }
+                    }
+                }
+                // Step by 1 whole CPU instruction
+                KeyboardKey::KEY_S => {
+                    loop {
+                        nes.tick();
+                        if nes.is_cpu_instruction_complete() {
+                            break;
+                        }
+                    }
+                    loop {
+                        nes.tick();
+                        if !nes.is_cpu_instruction_complete() {
+                            break;
+                        }
+                    }
+                }
+                _ => {}
+            }
         }
+
+        let cycle = nes.get_cpu_info().cycles;
+        let cycle_text_color = match cycle {
+            1 => Some(Color::ORANGE),
+            0 => Some(Color::LIGHTGREEN),
+            _ => None,
+        };
+
+        zero_page.set_text(NesDisplay::bytes_to_string(nes.get_ram(0x0000, 0x00F0)), None);
+        program_location.set_text(NesDisplay::bytes_to_string(nes.get_ram(0x8000, 0x80F0)), None);
+        cpu_info.set_text(NesDisplay::cpu_info_to_string(&nes.get_cpu_info()), None);
+        flags_display.set_flags(nes.get_cpu_flags());
+        history_instruction_display.update(&nes, nes.get_cpu_info().program_counter);
+        cycles_left_display.set_text(format!("Next in\n[{cycle}] cycles"), cycle_text_color);
         
         let mut rl_draw_handle = rl_handle.begin_drawing(&rl_thread);
 

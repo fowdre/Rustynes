@@ -16,6 +16,9 @@ pub struct Snapshot {
 pub struct Nes {
     cpu: Component6502,
     bus: bus::Bus,
+
+    pub pause: bool,
+    pub timer: f32,
 }
 
 pub struct CpuInfo {
@@ -34,6 +37,9 @@ impl Nes {
             bus: bus::Bus {
                 ram: [0; 64 * 1024],
             },
+
+            pause: true,
+            timer: 0.0,
         }
     }
     
@@ -89,7 +95,15 @@ impl Nes {
         println!("{line}");
     }
 
-    pub fn cpu_tick(&mut self) {
+    pub fn is_current_tick_cpu(&self) -> bool {
+        self.cpu.cycles == 0
+    }
+
+    pub fn is_cpu_instruction_complete(&self) -> bool {
+        self.cpu.cycles == 0
+    }
+
+    pub fn tick(&mut self) {
         #[cfg(feature = "nestest")]
         let snapshot = Snapshot {
             cpu: self.cpu,
