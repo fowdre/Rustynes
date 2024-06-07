@@ -1,16 +1,16 @@
 #![allow(clippy::cast_lossless, clippy::verbose_bit_mask)]
 
-use crate::nes::{Bus, Component6502, Flags, ADDRESSING_MODES, STACK_ADDRESS};
+use crate::nes::{Component2C02, Component6502, Bus, Flags, ADDRESSING_MODES, STACK_ADDRESS};
 
 #[allow(non_snake_case)]
 impl Component6502 {
     /// Illegal opcode
     #[allow(clippy::unused_self)]
-    pub fn xxx(&mut self, _bus: &mut Bus) {
+    pub fn xxx(&mut self, _ppu: &mut Component2C02, _bus: &mut Bus) {
     }
 
     /// Add Memory to Accumulator with Carry
-    pub fn ADC(&mut self, bus: &mut Bus) {
+    pub fn ADC(&mut self, _ppu: &mut Component2C02, bus: &mut Bus) {
         self.fetch(bus);
 
         let tmp = (self.a as u16).wrapping_add(self.fetched as u16).wrapping_add(self.get_flag(Flags::C) as u16);
@@ -25,7 +25,7 @@ impl Component6502 {
         self.a = (tmp & 0x00FF) as u8;
     }
     /// "AND" Memory with Accumulator
-    pub fn AND(&mut self, bus: &mut Bus) {
+    pub fn AND(&mut self, _ppu: &mut Component2C02, bus: &mut Bus) {
         self.fetch(bus);
         self.a &= self.fetched;
         
@@ -33,7 +33,7 @@ impl Component6502 {
         self.set_flag(Flags::N, self.a & 0x80 != 0);
     }
     /// Shift Left One Bit (Memory or Accumulator)
-    pub fn ASL(&mut self, bus: &mut Bus) { 
+    pub fn ASL(&mut self, ppu: &mut Component2C02, bus: &mut Bus) { 
         self.fetch(bus);
         
         let tmp: u16 = (self.fetched as u16) << 1;
@@ -46,12 +46,12 @@ impl Component6502 {
         || (self.lookup[self.opcode as usize].addr_mode == ADDRESSING_MODES::IMP) {
             self.a = (tmp & 0x00FF) as u8;
         } else {
-            self.write(bus, self.addr_abs, (tmp & 0x00FF) as u8);
+            self.write(self.addr_abs, (tmp & 0x00FF) as u8, ppu, bus);
         }
     }
 
     /// Test Bits in Memory with Accumulator
-    pub fn BIT(&mut self, bus: &mut Bus) {
+    pub fn BIT(&mut self, _ppu: &mut Component2C02, bus: &mut Bus) {
         self.fetch(bus);
         
         let tmp: u16 = (self.a & self.fetched) as u16;
@@ -62,17 +62,17 @@ impl Component6502 {
     }
 
     /// Force Break
-    pub fn BRK(&mut self, bus: &mut Bus) {
+    pub fn BRK(&mut self, ppu: &mut Component2C02, bus: &mut Bus) {
         self.pc = self.pc.wrapping_add(1);
         
         self.set_flag(Flags::I, true);
-        self.write(bus, STACK_ADDRESS + self.sp as u16, ((self.pc >> 8) & 0x00FF) as u8);
+        self.write(STACK_ADDRESS + self.sp as u16, ((self.pc >> 8) & 0x00FF) as u8, ppu, bus);
         self.sp = self.sp.wrapping_sub(1);
-        self.write(bus, STACK_ADDRESS + self.sp as u16, (self.pc & 0x00FF) as u8);
+        self.write(STACK_ADDRESS + self.sp as u16, (self.pc & 0x00FF) as u8, ppu, bus);
         self.sp = self.sp.wrapping_sub(1);
         
         self.set_flag(Flags::B, true);
-        self.write(bus, STACK_ADDRESS + self.sp as u16, self.status);
+        self.write(STACK_ADDRESS + self.sp as u16, self.status, ppu, bus);
         self.sp = self.sp.wrapping_sub(1);
         self.set_flag(Flags::B, false);
         
@@ -80,7 +80,7 @@ impl Component6502 {
     }
 
     // Generic branch instruction
-    pub fn branch(&mut self, _bus: &mut Bus) {
+    pub fn branch(&mut self, _ppu: &mut Component2C02, _bus: &mut Bus) {
         self.cycles += 1;
         self.addr_abs = self.pc.wrapping_add(self.addr_rel);
         
@@ -92,43 +92,43 @@ impl Component6502 {
     }
     
     /// Branch on Carry Clear
-    pub fn BCC(&mut self, bus: &mut Bus) {
+    pub fn BCC(&mut self, ppu: &mut Component2C02, bus: &mut Bus) {
         if !self.get_flag(Flags::C) {
-            self.branch(bus);
+            self.branch(ppu, bus);
         }
     }
 	/// Branch on Carry Set
-    pub fn BCS(&mut self, bus: &mut Bus) {
+    pub fn BCS(&mut self, ppu: &mut Component2C02, bus: &mut Bus) {
         if self.get_flag(Flags::C) {
-            self.branch(bus);
+            self.branch(ppu, bus);
         }
     }
     /// Branch on Result Zero
-    pub fn BEQ(&mut self, bus: &mut Bus) {
+    pub fn BEQ(&mut self, ppu: &mut Component2C02, bus: &mut Bus) {
         if self.get_flag(Flags::Z) {
-            self.branch(bus);
+            self.branch(ppu, bus);
         }
     }
     /// Branch on Result Minus
-    pub fn BMI(&mut self, bus: &mut Bus) {
+    pub fn BMI(&mut self, ppu: &mut Component2C02, bus: &mut Bus) {
         if self.get_flag(Flags::N) {
-            self.branch(bus);
+            self.branch(ppu, bus);
         }
     }
 	/// Branch on Result not Zero
-    pub fn BNE(&mut self, bus: &mut Bus) {
+    pub fn BNE(&mut self, ppu: &mut Component2C02, bus: &mut Bus) {
         if !self.get_flag(Flags::Z) {
-            self.branch(bus);
+            self.branch(ppu, bus);
         }
     }
     /// Branch on Result Plus
-    pub fn BPL(&mut self, bus: &mut Bus) {
+    pub fn BPL(&mut self, ppu: &mut Component2C02, bus: &mut Bus) {
         if !self.get_flag(Flags::N) {
-            self.branch(bus);
+            self.branch(ppu, bus);
         }
     }
     /// Branch on Overflow Clear
-    pub fn BVC(&mut self, _bus: &mut Bus) {
+    pub fn BVC(&mut self, _ppu: &mut Component2C02, _bus: &mut Bus) {
         if !self.get_flag(Flags::V) {
             self.cycles = self.cycles.wrapping_add(1);
             self.addr_abs = self.pc.wrapping_add(self.addr_rel);
@@ -141,7 +141,7 @@ impl Component6502 {
         }
     }
 	/// Branch on Overflow Set
-    pub fn BVS(&mut self, _bus: &mut Bus) {
+    pub fn BVS(&mut self, _ppu: &mut Component2C02, _bus: &mut Bus) {
         if self.get_flag(Flags::V) {
             self.cycles = self.cycles.wrapping_add(1);
             self.addr_abs = self.pc.wrapping_add(self.addr_rel);
@@ -155,24 +155,24 @@ impl Component6502 {
     }
     
     /// Clear Carry Flag
-    pub fn CLC(&mut self, _bus: &mut Bus) {
+    pub fn CLC(&mut self, _ppu: &mut Component2C02, _bus: &mut Bus) {
         self.set_flag(Flags::C, false);
     }
     /// Clear Decimal Mode Flag
-    pub fn CLD(&mut self, _bus: &mut Bus) {
+    pub fn CLD(&mut self, _ppu: &mut Component2C02, _bus: &mut Bus) {
         self.set_flag(Flags::D, false);
     }
     /// Clear Interrupt Disable Bit Flag
-    pub fn CLI(&mut self, _bus: &mut Bus) {
+    pub fn CLI(&mut self, _ppu: &mut Component2C02, _bus: &mut Bus) {
         self.set_flag(Flags::I, false);
     }
 	/// Clear Overflow Flag
-    pub fn CLV(&mut self, _bus: &mut Bus) {
+    pub fn CLV(&mut self, _ppu: &mut Component2C02, _bus: &mut Bus) {
         self.set_flag(Flags::V, false);
     }
 
     /// Compare Memory and Accumulator
-    pub fn CMP(&mut self, bus: &mut Bus) {
+    pub fn CMP(&mut self, _ppu: &mut Component2C02, bus: &mut Bus) {
         self.fetch(bus);
         
         let tmp: u16 = (self.a as u16).wrapping_sub(self.fetched as u16);
@@ -182,7 +182,7 @@ impl Component6502 {
         self.set_flag(Flags::N, (tmp & 0x0080) != 0);
     }
     /// Compare Memory and Index X
-    pub fn CPX(&mut self, bus: &mut Bus) {
+    pub fn CPX(&mut self, _ppu: &mut Component2C02, bus: &mut Bus) {
         self.fetch(bus);
         
         let tmp: u16 = (self.x as u16).wrapping_sub(self.fetched as u16);
@@ -192,7 +192,7 @@ impl Component6502 {
         self.set_flag(Flags::N, tmp & 0x0080 != 0);
     }
     /// Compare Memory and Index Y
-    pub fn CPY(&mut self, bus: &mut Bus) {
+    pub fn CPY(&mut self, _ppu: &mut Component2C02, bus: &mut Bus) {
         self.fetch(bus);
         
         let tmp: u16 = (self.y as u16).wrapping_sub(self.fetched as u16);
@@ -203,24 +203,24 @@ impl Component6502 {
     }
     
 	/// Decrement Memory by One
-    pub fn DEC(&mut self, bus: &mut Bus) {
+    pub fn DEC(&mut self, ppu: &mut Component2C02, bus: &mut Bus) {
         self.fetch(bus);
         let tmp = self.fetched.wrapping_sub(1) as u16;
         
-        self.write(bus, self.addr_abs, (tmp & 0x00FF) as u8);
+        self.write(self.addr_abs, (tmp & 0x00FF) as u8, ppu, bus);
         
         self.set_flag(Flags::Z, (tmp & 0x00FF) == 0x0000);
         self.set_flag(Flags::N, tmp & 0x0080 != 0);
     }
     /// Decrement Index X by One
-    pub fn DEX(&mut self, _bus: &mut Bus) {
+    pub fn DEX(&mut self, _ppu: &mut Component2C02, _bus: &mut Bus) {
         self.x = self.x.wrapping_sub(1);
         
         self.set_flag(Flags::Z, self.x == 0x00);
         self.set_flag(Flags::N, self.x & 0x80 != 0);
     }
     /// Decrement Index Y by One
-    pub fn DEY(&mut self, _bus: &mut Bus) {
+    pub fn DEY(&mut self, _ppu: &mut Component2C02, _bus: &mut Bus) {
         self.y = self.y.wrapping_sub(1);
         
         self.set_flag(Flags::Z, self.y == 0x00);
@@ -228,7 +228,7 @@ impl Component6502 {
     }
     
     /// "Exclusive-OR" Memory with Accumulator
-    pub fn EOR(&mut self, bus: &mut Bus) {
+    pub fn EOR(&mut self, _ppu: &mut Component2C02, bus: &mut Bus) {
         self.fetch(bus);
         self.a ^= self.fetched;
         
@@ -237,24 +237,24 @@ impl Component6502 {
     }
     
 	/// Increment Memory by One
-    pub fn INC(&mut self, bus: &mut Bus) {
+    pub fn INC(&mut self, ppu: &mut Component2C02, bus: &mut Bus) {
         self.fetch(bus);
         let tmp: u16 = self.fetched as u16 + 1;
         
-        self.write(bus, self.addr_abs, (tmp & 0x00FF) as u8);
+        self.write(self.addr_abs, (tmp & 0x00FF) as u8, ppu, bus);
         
         self.set_flag(Flags::Z, (tmp & 0x00FF) == 0x0000);
         self.set_flag(Flags::N, tmp & 0x0080 != 0);
     }
     /// Increment Index X by One
-    pub fn INX(&mut self, _bus: &mut Bus) {
+    pub fn INX(&mut self, _ppu: &mut Component2C02, _bus: &mut Bus) {
         self.x = self.x.wrapping_add(1);
         
         self.set_flag(Flags::Z, self.x == 0x00);
         self.set_flag(Flags::N, self.x & 0x80 != 0);
     }
     /// Increment Index Y by One
-    pub fn INY(&mut self, _bus: &mut Bus) {
+    pub fn INY(&mut self, _ppu: &mut Component2C02, _bus: &mut Bus) {
         self.y = self.y.wrapping_add(1);
         
         self.set_flag(Flags::Z, self.y == 0x00);
@@ -262,23 +262,23 @@ impl Component6502 {
     }
     
     /// Jump to New Location
-    pub fn JMP(&mut self, _bus: &mut Bus) {
+    pub fn JMP(&mut self, _ppu: &mut Component2C02, _bus: &mut Bus) {
         self.pc = self.addr_abs;
     }
 	/// Jump to New Location Saving Return Address
-    pub fn JSR(&mut self, bus: &mut Bus) {
+    pub fn JSR(&mut self, ppu: &mut Component2C02, bus: &mut Bus) {
         self.pc = self.pc.wrapping_sub(1);
         
-        self.write(bus, STACK_ADDRESS + self.sp as u16, ((self.pc >> 8) & 0x00FF) as u8);
+        self.write(STACK_ADDRESS + self.sp as u16, ((self.pc >> 8) & 0x00FF) as u8, ppu, bus);
         self.sp = self.sp.wrapping_sub(1);
-        self.write(bus, STACK_ADDRESS + self.sp as u16, (self.pc & 0x00FF) as u8);
+        self.write(STACK_ADDRESS + self.sp as u16, (self.pc & 0x00FF) as u8, ppu, bus);
         self.sp = self.sp.wrapping_sub(1);
         
         self.pc = self.addr_abs;
     }
     
     /// Load Accumulator with Memory
-    pub fn LDA(&mut self, bus: &mut Bus) {
+    pub fn LDA(&mut self, _ppu: &mut Component2C02, bus: &mut Bus) {
         self.fetch(bus);
         self.a = self.fetched;
         
@@ -286,7 +286,7 @@ impl Component6502 {
         self.set_flag(Flags::N, self.a & 0x80 != 0);
     }
     /// Load Index X with Memory
-    pub fn LDX(&mut self, bus: &mut Bus) {
+    pub fn LDX(&mut self, _ppu: &mut Component2C02, bus: &mut Bus) {
         self.fetch(bus);
         self.x = self.fetched;
         
@@ -294,7 +294,7 @@ impl Component6502 {
         self.set_flag(Flags::N, self.x & 0x80 != 0);
     }
     /// Load Index Y with Memory
-    pub fn LDY(&mut self, bus: &mut Bus) {
+    pub fn LDY(&mut self, _ppu: &mut Component2C02, bus: &mut Bus) {
         self.fetch(bus);
         self.y = self.fetched;
         
@@ -302,7 +302,7 @@ impl Component6502 {
         self.set_flag(Flags::N, self.y & 0x80 != 0);
     }
 	/// Shift Right One Bit (Memory or Accumulator)
-    pub fn LSR(&mut self, bus: &mut Bus) {
+    pub fn LSR(&mut self, ppu: &mut Component2C02, bus: &mut Bus) {
         self.fetch(bus);
         
         let tmp: u16 = (self.fetched as u16) >> 1;
@@ -315,17 +315,17 @@ impl Component6502 {
         || (self.lookup[self.opcode as usize].addr_mode == ADDRESSING_MODES::IMP) {
             self.a = (tmp & 0x00FF) as u8;
         } else {
-            self.write(bus, self.addr_abs, (tmp & 0x00FF) as u8);
+            self.write(self.addr_abs, (tmp & 0x00FF) as u8, ppu, bus);
         }
     }
     
     /// No Operation
     #[allow(clippy::unused_self)]
-    pub fn NOP(&mut self, _bus: &mut Bus) {
+    pub fn NOP(&mut self, _ppu: &mut Component2C02, _bus: &mut Bus) {
     }
     
     /// "OR" Memory with Accumulator
-    pub fn ORA(&mut self, bus: &mut Bus) {
+    pub fn ORA(&mut self, _ppu: &mut Component2C02, bus: &mut Bus) {
         self.fetch(bus);
         self.a |= self.fetched;
         
@@ -334,20 +334,20 @@ impl Component6502 {
     }
     
     /// Push Accumulator on Stack
-    pub fn PHA(&mut self, bus: &mut Bus) {
-        self.write(bus, STACK_ADDRESS + self.sp as u16, self.a);
+    pub fn PHA(&mut self, ppu: &mut Component2C02, bus: &mut Bus) {
+        self.write(STACK_ADDRESS + self.sp as u16, self.a, ppu, bus);
         self.sp = self.sp.wrapping_sub(1);
     }
 	/// Push Processor Status on Stack
-    pub fn PHP(&mut self, bus: &mut Bus) {
+    pub fn PHP(&mut self, ppu: &mut Component2C02, bus: &mut Bus) {
         self.set_flag(Flags::B, true);
         self.set_flag(Flags::U, true);
-        self.write(bus, STACK_ADDRESS + self.sp as u16, self.status);
+        self.write(STACK_ADDRESS + self.sp as u16, self.status, ppu, bus);
         self.sp = self.sp.wrapping_sub(1);
         self.set_flag(Flags::B, false);
     }
     /// Pull Accumulator from Stack
-    pub fn PLA(&mut self, bus: &mut Bus) {
+    pub fn PLA(&mut self, _ppu: &mut Component2C02, bus: &mut Bus) {
         self.sp = self.sp.wrapping_add(1);
         self.a = self.read(bus, STACK_ADDRESS + self.sp as u16);
         
@@ -355,7 +355,7 @@ impl Component6502 {
         self.set_flag(Flags::N, (self.a & 0x80) != 0);
     }
     /// Pull Processor Status from Stack
-    pub fn PLP(&mut self, bus: &mut Bus) {
+    pub fn PLP(&mut self, _ppu: &mut Component2C02, bus: &mut Bus) {
         self.sp = self.sp.wrapping_add(1);
         self.status = self.read(bus, STACK_ADDRESS + self.sp as u16);
         self.status &= !(Flags::B as u8);
@@ -363,7 +363,7 @@ impl Component6502 {
     }
     
     /// Rotate One Bit Left (Memory or Accumulator)
-    pub fn ROL(&mut self, bus: &mut Bus) {
+    pub fn ROL(&mut self, ppu: &mut Component2C02, bus: &mut Bus) {
         self.fetch(bus);
         
         let tmp: u16 = (self.fetched as u16) << 1 | self.get_flag(Flags::C) as u16;
@@ -376,11 +376,11 @@ impl Component6502 {
         || (self.lookup[self.opcode as usize].addr_mode == ADDRESSING_MODES::IMP) {
             self.a = (tmp & 0x00FF) as u8;
         } else {
-            self.write(bus, self.addr_abs, (tmp & 0x00FF) as u8);
+            self.write(self.addr_abs, (tmp & 0x00FF) as u8, ppu, bus);
         }
     }
 	/// Rotate One Bit Right (Memory or Accumulator)
-    pub fn ROR(&mut self, bus: &mut Bus) {
+    pub fn ROR(&mut self, ppu: &mut Component2C02, bus: &mut Bus) {
         self.fetch(bus);
         
         let tmp: u16 = (self.get_flag(Flags::C) as u16) << 7 | (self.fetched as u16) >> 1;
@@ -393,11 +393,11 @@ impl Component6502 {
         || (self.lookup[self.opcode as usize].addr_mode == ADDRESSING_MODES::IMP) {
             self.a = (tmp & 0x00FF) as u8;
         } else {
-            self.write(bus, self.addr_abs, (tmp & 0x00FF) as u8);
+            self.write(self.addr_abs, (tmp & 0x00FF) as u8, ppu, bus);
         }
     }
     /// Return from Interrupt
-    pub fn RTI(&mut self, bus: &mut Bus) {
+    pub fn RTI(&mut self, _ppu: &mut Component2C02, bus: &mut Bus) {
         self.sp = self.sp.wrapping_add(1);
         self.status = self.read(bus, STACK_ADDRESS + self.sp as u16);
         self.status &= !(Flags::B as u8);
@@ -409,7 +409,7 @@ impl Component6502 {
         self.pc |= (self.read(bus, STACK_ADDRESS + self.sp as u16) as u16) << 8;
     }
     /// Return from Subroutine
-    pub fn RTS(&mut self, bus: &mut Bus) {
+    pub fn RTS(&mut self, _ppu: &mut Component2C02, bus: &mut Bus) {
         self.sp = self.sp.wrapping_add(1);
         self.pc = self.read(bus, STACK_ADDRESS + self.sp as u16) as u16;
         self.sp = self.sp.wrapping_add(1);
@@ -419,7 +419,7 @@ impl Component6502 {
     }
     
     /// Subtract Memory from Accumulator with Borrow
-    pub fn SBC(&mut self, bus: &mut Bus) {
+    pub fn SBC(&mut self, _ppu: &mut Component2C02, bus: &mut Bus) {
         self.fetch(bus);
 
         let value = (self.fetched as u16) ^ 0x00FF;
@@ -434,64 +434,64 @@ impl Component6502 {
         self.a = (tmp & 0x00FF) as u8;
     }
 	/// Set Carry Flag
-    pub fn SEC(&mut self, _bus: &mut Bus) {
+    pub fn SEC(&mut self, _ppu: &mut Component2C02, _bus: &mut Bus) {
         self.set_flag(Flags::C, true);
     }
     /// Set Decimal Mode
-    pub fn SED(&mut self, _bus: &mut Bus) {
+    pub fn SED(&mut self, _ppu: &mut Component2C02, _bus: &mut Bus) {
         self.set_flag(Flags::D, true);
     }
     /// Set Interrupt Disable Status
-    pub fn SEI(&mut self, _bus: &mut Bus) {
+    pub fn SEI(&mut self, _ppu: &mut Component2C02, _bus: &mut Bus) {
         self.set_flag(Flags::I, true);
     }
     /// Store Accumulator in Memory
-    pub fn STA(&mut self, bus: &mut Bus) {
-        self.write(bus, self.addr_abs, self.a);
+    pub fn STA(&mut self, ppu: &mut Component2C02, bus: &mut Bus) {
+        self.write(self.addr_abs, self.a, ppu, bus);
     }
 	/// Store Index X in Memory
-    pub fn STX(&mut self, bus: &mut Bus) {
-        self.write(bus, self.addr_abs, self.x);
+    pub fn STX(&mut self, ppu: &mut Component2C02, bus: &mut Bus) {
+        self.write(self.addr_abs, self.x, ppu, bus);
     }
     /// Store Index Y in Memory
-    pub fn STY(&mut self, bus: &mut Bus) {
-        self.write(bus, self.addr_abs, self.y);
+    pub fn STY(&mut self, ppu: &mut Component2C02, bus: &mut Bus) {
+        self.write(self.addr_abs, self.y, ppu, bus);
     }
     
     /// Transfer Accumulator to Index X
-    pub fn TAX(&mut self, _bus: &mut Bus) {
+    pub fn TAX(&mut self, _ppu: &mut Component2C02, _bus: &mut Bus) {
         self.x = self.a;
         
         self.set_flag(Flags::Z, self.x == 0x00);
         self.set_flag(Flags::N, self.x & 0x80 != 0);
     }
     /// Transfer Accumulator to Index Y
-    pub fn TAY(&mut self, _bus: &mut Bus) {
+    pub fn TAY(&mut self, _ppu: &mut Component2C02, _bus: &mut Bus) {
         self.y = self.a;
         
         self.set_flag(Flags::Z, self.y == 0x00);
         self.set_flag(Flags::N, self.y & 0x80 != 0);
     }
 	/// Transfer Stack Pointer to Index X
-    pub fn TSX(&mut self, _bus: &mut Bus) {
+    pub fn TSX(&mut self, _ppu: &mut Component2C02, _bus: &mut Bus) {
         self.x = self.sp;
         
         self.set_flag(Flags::Z, self.x == 0x00);
         self.set_flag(Flags::N, self.x & 0x80 != 0);
     }
     /// Transfer Index X to Accumulator
-    pub fn TXA(&mut self, _bus: &mut Bus) {
+    pub fn TXA(&mut self, _ppu: &mut Component2C02, _bus: &mut Bus) {
         self.a = self.x;
         
         self.set_flag(Flags::Z, self.a == 0x00);
         self.set_flag(Flags::N, self.a & 0x80 != 0);
     }
     /// Transfer Index X to Stack Pointer
-    pub fn TXS(&mut self, _bus: &mut Bus) {
+    pub fn TXS(&mut self, _ppu: &mut Component2C02, _bus: &mut Bus) {
         self.sp = self.x;
     }
     /// Transfer Index Y to Accumulator
-    pub fn TYA(&mut self, _bus: &mut Bus) {
+    pub fn TYA(&mut self, _ppu: &mut Component2C02, _bus: &mut Bus) {
         self.a = self.y;
         
         self.set_flag(Flags::Z, self.a == 0x00);

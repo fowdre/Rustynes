@@ -1,7 +1,7 @@
 mod addressing_modes;
 mod opcodes;
 
-use crate::nes::{Bus, STACK_ADDRESS};
+use crate::nes::{Component2C02, Bus, STACK_ADDRESS};
 
 #[allow(non_camel_case_types, clippy::upper_case_acronyms)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -147,7 +147,7 @@ pub struct Instruction {
     pub cycles: u8,
     pub addr_mode: ADDRESSING_MODES,
     pub addr_mode_fn: fn(&mut Component6502, &Bus),
-    pub opcode_fn: fn(&mut Component6502, &mut Bus),
+    pub opcode_fn: fn(&mut Component6502, &mut Component2C02, &mut Bus),
 }
 
 pub enum Flags {
@@ -480,12 +480,12 @@ impl Component6502 {
     
     #[allow(clippy::unused_self)]
     pub const fn read(&self, bus: &Bus, addr: u16) -> u8 {
-        bus.read(addr, false)
+        bus.cpu_read(addr, false)
     }
 
     #[allow(clippy::unused_self)]
-    pub fn write(&mut self, bus: &mut Bus, addr: u16, data: u8) {
-        bus.write(addr, data);
+    pub fn write(&mut self, addr: u16, data: u8, ppu: &mut Component2C02, bus: &mut Bus) {
+        bus.cpu_write(addr, data, ppu);
     }
 
     pub const fn get_flag(&self, flag: Flags) -> bool {
@@ -509,7 +509,7 @@ impl Component6502 {
     }
 
     /// Handle clock cycles
-    pub fn clock(&mut self, bus: &mut Bus) {
+    pub fn clock(&mut self, ppu: &mut Component2C02, bus: &mut Bus) {
         if self.cycles == 0 {
             self.opcode = self.read(bus, self.pc);
             
@@ -517,7 +517,7 @@ impl Component6502 {
             self.cycles = self.lookup[self.opcode as usize].cycles;
             
             (self.lookup[self.opcode as usize].addr_mode_fn)(self, bus);
-            (self.lookup[self.opcode as usize].opcode_fn)(self, bus);
+            (self.lookup[self.opcode as usize].opcode_fn)(self, ppu, bus);
         }
         self.cycles -= 1;
     }
@@ -551,19 +551,19 @@ impl Component6502 {
 
     /// Interrupt request signal
     #[allow(dead_code)]
-    fn irq(&mut self, bus: &mut Bus) {
+    fn irq(&mut self, ppu: &mut Component2C02, bus: &mut Bus) {
         if !self.get_flag(Flags::I) {
             // Push PC to stack (16 bits to write)
-            self.write(bus, STACK_ADDRESS + self.sp as u16, ((self.pc >> 8) & 0x00FF) as u8);
+            self.write(STACK_ADDRESS + self.sp as u16, ((self.pc >> 8) & 0x00FF) as u8, ppu, bus);
             self.sp = self.sp.wrapping_sub(1);
-            self.write(bus, STACK_ADDRESS + self.sp as u16, (self.pc & 0x00FF) as u8);
+            self.write(STACK_ADDRESS + self.sp as u16, (self.pc & 0x00FF) as u8, ppu, bus);
             self.sp = self.sp.wrapping_sub(1);
 
             // Push Flags to stack
             self.set_flag(Flags::B, false);
             self.set_flag(Flags::U, true);
             self.set_flag(Flags::I, true);
-            self.write(bus, STACK_ADDRESS + self.sp as u16, self.status);
+            self.write(STACK_ADDRESS + self.sp as u16, self.status, ppu, bus);
             self.sp = self.sp.wrapping_sub(1);
 
             // New PC address to handle the interrupt is 0xFFFE and 0xFFFF
@@ -578,17 +578,17 @@ impl Component6502 {
 
     /// Non-maskable interrupt request signal
     #[allow(dead_code)]
-    fn nmi(&mut self, bus: &mut Bus) {
+    fn nmi(&mut self, ppu: &mut Component2C02, bus: &mut Bus) {
         // Push PC to stack (16 bits to write)
-        self.write(bus, STACK_ADDRESS + self.sp as u16, ((self.pc >> 8) & 0x00FF) as u8);
+        self.write(STACK_ADDRESS + self.sp as u16, ((self.pc >> 8) & 0x00FF) as u8, ppu, bus);
         self.sp = self.sp.wrapping_sub(1);
-        self.write(bus, STACK_ADDRESS + self.sp as u16, (self.pc & 0x00FF) as u8);
+        self.write(STACK_ADDRESS + self.sp as u16, (self.pc & 0x00FF) as u8, ppu, bus);
         self.sp = self.sp.wrapping_sub(1);
 
         // Push Flags to stack
         self.set_flag(Flags::B, false);
         self.set_flag(Flags::I, true);
-        self.write(bus, STACK_ADDRESS + self.sp as u16, self.status);
+        self.write(STACK_ADDRESS + self.sp as u16, self.status, ppu, bus);
         self.sp = self.sp.wrapping_sub(1);
 
         // New PC address to handle the interrupt is 0xFFFA and 0xFFFB

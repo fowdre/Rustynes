@@ -1,7 +1,9 @@
 mod cpu;
+mod ppu;
 mod bus;
 
 pub use cpu::{Component6502, Flags, ADDRESSING_MODES};
+pub use ppu::Component2C02;
 pub use bus::Bus;
 
 const STACK_ADDRESS: u16 = 0x0100;
@@ -9,12 +11,14 @@ const STACK_ADDRESS: u16 = 0x0100;
 #[cfg(feature = "nestest")]
 pub struct Snapshot {
     cpu: Component6502,
+    ppu: Component2C02,
     bus: bus::Bus,
 }
 
 #[derive(Debug)]
 pub struct Nes {
     cpu: Component6502,
+    ppu: Component2C02,
     bus: bus::Bus,
 
     pub pause: bool,
@@ -34,6 +38,7 @@ impl Nes {
     pub fn new() -> Self {
         Self {
             cpu: Component6502::new(),
+            ppu: Component2C02::new(),
             bus: bus::Bus {
                 ram: [0; 64 * 1024],
             },
@@ -50,7 +55,7 @@ impl Nes {
 
     #[allow(dead_code)]
     pub fn cpu_write(&mut self, addr: u16, data: u8) {
-        self.cpu.write(&mut self.bus, addr, data);
+        self.cpu.write(addr, data, &mut self.ppu, &mut self.bus);
     }
 
     #[cfg(feature = "nestest")]
@@ -108,12 +113,13 @@ impl Nes {
         let snapshot = Snapshot {
             cpu: self.cpu,
             bus: self.bus,
+            ppu: self.ppu,
         };
 
         #[cfg(feature = "nestest")]
         let display_log = self.cpu.cycles == 0;
 
-        self.cpu.clock(&mut self.bus);
+        self.cpu.clock(&mut self.ppu, &mut self.bus);
         
         #[cfg(feature = "nestest")]
         if display_log {

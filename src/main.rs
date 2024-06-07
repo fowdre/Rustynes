@@ -9,7 +9,7 @@ use display::draw::{NesDisplay, FlagsDisplay, InstructionHistoryDisplay, TextBox
 use std::io::Read;
 use raylib::prelude::*;
 
-const FPS: f32 = 60.0;
+const FPS: f32 = 60.0 * 1000.0;
 
 fn load_test_rom() -> Vec<u8> {
     let mut rom = Vec::new();
