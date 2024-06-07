@@ -88,7 +88,7 @@ fn main() {
             is_paused = !is_paused;
         }
 
-        if !is_paused || rl_handle.is_key_pressed(KeyboardKey::KEY_SPACE) || rl_handle.is_key_down(KeyboardKey::KEY_SPACE) && rl_handle.is_key_down(KeyboardKey::KEY_LEFT_CONTROL) {
+        if !is_paused || rl_handle.is_key_pressed(KeyboardKey::KEY_Q) || rl_handle.is_key_down(KeyboardKey::KEY_Q) && rl_handle.is_key_down(KeyboardKey::KEY_LEFT_CONTROL) {
             let cycle = nes.get_cpu_info().cycles;
             let set_text_color = match cycle {
                 1 => Some(Color::ORANGE),

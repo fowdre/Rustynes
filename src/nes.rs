@@ -9,15 +9,6 @@ pub struct NesSnapshot {
     bus: bus::Bus,
 }
 
-impl NesSnapshot {
-    pub fn update_internals(&mut self, cpu: &Cpu6502) {
-        self.cpu.a = cpu.a;
-        self.cpu.x = cpu.x;
-        self.cpu.y = cpu.y;
-        self.cpu.sp = cpu.sp;
-    }
-}
-
 #[derive(Debug)]
 pub struct Nes {
     pub cpu: devices::cpu6502::Cpu6502,
@@ -64,32 +55,22 @@ impl Nes {
         write!(&mut line, "{:04X}  ", snapshot.cpu.pc).unwrap();
         // operands
         let operands_nb = instruction.addr_mode.get_operands_nb();
-        let operands = (0..operands_nb + 1).map(|i| snapshot.cpu.read(&snapshot.bus, snapshot.cpu.pc + i as u16));
+        let operands = (0..operands_nb + 1).map(|i| snapshot.cpu.read(&snapshot.bus, snapshot.cpu.pc.wrapping_add(i as u16)));
         for operand in operands.clone() {
             write!(&mut line, "{:02X} ", operand).unwrap();
         }
         match operands_nb {
-            0 => write!(&mut line, "       ").unwrap(),
-            1 => write!(&mut line, "    ").unwrap(),
-            2 => write!(&mut line, " ").unwrap(),
+            0 => write!(&mut line, "      ").unwrap(),
+            1 => write!(&mut line, "   ").unwrap(),
+            2 => write!(&mut line, "").unwrap(),
             _ => {}
         }
         // instruction name
         write!(&mut line, "{} ", instruction.name).unwrap();
         // detailed operands
-        match instruction.addr_mode {
-            ADDRESSING_MODES::ACC => todo!("ACC"),
-            ADDRESSING_MODES::ZPX => todo!("ZPX"),
-            ADDRESSING_MODES::ZPY => todo!("ZPY"),
-            ADDRESSING_MODES::ABX => todo!("ABX"),
-            ADDRESSING_MODES::ABY => todo!("ABY"),
-            ADDRESSING_MODES::IND => todo!("IND"),
-            ADDRESSING_MODES::IZX => todo!("IZX"),
-            ADDRESSING_MODES::IZY => todo!("IZY"),
-            _ => {}
-        }
-        write!(&mut line, "{}", instruction.addr_mode.format_operands(&operands.collect::<Vec<u8>>(), snapshot.cpu.pc)).unwrap();
-        write!(&mut line, "                    ").unwrap();
+        let operands_vec = operands.collect::<Vec<u8>>();
+        write!(&mut line, "{}", instruction.addr_mode.format_operands(&operands_vec, &snapshot.bus.ram, operands_vec[0], snapshot.cpu.pc, snapshot.cpu.x, snapshot.cpu.y)).unwrap();
+        write!(&mut line, "  ").unwrap();
         // accumulator
         write!(&mut line, "A:{:02X} ", snapshot.cpu.a).unwrap();
         // x register
@@ -106,25 +87,18 @@ impl Nes {
 
     pub fn cpu_tick(&mut self) {
         
-        let mut snapshot = NesSnapshot {
+        let snapshot = NesSnapshot {
             cpu: self.cpu,
             bus: self.bus,
         };
 
-        let mut display_nestest = false;
-        if self.cpu.cycles == 0 {
-            display_nestest = true;
-        }
-        
-        // dbg!(self.cpu.status);
-        self.cpu.clock(&mut self.bus);
-        // dbg!(self.cpu.status);
+        let display_log = self.cpu.cycles == 0;
 
-        if display_nestest {
-            snapshot.update_internals(&self.cpu);
+        self.cpu.clock(&mut self.bus);
+        
+        if display_log {
             self.nestest_format_log(&snapshot);
         }
-            
     }
 
     pub fn reset(&mut self) {
@@ -248,19 +222,20 @@ impl Nes {
                     local_pc = local_pc.wrapping_add(3);
                 }
                 ADDRESSING_MODES::IZX => {
-                    let addr = self.cpu.read(&self.bus, local_pc + 1);
-                    let lo = self.cpu.read(&self.bus, (addr + self.cpu.x) as u16);
-                    let hi = self.cpu.read(&self.bus, (addr + self.cpu.x + 1) as u16);
+                    let addr = self.cpu.read(&self.bus, local_pc + 1) as u16;
+                    let lo = self.cpu.read(&self.bus, (addr + self.cpu.x as u16) & 0x00FF);
+                    let hi = self.cpu.read(&self.bus, (addr + self.cpu.x as u16 + 1) & 0x00FF);
                     let ptr = (hi as u16) << 8 | lo as u16;
 
-                    instruction_string.push(format!("{opcode:02X} {} (${:02X}, X) @ {:02X} = {ptr:04X}", instruction.name, addr, addr + self.cpu.x));
+                    instruction_string.push(format!("{opcode:02X} {} (${:02X}, X) @ {:02X} = {ptr:04X}", instruction.name, addr, addr + self.cpu.x as u16));
                     local_pc = local_pc.wrapping_add(2);
                 }
                 ADDRESSING_MODES::IZY => {
-                    let addr = self.cpu.read(&self.bus, local_pc + 1);
-                    let lo = self.cpu.read(&self.bus, addr as u16);
-                    let hi = self.cpu.read(&self.bus, (addr + 1) as u16);
-                    let ptr = (hi as u16) << 8 | lo as u16;
+                    let addr = self.cpu.read(&self.bus, local_pc + 1) as u16;
+                    let lo = self.cpu.read(&self.bus, addr & 0x00FF);
+                    let hi = self.cpu.read(&self.bus, (addr + 1) & 0x00FF);
+                    let mut ptr = (hi as u16) << 8 | lo as u16;
+                    ptr = ptr.wrapping_add(self.cpu.y as u16);
 
                     instruction_string.push(format!("{opcode:02X} {} (${addr:02X}), Y = {:04X}", instruction.name, ptr + self.cpu.y as u16));
                     local_pc = local_pc.wrapping_add(2);

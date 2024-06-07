@@ -55,26 +55,76 @@ pub mod cpu6502 {
             }
         }
 
-        pub fn format_operands(&self, bytes: &[u8], pc: u16) -> String {
+        pub fn format_operands(&self, bytes: &[u8], ram: &[u8], opcode: u8, pc: u16, x: u8, y: u8) -> String {
             if bytes.is_empty() {
                 return "".to_string();
             }
             let index = 1;
-            // dbg!(self);
+            let special_case = match opcode {
+                0x20 => format!("${:02X}{:02X}                     ", bytes[index + 1], bytes[index]),
+                0x4C => format!("${:02X}{:02X}                     ", bytes[index + 1], bytes[index]),
+                _ => "".to_string(),
+            };
+            if !special_case.is_empty() {
+                return special_case;
+            }
             match self {
-                ADDRESSING_MODES::ACC => format!("{}", bytes[index]),
-                ADDRESSING_MODES::IMP => "        ".to_string(),
-                ADDRESSING_MODES::IMM => format!("#${:02X}    ", bytes[index]),
-                ADDRESSING_MODES::ZP0 => format!("${:02X} = 00", bytes[index]),
-                ADDRESSING_MODES::ZPX => format!("${}, X", bytes[index]),
-                ADDRESSING_MODES::ZPY => format!("${}, Y", bytes[index]),
-                ADDRESSING_MODES::REL => format!("${:04X}   ", pc.wrapping_add(2).wrapping_add(bytes[index] as u16)),
-                ADDRESSING_MODES::ABS => format!("${:02X}{:02X}   ", bytes[index + 1], bytes[index]),
-                ADDRESSING_MODES::ABX => format!("${}, X", bytes[index]),
-                ADDRESSING_MODES::ABY => format!("${}, Y", bytes[index]),
-                ADDRESSING_MODES::IND => format!("(${})", bytes[index]),
-                ADDRESSING_MODES::IZX => format!("(${}, X)", bytes[index]),
-                ADDRESSING_MODES::IZY => format!("(${}), Y", bytes[index]),
+                ADDRESSING_MODES::ACC => "A                         ".to_string(),
+                ADDRESSING_MODES::IMP => "                          ".to_string(),
+                ADDRESSING_MODES::IMM => format!("#${:02X}                      ", bytes[index]),
+                ADDRESSING_MODES::ZP0 => format!("${:02X} = {:02X}                  ", bytes[index], ram[bytes[index] as usize]),
+                ADDRESSING_MODES::ZPX => {
+                    let addr = bytes[index].wrapping_add(x) as u16;
+                    format!("${:02X},X @ {:02X} = {:02X}           ", bytes[index], addr, ram[(addr & 0x00FF) as usize])
+                }
+                ADDRESSING_MODES::ZPY => {
+                    let addr = bytes[index].wrapping_add(y) as u16;
+                    format!("${:02X},Y @ {:02X} = {:02X}           ", bytes[index], addr, ram[(addr & 0x00FF) as usize])
+                }
+                ADDRESSING_MODES::REL => {
+                    let pc = pc.wrapping_add(2);
+                    let addr = (pc as i32 + bytes[index] as i8 as i32) as u16;
+
+                    format!("${:04X}                     ", addr)
+                }
+                ADDRESSING_MODES::ABS => format!("${:02X}{:02X} = {:02X}                ", bytes[index + 1], bytes[index], ram[((bytes[index + 1] as u16) << 8 | bytes[index] as u16) as usize]),
+                ADDRESSING_MODES::ABX => {
+                    let addr = ((bytes[index + 1] as u16) << 8 | bytes[index] as u16).wrapping_add(x as u16);
+                    format!("${:02X}{:02X},X @ {:04X} = {:02X}       ", bytes[index + 1], bytes[index], addr, ram[addr as usize])
+                }
+                ADDRESSING_MODES::ABY => {
+                    let addr = ((bytes[index + 1] as u16) << 8 | bytes[index] as u16).wrapping_add(y as u16);
+                    format!("${:02X}{:02X},Y @ {:04X} = {:02X}       ", bytes[index + 1], bytes[index], addr, ram[addr as usize])
+                }
+                ADDRESSING_MODES::IND => {
+                    let ptr_lo = ram[(pc + 1) as usize] as u16;
+                    let ptr_hi = ram[(pc + 2) as usize] as u16;
+
+                    let ptr = (ptr_hi << 8) | ptr_lo;
+
+                    let addr = if ptr_lo == 0x00FF { // Simulate bug :D
+                        (ram[(ptr & 0xFF00) as usize] as u16) << 8 | ram[ptr as usize] as u16
+                    } else {
+                        (ram[(ptr + 1) as usize] as u16) << 8 | ram[ptr as usize] as u16
+                    };
+
+                    format!("(${:02X}{:02X}) = {addr:04X}            ", bytes[index + 1], bytes[index])
+                }
+                ADDRESSING_MODES::IZX => {
+                    let lo = ram[((bytes[index] as u16 + x as u16) & 0x00FF) as usize] as u16;
+                    let hi = ram[((bytes[index] as u16 + x as u16 + 1) & 0x00FF) as usize] as u16;
+                    let addr = (hi << 8) | lo;
+                    
+                    format!("(${:02X},X) @ {:02X} = {:04X} = {:02X}  ", bytes[index], (bytes[index] as u16 + x as u16) & 0x00FF, addr, ram[addr as usize])
+                }
+                ADDRESSING_MODES::IZY => {
+                    let lo = ram[(bytes[index] as u16 & 0x00FF) as usize] as u16;
+                    let hi = ram[((bytes[index] as u16 + 1) & 0x00FF) as usize] as u16;
+                    let mut addr = (hi << 8) | lo;
+                    addr = addr.wrapping_add(y as u16);
+                    
+                    format!("(${:02X}),Y = {:04X} @ {:04X} = {:02X}", bytes[index], addr.wrapping_sub(y as u16), addr, ram[addr as usize])
+                }
             }
         }
     }
@@ -118,9 +168,9 @@ pub mod cpu6502 {
         I = (1 << 2),
         /// bit 3 | Decimal Mode
         D = (1 << 3),
-        /// bit 4 | Break Command
+        /// bit 4 | Doesn't actually exists | Break Command
         B = (1 << 4),
-        /// bit 5 | Unused
+        /// bit 5 | Doesn't actually exists | Unused
         U = (1 << 5),
         /// bit 6 | Overflow
         V = (1 << 6),
@@ -136,7 +186,7 @@ pub mod cpu6502 {
                 y: 0,
                 sp: 0xFD,
                 pc: 0xC000,
-                status: 0,
+                status: Flags::U as u8, // U flag is always set
                 
                 opcode: 0,
                 fetched: 0,
