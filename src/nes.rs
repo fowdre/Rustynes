@@ -1,4 +1,5 @@
 mod cartridge;
+mod mappers;
 mod cpu;
 mod ppu;
 mod bus;
