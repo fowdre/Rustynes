@@ -1,5 +1,7 @@
 use std::io::{Read, Seek};
 
+use crate::nes::mappers::{Mapper, mapper_000};
+
 #[repr(C, packed)]
 #[derive(Debug, Copy, Clone)]
 pub struct HeaderCartridge {
@@ -26,7 +28,10 @@ pub struct ComponentCartridge {
     prg_rom: Vec<u8>,
     /// Character ROM
     chr_rom: Vec<u8>,
+    
     mapper_id: u8,
+    mapper: Box<dyn Mapper>,
+    
     prg_banks_count: u8,
     chr_banks_count: u8,
 }
@@ -37,6 +42,7 @@ impl ComponentCartridge {
             prg_rom: Vec::new(),
             chr_rom: Vec::new(),
             mapper_id: 0,
+            mapper: Box::new(mapper_000::Mapper000::new(0, 0)),
             prg_banks_count: 0,
             chr_banks_count: 0,
         }
@@ -79,28 +85,65 @@ impl ComponentCartridge {
             _ => {},
         }
 
+        let mapper: Box<dyn Mapper> = match mapper_id {
+            0 => Box::new(mapper_000::Mapper000::new(prg_banks_count, chr_banks_count)),
+            _ => {
+                println!("[WARN] Mapper {} not implemented, using Mapper000 (program will probably not work)", mapper_id);
+                Box::new(mapper_000::Mapper000::new(prg_banks_count, chr_banks_count))
+            }
+        };
+
         Self {
             prg_rom,
             chr_rom,
             mapper_id,
+            mapper,
             prg_banks_count,
             chr_banks_count,
         }
     }
 
-    pub fn cpu_read(&self, addr: u16, data: &u8) -> bool {
+    pub fn cpu_read(&self, addr: u16, data: &mut u8) -> bool {
+        let mut mapped_addr = 0x000;
+
+        if self.mapper.cpu_map_read(addr, &mut mapped_addr) {
+            *data = self.prg_rom[mapped_addr as usize];
+            return true;
+        }
+
         false
     }
 
     pub fn cpu_write(&mut self, addr: u16, data: u8) -> bool {
+        let mut mapped_addr = 0x000;
+
+        if self.mapper.cpu_map_read(addr, &mut mapped_addr) {
+            self.prg_rom[mapped_addr as usize] = data;
+            return true;
+        }
+
         false
     }
 
-    pub fn ppu_read(&self, addr: u16, data: &u8) -> bool {
+    pub fn ppu_read(&self, addr: u16, data: &mut u8) -> bool {
+        let mut mapped_addr = 0x000;
+
+        if self.mapper.ppu_map_read(addr, &mut mapped_addr) {
+            *data = self.chr_rom[mapped_addr as usize];
+            return true;
+        }
+
         false
     }
 
     pub fn ppu_write(&mut self, addr: u16, data: u8) -> bool {
+        let mut mapped_addr = 0x000;
+
+        if self.mapper.ppu_map_write(addr, &mut mapped_addr) {
+            self.chr_rom[mapped_addr as usize] = data;
+            return true;
+        }
+
         false
     }
 }

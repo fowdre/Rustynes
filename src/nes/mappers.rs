@@ -9,3 +9,15 @@ pub trait Mapper {
     fn ppu_map_read(&self, addr: u16, mapped_addr: &mut u32) -> bool;
     fn ppu_map_write(&self, addr: u16, mapped_addr: &mut u32) -> bool;
 }
+
+impl Default for Box<dyn Mapper> {
+    fn default() -> Self {
+        Box::new(mapper_000::Mapper000::new(0, 0))
+    }
+}
+
+impl core::fmt::Debug for dyn Mapper {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        write!(f, "Mapper")
+    }
+}

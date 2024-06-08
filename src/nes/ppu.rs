@@ -71,11 +71,11 @@ impl Component2C02 {
     }
 
     pub fn ppu_read(&self, mut addr: u16, _read_only: bool, cartridge: &ComponentCartridge) -> u8 {
-        let data = 0x0000;
+        let mut data = 0x0000;
         addr &= 0x3FFF;
 
         // Cartridge has priority over everything else (mappers)
-        if cartridge.ppu_read(addr, &data) {
+        if cartridge.ppu_read(addr, &mut data) {
             return data;
         }
 

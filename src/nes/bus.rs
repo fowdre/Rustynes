@@ -10,7 +10,7 @@ impl Bus {
         let mut data = 0x00;
 
         // Cartridge has priority over everything else (mappers)
-        if cartridge.cpu_read(addr, &data) {
+        if cartridge.cpu_read(addr, &mut data) {
             return data;
         }
         match addr {

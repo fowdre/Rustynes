@@ -5,6 +5,7 @@ mod ppu;
 mod bus;
 
 pub use cartridge::ComponentCartridge;
+pub use mappers::Mapper;
 pub use cpu::{Component6502, Flags, ADDRESSING_MODES};
 pub use ppu::Component2C02;
 pub use bus::Bus;
