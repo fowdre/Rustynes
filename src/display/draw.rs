@@ -2,6 +2,7 @@
 
 use raylib::prelude::*;
 
+use crate::constants::*;
 use crate::nes::{Nes, CpuInfo};
 
 const BYTES_PER_LINE: u8 = 40;
@@ -334,5 +335,64 @@ impl<'font> InstructionHistoryDisplay<'font> {
             );
             y_offset += self.font.base_size() as f32 + 5.0;
         }
+    }
+}
+
+pub struct ScreenDisplay {
+    position: Vector2,
+    dimensions: Vector2,
+    scaled_dimensions: Vector2,
+    scale: f32,
+    texture: Option<Texture2D>,
+}
+
+impl ScreenDisplay {
+    pub fn new(position: Vector2, dimensions: Vector2, scale: f32) -> Self {
+        Self {
+            position,
+            dimensions,
+            scaled_dimensions: dimensions * scale,
+            scale,
+            texture: None,
+        }
+    }
+
+    pub fn draw(&mut self, handle: &mut RaylibDrawHandle) {
+        if let Some(texture) = &self.texture {
+            handle.draw_texture_ex(
+                texture,
+                Vector2::new(self.position.x, self.position.y),
+                0.0,
+                self.scale,
+                Color::WHITE,
+            );
+        }
+    }
+
+    pub fn update(&mut self, rl_handle: &mut RaylibHandle, rl_thread: &RaylibThread, pixels: &[Color; NES_SCREEN_WIDTH as usize * NES_SCREEN_HEIGHT as usize]) {
+        let (width, height) = (self.dimensions.x as usize, self.dimensions.y as usize);
+        let mut pixel_data = vec![0; width * height * 4];
+
+        for (i, pixel) in pixels.iter().enumerate() {
+            let offset = i * 4;
+            pixel_data[offset] = pixel.r;
+            pixel_data[offset + 1] = pixel.g;
+            pixel_data[offset + 2] = pixel.b;
+            pixel_data[offset + 3] = 255;
+        }
+
+        if let Some(texture) = &mut self.texture {
+            texture.update_texture(&pixel_data);
+        } else {
+            self.texture = Some(rl_handle.load_texture_from_image(rl_thread, &Image::gen_image_color(width as i32, height as i32, Color::BLANK)).expect("Could not load texture"));
+        }
+    }
+
+    pub fn get_position(&self) -> Vector2 {
+        self.position
+    }
+
+    pub fn get_dimensions(&self) -> Vector2 {
+        self.scaled_dimensions
     }
 }

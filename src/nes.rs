@@ -7,7 +7,7 @@ mod bus;
 pub use cartridge::ComponentCartridge;
 pub use mappers::Mapper;
 pub use cpu::{Component6502, Flags, ADDRESSING_MODES};
-pub use ppu::Component2C02;
+pub use ppu::{Component2C02, ScreenData};
 pub use bus::Bus;
 
 const STACK_ADDRESS: u16 = 0x0100;
@@ -26,6 +26,7 @@ pub struct Nes {
     ppu: Component2C02,
     bus: bus::Bus,
 
+    screen: ScreenData,
     pub pause: bool,
     pub timer: f32,
     pub total_clock_ticks: u128,
@@ -50,6 +51,7 @@ impl Nes {
                 ram: [0; 64 * 1024],
             },
 
+            screen: ScreenData::new(),
             pause: true,
             timer: 0.0,
             total_clock_ticks: 0,
@@ -66,13 +68,36 @@ impl Nes {
         self.cpu.write(addr, data, &mut self.cartridge, &mut self.ppu, &mut self.bus);
     }
 
+    pub fn load_cartridge(&mut self, path: &str) {
+        self.cartridge = ComponentCartridge::from_path(path);
+    }
+
     pub fn reset(&mut self) {
         self.cpu.reset(&mut self.cartridge, &mut self.ppu, &self.bus);
         self.total_clock_ticks = 0;
     }
 
-    pub fn load_cartridge(&mut self, path: &str) {
+    pub fn tick(&mut self) {
+        #[cfg(feature = "nestest")]
+        let snapshot = Snapshot {
+            cpu: self.cpu,
+            bus: self.bus,
+            ppu: self.ppu,
+        };
+
+        #[cfg(feature = "nestest")]
+        let display_log = self.cpu.cycles == 0;
+
+        self.ppu.tick(&mut self.screen);
+        if self.total_clock_ticks % 3 == 0 {
+            self.cpu.tick(&mut self.cartridge, &mut self.ppu, &mut self.bus);
+        }
+        self.total_clock_ticks += 1;
         
+        #[cfg(feature = "nestest")]
+        if display_log {
+            Self::nestest_format_log(&snapshot);
+        }
     }
 
     #[cfg(feature = "nestest")]
@@ -125,23 +150,12 @@ impl Nes {
         self.cpu.cycles == 0
     }
 
-    pub fn tick(&mut self) {
-        #[cfg(feature = "nestest")]
-        let snapshot = Snapshot {
-            cpu: self.cpu,
-            bus: self.bus,
-            ppu: self.ppu,
-        };
+    pub const fn is_ppu_frame_complete(&self) -> bool {
+        self.ppu.is_frame_complete
+    }
 
-        #[cfg(feature = "nestest")]
-        let display_log = self.cpu.cycles == 0;
-
-        self.cpu.clock(&mut self.cartridge, &mut self.ppu, &mut self.bus);
-        
-        #[cfg(feature = "nestest")]
-        if display_log {
-            Self::nestest_format_log(&snapshot);
-        }
+    pub fn set_ppu_frame_complete(&mut self, value: bool) {
+        self.ppu.is_frame_complete = value;
     }
 
     pub fn get_ram(&self, low: u16, high: u16) -> (u16, u16, &[u8]) {
@@ -164,6 +178,10 @@ impl Nes {
 
     pub const fn get_cpu_flags(&self) -> u8 {
         self.cpu.status
+    }
+
+    pub const fn get_screen_data(&self) -> &ScreenData {
+        &self.screen
     }
 
     pub fn get_instruction_string_range(&mut self, start: u16, end: u16) -> Vec<String> {

@@ -3,8 +3,9 @@ name = "rustynes"
 version = "0.1.0"
 edition = "2021"
 
-[features]
-nestest = []
+# [features]
+# nestest = []
 
 [dependencies]
 raylib = "5.0.1"
+rand = "0.8.5"

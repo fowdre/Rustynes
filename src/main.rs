@@ -2,34 +2,18 @@
 // #![warn(missing_debug_implementations, rust_2018_idioms)]
 #![allow(clippy::cast_lossless)]
 
+mod constants;
 mod nes;
-use nes::Nes;
-
 mod display;
-use display::draw::{FlagsDisplay, InstructionHistoryDisplay, NesDisplay, TextBox};
 
-use std::io::Read;
 use raylib::prelude::*;
-
-const FPS: f32 = 60.0;
-
-fn load_test_rom() -> Vec<u8> {
-    let mut rom = Vec::new();
-    let mut file = std::fs::File::open("ROMS/nestest.nes").unwrap();
-    file.read_to_end(&mut rom).unwrap();
-    rom
-}
+use nes::Nes;
+use display::draw::{FlagsDisplay, InstructionHistoryDisplay, NesDisplay, ScreenDisplay, TextBox};
 
 #[allow(clippy::too_many_lines)]
 fn main() {
     let mut nes = Nes::new();
-
-    let test_bytes = &load_test_rom()[0x0010..0x0010 + 0x4000];
-    #[allow(clippy::cast_possible_truncation)]
-    for (i, byte) in test_bytes.iter().enumerate() {
-        nes.cpu_write(0x8000 + i as u16, *byte);
-        nes.cpu_write(0xC000 + i as u16, *byte);
-    }
+    nes.load_cartridge("ROMS/nestest.nes");
     nes.reset();
 
     let (mut rl_handle, rl_thread) = raylib::init()
@@ -87,6 +71,12 @@ fn main() {
         &font,
     );
 
+    let mut screen_display = ScreenDisplay::new(
+        Vector2::new(10.0 * 60.0, 10.0 + program_location.get_dimensions().y + program_location.get_position().y),
+        Vector2::new(256.0, 240.0),
+        3.0,
+    );
+
     while !rl_handle.window_should_close() {
         let frame_time = rl_handle.get_frame_time();
         
@@ -103,28 +93,20 @@ fn main() {
             if nes.timer > 0.0 {
                 nes.timer -= frame_time;
             } else {
-                nes.timer += (1.0 / FPS) - frame_time;
+                nes.timer += (1.0 / constants::FPS) - frame_time;
 
                 loop {
                     nes.tick();
-                    if !nes.is_cpu_instruction_complete() {
+                    if nes.is_ppu_frame_complete() {
                         break;
                     }
                 }
+                nes.set_ppu_frame_complete(false);
             }
         } else if let Some(key) = rl_handle.get_key_pressed() {
             match key {
                 // Step into next CPU clock cycle
-                KeyboardKey::KEY_S if nes.is_current_tick_cpu() && rl_handle.get_key_pressed() == Some(KeyboardKey::KEY_LEFT_CONTROL) => {
-                    loop {
-                        nes.tick();
-                        if nes.is_cpu_instruction_complete() {
-                            break;
-                        }
-                    }
-                }
-                // Step by 1 whole CPU instruction
-                KeyboardKey::KEY_S => {
+                KeyboardKey::KEY_C => {
                     loop {
                         nes.tick();
                         if nes.is_cpu_instruction_complete() {
@@ -137,6 +119,23 @@ fn main() {
                             break;
                         }
                     }
+                }
+                // Step into next PPU frame
+                KeyboardKey::KEY_F => {
+                    loop {
+                        nes.tick();
+                        if nes.is_ppu_frame_complete() {
+                            break;
+                        }
+                    }
+                    loop {
+                        nes.tick();
+                        if nes.is_cpu_instruction_complete() {
+                            break;
+                        }
+                    }
+                    nes.set_ppu_frame_complete(false);
+                    
                 }
                 _ => {}
             }
@@ -155,6 +154,7 @@ fn main() {
         flags_display.set_flags(nes.get_cpu_flags());
         history_instruction_display.update(&mut nes);
         cycles_left_display.set_text(format!("Next in\n[{cycle}] cycles"), cycle_text_color);
+        screen_display.update(&mut rl_handle, &rl_thread, nes.get_screen_data().get_screen());
         
         let mut rl_draw_handle = rl_handle.begin_drawing(&rl_thread);
 
@@ -166,5 +166,6 @@ fn main() {
         flags_display.draw(&mut rl_draw_handle);
         history_instruction_display.draw(&mut rl_draw_handle);
         cycles_left_display.draw(&mut rl_draw_handle);
+        screen_display.draw(&mut rl_draw_handle);
     }
 }

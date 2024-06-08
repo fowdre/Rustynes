@@ -509,7 +509,7 @@ impl Component6502 {
     }
 
     /// Handle clock cycles
-    pub fn clock(&mut self, cartridge: &mut ComponentCartridge, ppu: &mut Component2C02, bus: &mut Bus) {
+    pub fn tick(&mut self, cartridge: &mut ComponentCartridge, ppu: &mut Component2C02, bus: &mut Bus) {
         if self.cycles == 0 {
             self.opcode = self.read(self.pc, cartridge, ppu, bus);
             

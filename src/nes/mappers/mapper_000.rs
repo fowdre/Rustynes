@@ -4,7 +4,7 @@ pub struct Mapper000 {
     prg_banks_count: u8,
 }
 
-impl Mapper for Mapper000 {
+impl Mapper for Mapper000 where {
     fn new(prg_banks_count: u8, _chr_banks_count: u8) -> Self {
         Self {
             prg_banks_count,
