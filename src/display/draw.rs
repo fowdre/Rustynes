@@ -306,7 +306,8 @@ impl<'font> InstructionHistoryDisplay<'font> {
         }
     }
 
-    pub fn update(&mut self, nes: &Nes, pc: u16) {
+    pub fn update(&mut self, nes: &mut Nes) {
+        let pc = nes.get_cpu_info().program_counter;
         self.instructions.clear();
 
         let tmp = nes.get_instruction_string_range(pc, pc.wrapping_add(self.count as u16));

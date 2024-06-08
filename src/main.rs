@@ -1,15 +1,17 @@
+// #![warn(missing_debug_implementations, rust_2018_idioms, missing_docs)]
+// #![warn(missing_debug_implementations, rust_2018_idioms)]
 #![allow(clippy::cast_lossless)]
 
 mod nes;
 use nes::Nes;
 
 mod display;
-use display::draw::{NesDisplay, FlagsDisplay, InstructionHistoryDisplay, TextBox};
+use display::draw::{FlagsDisplay, InstructionHistoryDisplay, NesDisplay, TextBox};
 
 use std::io::Read;
 use raylib::prelude::*;
 
-const FPS: f32 = 60.0 * 1000.0;
+const FPS: f32 = 60.0;
 
 fn load_test_rom() -> Vec<u8> {
     let mut rom = Vec::new();
@@ -84,7 +86,6 @@ fn main() {
         28,
         &font,
     );
-    history_instruction_display.update(&nes, nes.get_cpu_info().program_counter);
 
     while !rl_handle.window_should_close() {
         let frame_time = rl_handle.get_frame_time();
@@ -152,7 +153,7 @@ fn main() {
         program_location.set_text(NesDisplay::bytes_to_string(nes.get_ram(0x8000, 0x80F0)), None);
         cpu_info.set_text(NesDisplay::cpu_info_to_string(&nes.get_cpu_info()), None);
         flags_display.set_flags(nes.get_cpu_flags());
-        history_instruction_display.update(&nes, nes.get_cpu_info().program_counter);
+        history_instruction_display.update(&mut nes);
         cycles_left_display.set_text(format!("Next in\n[{cycle}] cycles"), cycle_text_color);
         
         let mut rl_draw_handle = rl_handle.begin_drawing(&rl_thread);
