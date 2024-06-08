@@ -10,7 +10,8 @@ pub use cpu::{Component6502, Flags, ADDRESSING_MODES};
 pub use ppu::{Component2C02, ScreenData};
 pub use bus::Bus;
 
-const STACK_ADDRESS: u16 = 0x0100;
+use raylib::color::Color;
+use crate::constants::*;
 
 #[cfg(feature = "nestest")]
 pub struct Snapshot {
@@ -180,8 +181,14 @@ impl Nes {
         self.cpu.status
     }
 
-    pub const fn get_screen_data(&self) -> &ScreenData {
-        &self.screen
+    pub const fn get_screen(&self) -> &[Color; NES_SCREEN_WIDTH as usize * NES_SCREEN_HEIGHT as usize] {
+        &self.screen.displayable_screen
+    }
+
+    pub fn get_pattern_table(&mut self, index: u8) -> &[Color; 128 * 128] {
+        self.ppu.fill_pattern_table(index, &mut self.screen, &self.cartridge);
+
+        &self.screen.displayable_pattern_table[index as usize]
     }
 
     pub fn get_instruction_string_range(&mut self, start: u16, end: u16) -> Vec<String> {

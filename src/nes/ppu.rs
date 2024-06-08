@@ -1,13 +1,13 @@
-use raylib::prelude::*;
+use raylib::color::Color;
 use crate::nes::cartridge::ComponentCartridge;
 use crate::constants::*;
 
 #[derive(Debug)]
 pub struct ScreenData {
-    displayable_screen: [Color; NES_SCREEN_WIDTH as usize * NES_SCREEN_HEIGHT as usize],
+    pub displayable_screen: [Color; NES_SCREEN_WIDTH as usize * NES_SCREEN_HEIGHT as usize],
     screen_palette: [Color; 64],
     displayable_name_table: [[Color; 256 * 240]; 2],
-    displayable_pattern_table: [[Color; 128 * 128]; 2],
+    pub displayable_pattern_table: [[Color; 128 * 128]; 2],
 }
 
 impl ScreenData {
@@ -91,7 +91,7 @@ impl ScreenData {
         }
     }
 
-    pub fn draw_pixel(&mut self, x: u16, y: u16, color: Color) {
+    pub fn draw_pixel_screen(&mut self, x: u16, y: u16, color: Color) {
         if x >= NES_SCREEN_WIDTH || y >= NES_SCREEN_HEIGHT {
             return;
         }
@@ -99,8 +99,12 @@ impl ScreenData {
         self.displayable_screen[y as usize * NES_SCREEN_WIDTH as usize + x as usize] = color;
     }
 
-    pub fn get_screen(&self) -> &[Color; NES_SCREEN_WIDTH as usize * NES_SCREEN_HEIGHT as usize] {
-        &self.displayable_screen
+    pub fn draw_pixel_pattern_table(&mut self, index: u8, x: u16, y: u16, color: Color) {
+        if x >= 128 || y >= 128 {
+            return;
+        }
+
+        self.displayable_pattern_table[index as usize][y as usize * 128 + x as usize] = color;
     }
 }
 
@@ -205,7 +209,7 @@ impl Component2C02 {
 
     pub fn tick(&mut self, screen: &mut ScreenData) {
         // Random black or white pixels for testing purposes
-        screen.draw_pixel(self.cycle as u16, self.scanline as u16, if rand::random() { Color::WHITE } else { Color::BLANK });
+        screen.draw_pixel_screen(self.cycle as u16, self.scanline as u16, if rand::random() { Color::WHITE } else { Color::BLANK });
 
         self.cycle += 1;
 
@@ -218,5 +222,31 @@ impl Component2C02 {
                 self.is_frame_complete = true;
             }
         }
+    }
+
+    fn get_palette_color(&self, palette: &ScreenData, palette_index: u8, pixel_index: u8, cartridge: &ComponentCartridge) -> Color {
+        palette.screen_palette[self.ppu_read(0x3F00 + (palette_index << 2) as u16 + pixel_index as u16, false, cartridge) as usize]
+    }
+
+    pub fn fill_pattern_table(&mut self, index: u8, screen_data: &mut ScreenData, cartridge: &ComponentCartridge) {
+        for y in 0_u16..16 {
+            for x in 0_u16..16 {
+                let offset = y * 256 + x * 16;
+                
+                for row in 0_u16..8 {
+
+                    let mut tile_lsb = self.ppu_read(index as u16 * 0x1000 + offset + row, false, cartridge);
+                    let mut tile_msb = self.ppu_read(index as u16 * 0x1000 + offset + row + 8, false, cartridge);
+
+                    for col in 0_u16..8 {
+                        let pixel = (tile_lsb & 0x01) + ((tile_msb & 0x01) << 1);
+                        tile_lsb >>= 1;
+                        tile_msb >>= 1;
+
+                        screen_data.draw_pixel_pattern_table(index, x * 8 + (7 - col), y * 8 + row, self.get_palette_color(screen_data, index, pixel, cartridge));
+                    }
+                }
+            }
+        };
     }
 }

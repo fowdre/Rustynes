@@ -66,7 +66,7 @@ fn main() {
     );
 
     let mut history_instruction_display = InstructionHistoryDisplay::new(
-        Vector2::new(cycles_left_display.get_position().x - 150.0, 10.0 + zero_page.get_position().y + zero_page.get_dimensions().y + 5.0 + program_location.get_dimensions().y + 5.0),
+        Vector2::new(cycles_left_display.get_position().x - 250.0, 10.0 + zero_page.get_position().y + zero_page.get_dimensions().y + 5.0 + program_location.get_dimensions().y + 5.0),
         28,
         &font,
     );
@@ -74,6 +74,18 @@ fn main() {
     let mut screen_display = ScreenDisplay::new(
         Vector2::new(10.0 * 60.0, 10.0 + program_location.get_dimensions().y + program_location.get_position().y),
         Vector2::new(256.0, 240.0),
+        3.0,
+    );
+
+    let mut pattern_table_display_1 = ScreenDisplay::new(
+        Vector2::new(program_location.get_position().x, program_location.get_position().y + program_location.get_dimensions().y + 10.0),
+        Vector2::new(128.0, 128.0),
+        3.0,
+    );
+
+    let mut pattern_table_display_2 = ScreenDisplay::new(
+        Vector2::new(pattern_table_display_1.get_position().x, pattern_table_display_1.get_position().y + pattern_table_display_1.get_dimensions().y + 10.0),
+        Vector2::new(128.0, 128.0),
         3.0,
     );
 
@@ -154,7 +166,9 @@ fn main() {
         flags_display.set_flags(nes.get_cpu_flags());
         history_instruction_display.update(&mut nes);
         cycles_left_display.set_text(format!("Next in\n[{cycle}] cycles"), cycle_text_color);
-        screen_display.update(&mut rl_handle, &rl_thread, nes.get_screen_data().get_screen());
+        screen_display.update(&mut rl_handle, &rl_thread, nes.get_screen());
+        pattern_table_display_1.update(&mut rl_handle, &rl_thread, nes.get_pattern_table(0));
+        pattern_table_display_2.update(&mut rl_handle, &rl_thread, nes.get_pattern_table(1));
         
         let mut rl_draw_handle = rl_handle.begin_drawing(&rl_thread);
 
@@ -167,5 +181,7 @@ fn main() {
         history_instruction_display.draw(&mut rl_draw_handle);
         cycles_left_display.draw(&mut rl_draw_handle);
         screen_display.draw(&mut rl_draw_handle);
+        pattern_table_display_1.draw(&mut rl_draw_handle);
+        pattern_table_display_2.draw(&mut rl_draw_handle);
     }
 }

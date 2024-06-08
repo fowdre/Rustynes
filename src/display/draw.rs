@@ -369,7 +369,7 @@ impl ScreenDisplay {
         }
     }
 
-    pub fn update(&mut self, rl_handle: &mut RaylibHandle, rl_thread: &RaylibThread, pixels: &[Color; NES_SCREEN_WIDTH as usize * NES_SCREEN_HEIGHT as usize]) {
+    pub fn update(&mut self, rl_handle: &mut RaylibHandle, rl_thread: &RaylibThread, pixels: &[Color]) {
         let (width, height) = (self.dimensions.x as usize, self.dimensions.y as usize);
         let mut pixel_data = vec![0; width * height * 4];
 
