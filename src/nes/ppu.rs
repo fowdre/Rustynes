@@ -187,13 +187,32 @@ impl Component2C02 {
     }
 
     pub fn ppu_read(&self, mut addr: u16, _read_only: bool, cartridge: &ComponentCartridge) -> u8 {
-        let mut data = 0x0000;
+        let mut data = 0x00;
         addr &= 0x3FFF;
 
         // Cartridge has priority over everything else (mappers)
         if cartridge.ppu_read(addr, &mut data) {
             return data;
         }
+        match addr {
+            // Pattern Table range
+            0x0000..=0x1FFF => data = self.pattern_table[(addr & 0x1000 >> 12) as usize][(addr & 0x0FFF) as usize],
+            // Name Table range
+            0x2000..=0x3EFF => data = self.name_table[(addr >> 10) as usize][(addr & 0x03FF) as usize],
+            // Palette RAM range
+            0x3F00..=0x3FFF => {
+                addr &= 0x001F;
+                match addr {
+                    0x0010 => addr = 0x0000,
+                    0x0014 => addr = 0x0004,
+                    0x0018 => addr = 0x0008,
+                    0x001C => addr = 0x000C,
+                    _ => {}
+                }
+                data = self.pallete_table[addr as usize]
+            },
+            _ => {}
+        };
 
         data
     }
@@ -205,6 +224,25 @@ impl Component2C02 {
         if cartridge.ppu_write(addr, data) {
             return;
         }
+        match addr {
+            // Pattern Table range
+            0x0000..=0x1FFF => self.pattern_table[(addr & 0x1000 >> 12) as usize][(addr & 0x0FFF) as usize] = data,
+            // Name Table range
+            0x2000..=0x3EFF => self.name_table[(addr >> 10) as usize][(addr & 0x03FF) as usize] = data,
+            // Palette RAM range
+            0x3F00..=0x3FFF => {
+                addr &= 0x001F;
+                match addr {
+                    0x0010 => addr = 0x0000,
+                    0x0014 => addr = 0x0004,
+                    0x0018 => addr = 0x0008,
+                    0x001C => addr = 0x000C,
+                    _ => {}
+                }
+                self.pallete_table[addr as usize] = data;
+            },
+            _ => {}
+        };
     }
 
     pub fn tick(&mut self, screen: &mut ScreenData) {
@@ -228,7 +266,7 @@ impl Component2C02 {
         palette.screen_palette[self.ppu_read(0x3F00 + (palette_index << 2) as u16 + pixel_index as u16, false, cartridge) as usize]
     }
 
-    pub fn fill_pattern_table(&mut self, index: u8, screen_data: &mut ScreenData, cartridge: &ComponentCartridge) {
+    pub fn fill_pattern_table(&mut self, index: u8, palette_index: u8, screen_data: &mut ScreenData, cartridge: &ComponentCartridge) {
         for y in 0_u16..16 {
             for x in 0_u16..16 {
                 let offset = y * 256 + x * 16;
@@ -243,7 +281,7 @@ impl Component2C02 {
                         tile_lsb >>= 1;
                         tile_msb >>= 1;
 
-                        screen_data.draw_pixel_pattern_table(index, x * 8 + (7 - col), y * 8 + row, self.get_palette_color(screen_data, index, pixel, cartridge));
+                        screen_data.draw_pixel_pattern_table(index, x * 8 + (7 - col), y * 8 + row, self.get_palette_color(screen_data, palette_index, pixel, cartridge));
                     }
                 }
             }

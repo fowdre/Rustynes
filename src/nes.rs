@@ -29,6 +29,7 @@ pub struct Nes {
 
     screen: ScreenData,
     pub pause: bool,
+    current_palette: u8,
     pub timer: f32,
     pub total_clock_ticks: u128,
 }
@@ -54,6 +55,7 @@ impl Nes {
 
             screen: ScreenData::new(),
             pause: true,
+            current_palette: 0,
             timer: 0.0,
             total_clock_ticks: 0,
         }
@@ -143,10 +145,6 @@ impl Nes {
         println!("{line}");
     }
 
-    pub const fn is_current_tick_cpu(&self) -> bool {
-        self.cpu.cycles == 0
-    }
-
     pub const fn is_cpu_instruction_complete(&self) -> bool {
         self.cpu.cycles == 0
     }
@@ -186,9 +184,13 @@ impl Nes {
     }
 
     pub fn get_pattern_table(&mut self, index: u8) -> &[Color; 128 * 128] {
-        self.ppu.fill_pattern_table(index, &mut self.screen, &self.cartridge);
+        self.ppu.fill_pattern_table(index, self.current_palette, &mut self.screen, &self.cartridge);
 
         &self.screen.displayable_pattern_table[index as usize]
+    }
+
+    pub fn cycle_palette(&mut self) {
+        self.current_palette = (self.current_palette + 1) & 0x07;
     }
 
     pub fn get_instruction_string_range(&mut self, start: u16, end: u16) -> Vec<String> {

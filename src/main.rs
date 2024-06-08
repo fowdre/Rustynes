@@ -149,6 +149,9 @@ fn main() {
                     nes.set_ppu_frame_complete(false);
                     
                 }
+                KeyboardKey::KEY_P => {
+                    nes.cycle_palette();
+                }
                 _ => {}
             }
         }
