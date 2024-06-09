@@ -14,8 +14,8 @@ pub struct RegisterMask {
     grayscale: bool,
     render_background_left: bool,
     render_sprites_left: bool,
-    render_background: bool,
-    render_sprites: bool,
+    pub render_background: bool,
+    pub render_sprites: bool,
     enhance_red: bool,
     enhance_green: bool,
     enhance_blue: bool
@@ -23,12 +23,25 @@ pub struct RegisterMask {
 
 #[bitfield(u8)]
 pub struct RegisterControl {
-    nametable_x: bool,
-    nametable_y: bool,
+    pub nametable_x: bool,
+    pub nametable_y: bool,
     pub increment_mode: bool,
     pattern_sprite: bool,
-    pattern_background: bool,
+    pub pattern_background: bool,
     sprite_size: bool,
     slave_mode: bool,
     pub enable_nmi: bool
+}
+
+#[bitfield(u16)]
+pub struct RegisterLoopy {
+    #[bits(5)]
+    pub coarse_x: usize,
+    #[bits(5)]
+    pub coarse_y: usize,
+    pub nametable_x: bool,
+    pub nametable_y: bool,
+    #[bits(3)]
+    pub fine_y: usize,
+    unused: bool
 }

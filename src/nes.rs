@@ -91,7 +91,7 @@ impl Nes {
         #[cfg(feature = "nestest")]
         let display_log = self.cpu.cycles == 0;
 
-        self.ppu.tick(&mut self.screen);
+        self.ppu.tick(&mut self.screen, &self.cartridge);
         
         if self.total_clock_ticks % 3 == 0 {
             self.cpu.tick(&mut self.cartridge, &mut self.ppu, &mut self.bus);
