@@ -23,6 +23,14 @@ impl HeaderCartridge {
 }
 
 #[derive(Debug)]
+pub enum Mirror {
+    Horizontal,
+    Vertical,
+    OneScreenLo,
+    OneScreenHi,
+}
+
+#[derive(Debug)]
 pub struct ComponentCartridge {
     /// Program ROM
     prg_rom: Vec<u8>,
@@ -31,6 +39,7 @@ pub struct ComponentCartridge {
     
     mapper_id: u8,
     mapper: Box<dyn Mapper>,
+    pub mirror: Mirror,
     
     prg_banks_count: u8,
     chr_banks_count: u8,
@@ -43,6 +52,7 @@ impl ComponentCartridge {
             chr_rom: Vec::new(),
             mapper_id: 0,
             mapper: Box::new(mapper_000::Mapper000::new(0, 0)),
+            mirror: Mirror::Horizontal,
             prg_banks_count: 0,
             chr_banks_count: 0,
         }
@@ -62,6 +72,7 @@ impl ComponentCartridge {
         let mut prg_rom = Vec::new();
         let mut chr_rom = Vec::new();
         let mapper_id = ((header.mapper2 >> 4) << 4) | (header.mapper1 >> 4);
+        let mirror = if header.mapper1 & 0x01 != 0 { Mirror::Vertical } else { Mirror::Horizontal };
         let mut prg_banks_count = 0;
         let mut chr_banks_count = 0;
 
@@ -98,6 +109,7 @@ impl ComponentCartridge {
             chr_rom,
             mapper_id,
             mapper,
+            mirror,
             prg_banks_count,
             chr_banks_count,
         }

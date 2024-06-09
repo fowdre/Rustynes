@@ -25,7 +25,7 @@ pub struct RegisterMask {
 pub struct RegisterControl {
     nametable_x: bool,
     nametable_y: bool,
-    increment_mode: bool,
+    pub increment_mode: bool,
     pattern_sprite: bool,
     pattern_background: bool,
     sprite_size: bool,

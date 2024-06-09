@@ -3,7 +3,7 @@ mod registers;
 use raylib::color::Color;
 use registers::*;
 use crate::constants::*;
-use crate::nes::cartridge::ComponentCartridge;
+use crate::nes::cartridge::{ComponentCartridge, Mirror};
 
 #[derive(Debug)]
 pub struct ScreenData {
@@ -193,7 +193,7 @@ impl Component2C02 {
                     data = self.ppu_data_buffer;
                 }
 
-                self.ppu_address = self.ppu_address.wrapping_add(1);
+                self.ppu_address = if self.reg_control.increment_mode() { self.ppu_address + 32 } else { self.ppu_address + 1 };
             }
 
             _ => {}
@@ -229,7 +229,7 @@ impl Component2C02 {
             // PPU Data
             0x0007 => {
                 self.ppu_write(self.ppu_address, data, cartridge);
-                self.ppu_address = self.ppu_address.wrapping_add(1);
+                self.ppu_address = if self.reg_control.increment_mode() { self.ppu_address + 32 } else { self.ppu_address + 1 };
             }
 
             _ => {},
@@ -248,7 +248,30 @@ impl Component2C02 {
             // Pattern Table range
             0x0000..=0x1FFF => data = self.pattern_table[(addr & 0x1000 >> 12) as usize][(addr & 0x0FFF) as usize],
             // Name Table range
-            0x2000..=0x3EFF => {}
+            0x2000..=0x3EFF => {
+                addr &= 0x0FFF;
+                match cartridge.mirror {
+                    Mirror::Vertical => {
+                        match addr {
+                            0x0000..=0x03FF => data = self.name_table[0][(addr & 0x03FF) as usize],
+                            0x0400..=0x07FF => data = self.name_table[1][(addr & 0x03FF) as usize],
+                            0x0800..=0x0BFF => data = self.name_table[0][(addr & 0x03FF) as usize],
+                            0x0C00..=0x0FFF => data = self.name_table[1][(addr & 0x03FF) as usize],
+                            _ => {}
+                        }
+                    }
+                    Mirror::Horizontal => {
+                        match addr {
+                            0x0000..=0x03FF => data = self.name_table[0][(addr & 0x03FF) as usize],
+                            0x0400..=0x07FF => data = self.name_table[1][(addr & 0x03FF) as usize],
+                            0x0800..=0x0BFF => data = self.name_table[0][(addr & 0x03FF) as usize],
+                            0x0C00..=0x0FFF => data = self.name_table[1][(addr & 0x03FF) as usize],
+                            _ => {}
+                        }
+                    }
+                    _ => {}
+                }
+            }
             // Palette RAM range
             0x3F00..=0x3FFF => {
                 addr &= 0x001F;
@@ -278,7 +301,30 @@ impl Component2C02 {
             // Pattern Table range
             0x0000..=0x1FFF => self.pattern_table[(addr & 0x1000 >> 12) as usize][(addr & 0x0FFF) as usize] = data,
             // Name Table range
-            0x2000..=0x3EFF => {}
+            0x2000..=0x3EFF => {
+                addr &= 0x0FFF;
+                match cartridge.mirror {
+                    Mirror::Vertical => {
+                        match addr {
+                            0x0000..=0x03FF => self.name_table[0][(addr & 0x03FF) as usize] = data,
+                            0x0400..=0x07FF => self.name_table[1][(addr & 0x03FF) as usize] = data,
+                            0x0800..=0x0BFF => self.name_table[0][(addr & 0x03FF) as usize] = data,
+                            0x0C00..=0x0FFF => self.name_table[1][(addr & 0x03FF) as usize] = data,
+                            _ => {}
+                        }
+                    }
+                    Mirror::Horizontal => {
+                        match addr {
+                            0x0000..=0x03FF => self.name_table[0][(addr & 0x03FF) as usize] = data,
+                            0x0400..=0x07FF => self.name_table[1][(addr & 0x03FF) as usize] = data,
+                            0x0800..=0x0BFF => self.name_table[0][(addr & 0x03FF) as usize] = data,
+                            0x0C00..=0x0FFF => self.name_table[1][(addr & 0x03FF) as usize] = data,
+                            _ => {}
+                        }
+                    }
+                    _ => {}
+                }
+            }
             // Palette RAM range
             0x3F00..=0x3FFF => {
                 addr &= 0x001F;
