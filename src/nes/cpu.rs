@@ -523,7 +523,6 @@ impl Component6502 {
     }
 
     /// Reset signal
-    #[allow(dead_code)]
     pub fn reset(&mut self, cartridge: &mut ComponentCartridge, ppu: &mut Component2C02, bus: &Bus) {
         // Reset registers
         self.a = 0;

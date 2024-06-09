@@ -11,7 +11,7 @@ pub struct RegisterStatus {
 
 #[bitfield(u8)]
 pub struct RegisterMask {
-    grayscale: bool,
+    pub grayscale: bool,
     render_background_left: bool,
     render_sprites_left: bool,
     pub render_background: bool,

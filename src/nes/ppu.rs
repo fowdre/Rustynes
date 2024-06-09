@@ -197,7 +197,7 @@ impl Component2C02 {
             0x0001 => {}
             // Status
             0x0002 => {
-                data = (self.reg_status.into_bits()) & 0xE0 | (self.reg_status.into_bits() & 0x1F);
+                data = (self.reg_status.into_bits()) & 0xE0 | (self.ppu_data_buffer & 0x1F);
                 self.reg_status.set_vertical_blank(false);
                 self.address_latch = 0;
             }
@@ -218,7 +218,7 @@ impl Component2C02 {
                     data = self.ppu_data_buffer;
                 }
 
-                self.vram_addr = RegisterLoopy::from_bits(if self.reg_control.increment_mode() { self.vram_addr.into_bits() + 32 } else { self.vram_addr.into_bits() + 1 });
+                self.vram_addr = RegisterLoopy::from_bits(if self.reg_control.increment_mode() { self.vram_addr.into_bits().wrapping_add(32) } else { self.vram_addr.into_bits().wrapping_add(1) });
             }
 
             _ => {}
@@ -269,7 +269,7 @@ impl Component2C02 {
             // PPU Data
             0x0007 => {
                 self.ppu_write(self.vram_addr.into_bits(), data, cartridge);
-                self.vram_addr = RegisterLoopy::from_bits(if self.reg_control.increment_mode() { self.vram_addr.into_bits() + 32 } else { self.vram_addr.into_bits() + 1 });
+                self.vram_addr = RegisterLoopy::from_bits(if self.reg_control.increment_mode() { self.vram_addr.into_bits().wrapping_add(32) } else { self.vram_addr.into_bits().wrapping_add(1) });
             }
 
             _ => {},
@@ -303,8 +303,8 @@ impl Component2C02 {
                     Mirror::Horizontal => {
                         match addr {
                             0x0000..=0x03FF => data = self.name_table[0][(addr & 0x03FF) as usize],
-                            0x0400..=0x07FF => data = self.name_table[1][(addr & 0x03FF) as usize],
-                            0x0800..=0x0BFF => data = self.name_table[0][(addr & 0x03FF) as usize],
+                            0x0400..=0x07FF => data = self.name_table[0][(addr & 0x03FF) as usize],
+                            0x0800..=0x0BFF => data = self.name_table[1][(addr & 0x03FF) as usize],
                             0x0C00..=0x0FFF => data = self.name_table[1][(addr & 0x03FF) as usize],
                             _ => {}
                         }
@@ -322,7 +322,7 @@ impl Component2C02 {
                     0x001C => addr = 0x000C,
                     _ => {}
                 }
-                data = self.pallete_table[addr as usize]
+                data = self.pallete_table[addr as usize] & if self.reg_mask.grayscale() { 0x30 } else { 0x3F };
             },
             _ => {}
         };
@@ -356,8 +356,8 @@ impl Component2C02 {
                     Mirror::Horizontal => {
                         match addr {
                             0x0000..=0x03FF => self.name_table[0][(addr & 0x03FF) as usize] = data,
-                            0x0400..=0x07FF => self.name_table[1][(addr & 0x03FF) as usize] = data,
-                            0x0800..=0x0BFF => self.name_table[0][(addr & 0x03FF) as usize] = data,
+                            0x0400..=0x07FF => self.name_table[0][(addr & 0x03FF) as usize] = data,
+                            0x0800..=0x0BFF => self.name_table[1][(addr & 0x03FF) as usize] = data,
                             0x0C00..=0x0FFF => self.name_table[1][(addr & 0x03FF) as usize] = data,
                             _ => {}
                         }
@@ -446,6 +446,10 @@ impl Component2C02 {
 
     pub fn tick(&mut self, screen: &mut ScreenData, cartridge: &ComponentCartridge) {
         if self.scanline >= -1 && self.scanline < 240 {
+            if self.scanline == 0 && self.cycle == 0 {
+                self.cycle = 1;
+            }
+            
             if self.scanline == -1 && self.cycle == 1 {
                 self.reg_status.set_vertical_blank(false);
             }
@@ -462,7 +466,7 @@ impl Component2C02 {
                         self.bg_next_tile_attribute = self.ppu_read(0x23C0
                             | ((self.vram_addr.nametable_y() as u16) << 11)
                             | ((self.vram_addr.nametable_x() as u16) << 10)
-                            | (((self.vram_addr.coarse_y() >> 2) as u16) << 3)
+                            | (((self.vram_addr.coarse_y() as u16) >> 2) << 3)
                             | ((self.vram_addr.coarse_x() >> 2) as u16),
                             false, cartridge);
                         if self.vram_addr.coarse_y() & 0x02 != 0 {
@@ -499,21 +503,40 @@ impl Component2C02 {
                     self.transfer_address_x();
                 }
 
+                if self.cycle == 338 || self.cycle == 340 {
+                    self.bg_next_tile_id = self.ppu_read(0x2000 | (self.vram_addr.into_bits() & 0x0FFF), false, cartridge);
+                }
+
                 if self.scanline == -1 && self.cycle >= 280 && self.cycle < 305 {
                     self.transfer_address_y();
                 }
             }
         }
 
-        if self.scanline == 241 && self.cycle == 1 {
+        if self.scanline == 241 && self.scanline < 261 && self.cycle == 1 {
             self.reg_status.set_vertical_blank(true);
             if self.reg_control.enable_nmi() {
                 self.nmi_occurred = true;
             }
         }
 
-        // Random black or white pixels for testing purposes
-        screen.draw_pixel_screen(self.cycle as u16, self.scanline as u16, if rand::random() { Color::WHITE } else { Color::BLANK });
+        let mut bg_pixel = 0x00_u8;
+        let mut bg_palette = 0x00_u8;
+
+        if self.reg_mask.render_background() {
+            let bit_mux = 0x8000 >> self.fine_x;
+            
+            let p0_pixel = ((self.bg_shifter_pattern_lo & bit_mux) > 0) as u8;
+            let p1_pixel = ((self.bg_shifter_pattern_hi & bit_mux) > 0) as u8;
+            bg_pixel = (p1_pixel << 1) | p0_pixel;
+
+            let bg_pal0 = ((self.bg_shifter_attribute_lo & bit_mux) > 0) as u8;
+            let bg_pal1 = ((self.bg_shifter_attribute_hi & bit_mux) > 0) as u8;
+            bg_palette = (bg_pal1 << 1) | bg_pal0;
+        }
+
+        screen.draw_pixel_screen((self.cycle - 1) as u16, self.scanline as u16, self.get_palette_color(screen, bg_palette, bg_pixel, cartridge));
+
 
         self.cycle += 1;
 
