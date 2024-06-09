@@ -104,7 +104,7 @@ impl ComponentCartridge {
     }
 
     pub fn cpu_read(&self, addr: u16, data: &mut u8) -> bool {
-        let mut mapped_addr = 0x000;
+        let mut mapped_addr = 0x0000;
 
         if self.mapper.cpu_map_read(addr, &mut mapped_addr) {
             *data = self.prg_rom[mapped_addr as usize];
@@ -115,7 +115,7 @@ impl ComponentCartridge {
     }
 
     pub fn cpu_write(&mut self, addr: u16, data: u8) -> bool {
-        let mut mapped_addr = 0x000;
+        let mut mapped_addr = 0x0000;
 
         if self.mapper.cpu_map_read(addr, &mut mapped_addr) {
             self.prg_rom[mapped_addr as usize] = data;
@@ -126,7 +126,7 @@ impl ComponentCartridge {
     }
 
     pub fn ppu_read(&self, addr: u16, data: &mut u8) -> bool {
-        let mut mapped_addr = 0x000;
+        let mut mapped_addr = 0x0000;
 
         if self.mapper.ppu_map_read(addr, &mut mapped_addr) {
             *data = self.chr_rom[mapped_addr as usize];

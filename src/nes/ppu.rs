@@ -324,7 +324,7 @@ impl Component2C02 {
     }
 
     fn get_palette_color(&self, palette: &ScreenData, palette_index: u8, pixel_index: u8, cartridge: &ComponentCartridge) -> Color {
-        palette.screen_palette[self.ppu_read(0x3F00 + (palette_index << 2) as u16 + pixel_index as u16, false, cartridge) as usize]
+        palette.screen_palette[(self.ppu_read(0x3F00 + (palette_index << 2) as u16 + pixel_index as u16, false, cartridge) & 0x3F) as usize]
     }
 
     pub fn fill_pattern_table(&mut self, index: u8, palette_index: u8, screen_data: &mut ScreenData, cartridge: &ComponentCartridge) {

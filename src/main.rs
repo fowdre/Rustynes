@@ -12,8 +12,14 @@ use display::draw::{FlagsDisplay, InstructionHistoryDisplay, NesDisplay, ScreenD
 
 #[allow(clippy::too_many_lines)]
 fn main() {
+    let args: Vec<String> = std::env::args().collect();
+    
     let mut nes = Nes::new();
-    nes.load_cartridge("ROMS/nestest.nes");
+    if args.len() == 1 {
+        nes.load_cartridge("./ROMS/nestest.nes");
+    } else {
+        nes.load_cartridge(&args[1]);
+    }
     nes.reset();
 
     let (mut rl_handle, rl_thread) = raylib::init()
@@ -101,6 +107,11 @@ fn main() {
             nes.reset();
         }
 
+        // Palette cycling
+        if rl_handle.is_key_pressed(KeyboardKey::KEY_P) {
+            nes.cycle_palette();
+        }
+
         if !nes.pause {
             if nes.timer > 0.0 {
                 nes.timer -= frame_time;
@@ -148,9 +159,6 @@ fn main() {
                     }
                     nes.set_ppu_frame_complete(false);
                     
-                }
-                KeyboardKey::KEY_P => {
-                    nes.cycle_palette();
                 }
                 _ => {}
             }
