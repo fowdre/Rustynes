@@ -1,6 +1,9 @@
+mod registers;
+
 use raylib::color::Color;
-use crate::nes::cartridge::ComponentCartridge;
+use registers::*;
 use crate::constants::*;
+use crate::nes::cartridge::ComponentCartridge;
 
 #[derive(Debug)]
 pub struct ScreenData {
@@ -118,6 +121,15 @@ pub struct Component2C02 {
     /// Colors
     pallete_table: [u8; 32],
 
+    reg_status: RegisterStatus,
+    reg_mask: RegisterMask,
+    reg_control: RegisterControl,
+
+    /// Knowing if we're writing to the low or high byte
+    address_latch: u8,
+    ppu_data_buffer: u8,
+    ppu_address: u16,
+
     /// Row
     scanline: i16,
     /// Column
@@ -133,6 +145,14 @@ impl Component2C02 {
             pattern_table: [[0; 4 * 1024]; 2],
             pallete_table: [0; 32],
 
+            reg_status: RegisterStatus::new(),
+            reg_mask: RegisterMask::new(),
+            reg_control: RegisterControl::new(),
+
+            address_latch: 0,
+            ppu_data_buffer: 0,
+            ppu_address: 0,
+
             scanline: 0,
             cycle: 0,
             
@@ -140,49 +160,78 @@ impl Component2C02 {
         }
     }
 
-    pub fn cpu_read(&self, addr: u16, _read_only: bool) -> u8 {
+    pub fn cpu_read(&mut self, addr: u16, read_only: bool, cartridge: &ComponentCartridge) -> u8 {
+        let mut data = 0x00;
+
         match addr {
             // Control
-            0x0000 => 0,
+            0x0000 => {}
             // Mask
-            0x0001 => 0,
+            0x0001 => {}
             // Status
-            0x0002 => 0,
+            0x0002 => {
+                self.reg_status.set_vertical_blank(true);
+                data = (self.reg_status.into_bits()) & 0xE0 | (self.reg_status.into_bits() & 0x1F);
+                self.reg_status.set_vertical_blank(false);
+                self.address_latch = 0;
+            }
             // OAM Address
-            0x0003 => 0,
+            0x0003 => {}
             // OAM Data
-            0x0004 => 0,
+            0x0004 => {}
             // Scroll
-            0x0005 => 0,
+            0x0005 => {}
             // PPU Address
-            0x0006 => 0,
+            0x0006 => {}
             // PPU Data
-            0x0007 => 0,
+            0x0007 => {
+                data = self.ppu_data_buffer;
+                self.ppu_data_buffer = self.ppu_read(self.ppu_address, read_only, cartridge);
 
-            _ => 0,
-        }
+                if self.ppu_address >= 0x3F00 {
+                    data = self.ppu_data_buffer;
+                }
+
+                self.ppu_address = self.ppu_address.wrapping_add(1);
+            }
+
+            _ => {}
+        };
+
+        data
     }
 
-    pub fn cpu_write(&mut self, addr: u16, data: u8) {
+    pub fn cpu_write(&mut self, addr: u16, data: u8, cartridge: &mut ComponentCartridge) {
         match addr {
             // Control
-            0x0000 => 0,
+            0x0000 => self.reg_control = RegisterControl::from_bits(data),
             // Mask
-            0x0001 => 0,
+            0x0001 => self.reg_mask = RegisterMask::from_bits(data),
             // Status
-            0x0002 => 0,
+            0x0002 => {}
             // OAM Address
-            0x0003 => 0,
+            0x0003 => {}
             // OAM Data
-            0x0004 => 0,
+            0x0004 => {}
             // Scroll
-            0x0005 => 0,
+            0x0005 => {}
             // PPU Address
-            0x0006 => 0,
+            0x0006 => {
+                if self.address_latch == 0 {
+                    self.ppu_address = (((data & 0x3F) as u16) << 8) | (self.ppu_address & 0x00FF);
+                    self.address_latch = 1;
+                } else {
+                    self.ppu_address = (self.ppu_address & 0xFF00) | data as u16;
+                    self.address_latch = 0;
+                }
+            }
             // PPU Data
-            0x0007 => 0,
+            0x0007 => {
+                self.ppu_write(self.ppu_address, data, cartridge);
+                self.ppu_address = self.ppu_address.wrapping_add(1);
+            }
 
-            _ => 0,
+            _ => {},
         };
     }
 
@@ -198,7 +247,7 @@ impl Component2C02 {
             // Pattern Table range
             0x0000..=0x1FFF => data = self.pattern_table[(addr & 0x1000 >> 12) as usize][(addr & 0x0FFF) as usize],
             // Name Table range
-            0x2000..=0x3EFF => data = self.name_table[(addr >> 10) as usize][(addr & 0x03FF) as usize],
+            0x2000..=0x3EFF => {}
             // Palette RAM range
             0x3F00..=0x3FFF => {
                 addr &= 0x001F;
@@ -228,7 +277,7 @@ impl Component2C02 {
             // Pattern Table range
             0x0000..=0x1FFF => self.pattern_table[(addr & 0x1000 >> 12) as usize][(addr & 0x0FFF) as usize] = data,
             // Name Table range
-            0x2000..=0x3EFF => self.name_table[(addr >> 10) as usize][(addr & 0x03FF) as usize] = data,
+            0x2000..=0x3EFF => {}
             // Palette RAM range
             0x3F00..=0x3FFF => {
                 addr &= 0x001F;

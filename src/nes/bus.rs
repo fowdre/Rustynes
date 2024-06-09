@@ -17,7 +17,7 @@ impl Bus {
             // RAM range
             0x0000..=0x1FFF => data = self.ram[(addr & 0x07FF) as usize],
             // PPU range
-            0x2000..=0x3FFF => data = ppu.cpu_read(addr & 0x0007, read_only),
+            0x2000..=0x3FFF => data = ppu.cpu_read(addr & 0x0007, read_only, cartridge),
             _ => {}
         };
 
@@ -33,7 +33,7 @@ impl Bus {
             // RAM range
             0x0000..=0x1FFF => self.ram[(addr & 0x07FF) as usize] = data,
             // PPU range
-            0x2000..=0x3FFF => ppu.cpu_write(addr & 0x0007, data),
+            0x2000..=0x3FFF => ppu.cpu_write(addr & 0x0007, data, cartridge),
             _ => {}
         }
     }
