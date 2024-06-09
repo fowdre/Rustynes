@@ -1,6 +1,6 @@
 // #![warn(missing_debug_implementations, rust_2018_idioms, missing_docs)]
-// #![warn(missing_debug_implementations, rust_2018_idioms)]
-#![allow(clippy::cast_lossless)]
+#![allow(clippy::cast_lossless, clippy::similar_names, clippy::module_name_repetitions)]
+#![warn(missing_debug_implementations, rust_2018_idioms)]
 
 mod constants;
 mod nes;

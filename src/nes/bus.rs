@@ -6,7 +6,7 @@ pub struct Bus {
 }
 
 impl Bus {
-    pub fn cpu_read(&self, addr: u16, read_only: bool, cartridge: &mut ComponentCartridge, ppu: &mut Component2C02) -> u8 {
+    pub fn cpu_read(&self, addr: u16, read_only: bool, cartridge: &ComponentCartridge, ppu: &mut Component2C02) -> u8 {
         let mut data = 0x00;
 
         // Cartridge has priority over everything else (mappers)

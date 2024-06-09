@@ -1,24 +1,35 @@
+#![allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
+
 mod registers;
 
 use raylib::color::Color;
-use registers::*;
-use crate::constants::*;
+use registers::{RegisterControl, RegisterLoopy, RegisterMask, RegisterStatus};
+use crate::constants::{NES_SCREEN_HEIGHT, NES_SCREEN_WIDTH};
 use crate::nes::cartridge::{ComponentCartridge, Mirror};
 
 #[derive(Debug)]
 pub struct ScreenData {
-    pub displayable_screen: [Color; NES_SCREEN_WIDTH as usize * NES_SCREEN_HEIGHT as usize],
-    screen_palette: [Color; 64],
-    displayable_name_table: [[Color; 256 * 240]; 2],
-    pub displayable_pattern_table: [[Color; 128 * 128]; 2],
+    // pub displayable_screen: [Color; NES_SCREEN_WIDTH as usize * NES_SCREEN_HEIGHT as usize],
+    pub displayable_screen: Box<[Color]>,
+    // screen_palette: [Color; 64],
+    screen_palette: Box<[Color; 64]>,
+    #[allow(dead_code)]
+    // displayable_name_table: [[Color; 256 * 240]; 2],
+    // pub displayable_pattern_table: [[Color; 128 * 128]; 2],
+    displayable_name_table: Box<[Box<[Color]>; 2]>,
+    // pub displayable_pattern_table: Box<[[Color; 128 * 128]; 2]>,
+    pub displayable_pattern_table: Box<[Box<[Color]>; 2]>,
 }
 
 impl ScreenData {
     pub fn new() -> Self {
         Self {
-            displayable_screen: [Color::BLANK; NES_SCREEN_WIDTH as usize * NES_SCREEN_HEIGHT as usize],
+            // displayable_screen: [Color::BLANK; NES_SCREEN_WIDTH as usize * NES_SCREEN_HEIGHT as usize],
+            // displayable_screen: Box::new([Color::BLANK; NES_SCREEN_WIDTH as usize * NES_SCREEN_HEIGHT as usize]),
+            displayable_screen: vec![Color::BLANK; NES_SCREEN_WIDTH as usize * NES_SCREEN_HEIGHT as usize].into_boxed_slice(),
             screen_palette: {
-                let mut screen_palette = [Color::BLANK; 64];
+                // let mut screen_palette = [Color::BLANK; 64];
+                let mut screen_palette = Box::new([Color::BLANK; 64]);
                 screen_palette[0x00] = Color::new(84, 84, 84, 255);
 	            screen_palette[0x01] = Color::new(0, 30, 116, 255);
 	            screen_palette[0x02] = Color::new(8, 16, 144, 255);
@@ -87,10 +98,15 @@ impl ScreenData {
 	            screen_palette[0x3E] = Color::new(0, 0, 0, 255);
 	            screen_palette[0x3F] = Color::new(0, 0, 0, 255);
 
+                // screen_palette
                 screen_palette
             },
-            displayable_name_table: [[Color::BLANK; 256 * 240]; 2],
-            displayable_pattern_table: [[Color::BLANK; 128 * 128]; 2],
+            // displayable_name_table: [[Color::BLANK; 256 * 240]; 2],
+            // displayable_pattern_table: [[Color::BLANK; 128 * 128]; 2],
+            // displayable_name_table: Box::new([[Color::BLANK; 256 * 240]; 2]),
+            displayable_name_table: Box::new([vec![Color::BLANK; 256 * 240].into_boxed_slice(), vec![Color::BLANK; 256 * 240].into_boxed_slice()]),
+            // displayable_pattern_table: Box::new([[Color::BLANK; 128 * 128]; 2]),
+            displayable_pattern_table: Box::new([vec![Color::BLANK; 128 * 128].into_boxed_slice(), vec![Color::BLANK; 128 * 128].into_boxed_slice()]),
         }
     }
 
@@ -153,7 +169,7 @@ pub struct Component2C02 {
 }
 
 impl Component2C02 {
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         Self {
             name_table: [[0; 1024]; 2],
             pattern_table: [[0; 4 * 1024]; 2],
@@ -186,7 +202,8 @@ impl Component2C02 {
             is_frame_complete: false,
         }
     }
-
+    
+    #[allow(clippy::match_same_arms)]
     pub fn cpu_read(&mut self, addr: u16, read_only: bool, cartridge: &ComponentCartridge) -> u8 {
         let mut data = 0x00;
 
@@ -227,6 +244,7 @@ impl Component2C02 {
         data
     }
 
+    #[allow(clippy::match_same_arms)]
     pub fn cpu_write(&mut self, addr: u16, data: u8, cartridge: &mut ComponentCartridge) {
         match addr {
             // Control
@@ -293,23 +311,18 @@ impl Component2C02 {
                 match cartridge.mirror {
                     Mirror::Vertical => {
                         match addr {
-                            0x0000..=0x03FF => data = self.name_table[0][(addr & 0x03FF) as usize],
-                            0x0400..=0x07FF => data = self.name_table[1][(addr & 0x03FF) as usize],
-                            0x0800..=0x0BFF => data = self.name_table[0][(addr & 0x03FF) as usize],
-                            0x0C00..=0x0FFF => data = self.name_table[1][(addr & 0x03FF) as usize],
+                            0x0000..=0x03FF | 0x0800..=0x0BFF => data = self.name_table[0][(addr & 0x03FF) as usize],
+                            0x0400..=0x07FF | 0x0C00..=0x0FFF => data = self.name_table[1][(addr & 0x03FF) as usize],
                             _ => {}
                         }
                     }
                     Mirror::Horizontal => {
                         match addr {
-                            0x0000..=0x03FF => data = self.name_table[0][(addr & 0x03FF) as usize],
-                            0x0400..=0x07FF => data = self.name_table[0][(addr & 0x03FF) as usize],
-                            0x0800..=0x0BFF => data = self.name_table[1][(addr & 0x03FF) as usize],
-                            0x0C00..=0x0FFF => data = self.name_table[1][(addr & 0x03FF) as usize],
+                            0x0000..=0x07FF => data = self.name_table[0][(addr & 0x03FF) as usize],
+                            0x0800..=0x0FFF => data = self.name_table[1][(addr & 0x03FF) as usize],
                             _ => {}
                         }
                     }
-                    _ => {}
                 }
             }
             // Palette RAM range
@@ -346,23 +359,18 @@ impl Component2C02 {
                 match cartridge.mirror {
                     Mirror::Vertical => {
                         match addr {
-                            0x0000..=0x03FF => self.name_table[0][(addr & 0x03FF) as usize] = data,
-                            0x0400..=0x07FF => self.name_table[1][(addr & 0x03FF) as usize] = data,
-                            0x0800..=0x0BFF => self.name_table[0][(addr & 0x03FF) as usize] = data,
-                            0x0C00..=0x0FFF => self.name_table[1][(addr & 0x03FF) as usize] = data,
+                            0x0000..=0x03FF | 0x0800..=0x0BFF => self.name_table[0][(addr & 0x03FF) as usize] = data,
+                            0x0400..=0x07FF | 0x0C00..=0x0FFF => self.name_table[1][(addr & 0x03FF) as usize] = data,
                             _ => {}
                         }
                     }
                     Mirror::Horizontal => {
                         match addr {
-                            0x0000..=0x03FF => self.name_table[0][(addr & 0x03FF) as usize] = data,
-                            0x0400..=0x07FF => self.name_table[0][(addr & 0x03FF) as usize] = data,
-                            0x0800..=0x0BFF => self.name_table[1][(addr & 0x03FF) as usize] = data,
-                            0x0C00..=0x0FFF => self.name_table[1][(addr & 0x03FF) as usize] = data,
+                            0x0000..=0x07FF => self.name_table[0][(addr & 0x03FF) as usize] = data,
+                            0x0800..=0x0FFF => self.name_table[1][(addr & 0x03FF) as usize] = data,
                             _ => {}
                         }
                     }
-                    _ => {}
                 }
             }
             // Palette RAM range
@@ -460,7 +468,7 @@ impl Component2C02 {
                 match (self.cycle - 1) % 8 {
                     0 => {
                         self.load_background_shifters();
-                        self.bg_next_tile_id = self.ppu_read(0x2000 | (self.vram_addr.into_bits() & 0x0FFF), false, cartridge)
+                        self.bg_next_tile_id = self.ppu_read(0x2000 | (self.vram_addr.into_bits() & 0x0FFF), false, cartridge);
                     },
                     2 => {
                         self.bg_next_tile_attribute = self.ppu_read(0x23C0
@@ -482,14 +490,14 @@ impl Component2C02 {
                             ((self.reg_control.pattern_background() as u16) << 12)
                             + ((self.bg_next_tile_id as u16) << 4)
                             + (self.vram_addr.fine_y() as u16),
-                            false, cartridge)
+                            false, cartridge);
                     },
                     6 => {
                         self.bg_next_tile_msb = self.ppu_read(
                             ((self.reg_control.pattern_background() as u16) << 12)
                             + ((self.bg_next_tile_id as u16) << 4)
                             + (self.vram_addr.fine_y() as u16) + 8,
-                            false, cartridge)
+                            false, cartridge);
                     },
                     7 => self.increment_scroll_x(),
                     _ => {}
@@ -520,20 +528,25 @@ impl Component2C02 {
             }
         }
 
-        let mut bg_pixel = 0x00_u8;
-        let mut bg_palette = 0x00_u8;
-
-        if self.reg_mask.render_background() {
+        let bg_pixel = if self.reg_mask.render_background() {
             let bit_mux = 0x8000 >> self.fine_x;
             
             let p0_pixel = ((self.bg_shifter_pattern_lo & bit_mux) > 0) as u8;
             let p1_pixel = ((self.bg_shifter_pattern_hi & bit_mux) > 0) as u8;
-            bg_pixel = (p1_pixel << 1) | p0_pixel;
+            (p1_pixel << 1) | p0_pixel
+        } else {
+            0
+        };
 
+        let bg_palette = if self.reg_mask.render_background() {
+            let bit_mux = 0x8000 >> self.fine_x;
+            
             let bg_pal0 = ((self.bg_shifter_attribute_lo & bit_mux) > 0) as u8;
             let bg_pal1 = ((self.bg_shifter_attribute_hi & bit_mux) > 0) as u8;
-            bg_palette = (bg_pal1 << 1) | bg_pal0;
-        }
+            (bg_pal1 << 1) | bg_pal0
+        } else {
+            0
+        };
 
         screen.draw_pixel_screen((self.cycle - 1) as u16, self.scanline as u16, self.get_palette_color(screen, bg_palette, bg_pixel, cartridge));
 

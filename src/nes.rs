@@ -11,7 +11,7 @@ pub use ppu::{Component2C02, ScreenData};
 pub use bus::Bus;
 
 use raylib::color::Color;
-use crate::constants::*;
+use crate::constants::STACK_ADDRESS;
 
 #[cfg(feature = "nestest")]
 pub struct Snapshot {
@@ -63,7 +63,7 @@ impl Nes {
     
     #[allow(dead_code)]
     pub fn cpu_read(&mut self, addr: u16) -> u8 {
-        self.cpu.read(addr, &mut self.cartridge, &mut self.ppu, &self.bus)
+        self.cpu.read(addr, &self.cartridge, &mut self.ppu, &self.bus)
     }
 
     #[allow(dead_code)]
@@ -76,7 +76,7 @@ impl Nes {
     }
 
     pub fn reset(&mut self) {
-        self.cpu.reset(&mut self.cartridge, &mut self.ppu, &self.bus);
+        self.cpu.reset(&self.cartridge, &mut self.ppu, &self.bus);
         self.total_clock_ticks = 0;
     }
 
@@ -186,11 +186,11 @@ impl Nes {
         self.cpu.status
     }
 
-    pub const fn get_screen(&self) -> &[Color; NES_SCREEN_WIDTH as usize * NES_SCREEN_HEIGHT as usize] {
+    pub const fn get_screen(&self) -> &[Color] {
         &self.screen.displayable_screen
     }
 
-    pub fn get_pattern_table(&mut self, index: u8) -> &[Color; 128 * 128] {
+    pub fn get_pattern_table(&mut self, index: u8) -> &[Color] {
         self.ppu.fill_pattern_table(index, self.current_palette, &mut self.screen, &self.cartridge);
 
         &self.screen.displayable_pattern_table[index as usize]
@@ -206,7 +206,7 @@ impl Nes {
 
         let mut local_pc = start;
         for _ in count..end {
-            let opcode = self.cpu.read(local_pc, &mut self.cartridge, &mut self.ppu, &self.bus);
+            let opcode = self.cpu.read(local_pc, &self.cartridge, &mut self.ppu, &self.bus);
             let instruction = &self.cpu.lookup[opcode as usize];
             
             match instruction.addr_mode {
@@ -219,85 +219,85 @@ impl Nes {
                     local_pc = local_pc.wrapping_add(1);
                 }
                 ADDRESSING_MODES::IMM => {
-                    let data = self.cpu.read(local_pc.wrapping_add(1), &mut self.cartridge, &mut self.ppu, &self.bus);
+                    let data = self.cpu.read(local_pc.wrapping_add(1), &self.cartridge, &mut self.ppu, &self.bus);
 
                     instruction_string.push(format!("{opcode:02X} (IMM) {} #${data:02X}", instruction.name));
                     local_pc = local_pc.wrapping_add(2);
                 }
                 ADDRESSING_MODES::ABS => {
-                    let lo = self.cpu.read(local_pc.wrapping_add(1), &mut self.cartridge, &mut self.ppu, &self.bus);
-                    let hi = self.cpu.read(local_pc.wrapping_add(2), &mut self.cartridge, &mut self.ppu, &self.bus);
+                    let lo = self.cpu.read(local_pc.wrapping_add(1), &self.cartridge, &mut self.ppu, &self.bus);
+                    let hi = self.cpu.read(local_pc.wrapping_add(2), &self.cartridge, &mut self.ppu, &self.bus);
                     let addr = (hi as u16) << 8 | lo as u16;
 
                     instruction_string.push(format!("{opcode:02X} (ABS) {} ${addr:04X}", instruction.name));
                     local_pc = local_pc.wrapping_add(3);
                 }
                 ADDRESSING_MODES::ABX => {
-                    let lo = self.cpu.read(local_pc.wrapping_add(1), &mut self.cartridge, &mut self.ppu, &self.bus);
-                    let hi = self.cpu.read(local_pc.wrapping_add(2), &mut self.cartridge, &mut self.ppu, &self.bus);
+                    let lo = self.cpu.read(local_pc.wrapping_add(1), &self.cartridge, &mut self.ppu, &self.bus);
+                    let hi = self.cpu.read(local_pc.wrapping_add(2), &self.cartridge, &mut self.ppu, &self.bus);
                     let addr = (hi as u16) << 8 | lo as u16;
 
                     instruction_string.push(format!("{opcode:02X} (ABSx) {} ${addr:04X}, X", instruction.name));
                     local_pc = local_pc.wrapping_add(3);
                 }
                 ADDRESSING_MODES::ABY => {
-                    let lo = self.cpu.read(local_pc.wrapping_add(1), &mut self.cartridge, &mut self.ppu, &self.bus);
-                    let hi = self.cpu.read(local_pc.wrapping_add(2), &mut self.cartridge, &mut self.ppu, &self.bus);
+                    let lo = self.cpu.read(local_pc.wrapping_add(1), &self.cartridge, &mut self.ppu, &self.bus);
+                    let hi = self.cpu.read(local_pc.wrapping_add(2), &self.cartridge, &mut self.ppu, &self.bus);
                     let addr = (hi as u16) << 8 | lo as u16;
 
                     instruction_string.push(format!("{opcode:02X} {} ${addr:04X}, Y", instruction.name));
                     local_pc = local_pc.wrapping_add(3);
                 }
                 ADDRESSING_MODES::ZP0 => {
-                    let addr = self.cpu.read(local_pc.wrapping_add(1), &mut self.cartridge, &mut self.ppu, &self.bus);
+                    let addr = self.cpu.read(local_pc.wrapping_add(1), &self.cartridge, &mut self.ppu, &self.bus);
 
                     instruction_string.push(format!("{opcode:02X} {} ${addr:02X}", instruction.name));
                     local_pc = local_pc.wrapping_add(2);
                 }
                 ADDRESSING_MODES::ZPX => {
-                    let addr = self.cpu.read(local_pc.wrapping_add(1), &mut self.cartridge, &mut self.ppu, &self.bus);
+                    let addr = self.cpu.read(local_pc.wrapping_add(1), &self.cartridge, &mut self.ppu, &self.bus);
 
                     instruction_string.push(format!("{opcode:02X} {} ${addr:02X}, X", instruction.name));
                     local_pc = local_pc.wrapping_add(2);
                 }
                 ADDRESSING_MODES::ZPY => {
-                    let addr = self.cpu.read(local_pc.wrapping_add(1), &mut self.cartridge, &mut self.ppu, &self.bus);
+                    let addr = self.cpu.read(local_pc.wrapping_add(1), &self.cartridge, &mut self.ppu, &self.bus);
 
                     instruction_string.push(format!("{opcode:02X} {} ${addr:02X}, Y", instruction.name));
                     local_pc = local_pc.wrapping_add(2);
                 }
                 ADDRESSING_MODES::REL => {
-                    let addr = self.cpu.read(local_pc.wrapping_add(1), &mut self.cartridge, &mut self.ppu, &self.bus);
+                    let addr = self.cpu.read(local_pc.wrapping_add(1), &self.cartridge, &mut self.ppu, &self.bus);
 
                     instruction_string.push(format!("{opcode:02X} (REL) {} ${addr:02X} [{:04X}]", instruction.name, local_pc.wrapping_add(2).wrapping_add(addr as u16)));
                     local_pc = local_pc.wrapping_add(2);
                 }
                 ADDRESSING_MODES::IND => {
-                    let lo = self.cpu.read(local_pc + 1, &mut self.cartridge, &mut self.ppu, &self.bus);
-                    let hi = self.cpu.read(local_pc + 2, &mut self.cartridge, &mut self.ppu, &self.bus);
+                    let lo = self.cpu.read(local_pc + 1, &self.cartridge, &mut self.ppu, &self.bus);
+                    let hi = self.cpu.read(local_pc + 2, &self.cartridge, &mut self.ppu, &self.bus);
                     let ptr = (hi as u16) << 8 | lo as u16;
                     let addr = if lo == 0xFF {
-                        (self.cpu.read(ptr & 0xFF00, &mut self.cartridge, &mut self.ppu, &self.bus) as u16) | (self.cpu.read(ptr, &mut self.cartridge, &mut self.ppu, &self.bus) as u16) << 8
+                        (self.cpu.read(ptr & 0xFF00, &self.cartridge, &mut self.ppu, &self.bus) as u16) | (self.cpu.read(ptr, &self.cartridge, &mut self.ppu, &self.bus) as u16) << 8
                     } else {
-                        (self.cpu.read(ptr + 1, &mut self.cartridge, &mut self.ppu, &self.bus) as u16) << 8 | self.cpu.read(ptr, &mut self.cartridge, &mut self.ppu, &self.bus) as u16
+                        (self.cpu.read(ptr + 1, &self.cartridge, &mut self.ppu, &self.bus) as u16) << 8 | self.cpu.read(ptr, &self.cartridge, &mut self.ppu, &self.bus) as u16
                     };
 
                     instruction_string.push(format!("{opcode:02X} {} (${addr:04X})", instruction.name));
                     local_pc = local_pc.wrapping_add(3);
                 }
                 ADDRESSING_MODES::IZX => {
-                    let addr = self.cpu.read(local_pc + 1, &mut self.cartridge, &mut self.ppu, &self.bus) as u16;
-                    let lo = self.cpu.read((addr + self.cpu.x as u16) & 0x00FF, &mut self.cartridge, &mut self.ppu, &self.bus);
-                    let hi = self.cpu.read((addr + self.cpu.x as u16 + 1) & 0x00FF, &mut self.cartridge, &mut self.ppu, &self.bus);
+                    let addr = self.cpu.read(local_pc + 1, &self.cartridge, &mut self.ppu, &self.bus) as u16;
+                    let lo = self.cpu.read((addr + self.cpu.x as u16) & 0x00FF, &self.cartridge, &mut self.ppu, &self.bus);
+                    let hi = self.cpu.read((addr + self.cpu.x as u16 + 1) & 0x00FF, &self.cartridge, &mut self.ppu, &self.bus);
                     let ptr = (hi as u16) << 8 | lo as u16;
 
                     instruction_string.push(format!("{opcode:02X} {} (${:02X}, X) @ {:02X} = {ptr:04X}", instruction.name, addr, addr + self.cpu.x as u16));
                     local_pc = local_pc.wrapping_add(2);
                 }
                 ADDRESSING_MODES::IZY => {
-                    let addr = self.cpu.read(local_pc + 1, &mut self.cartridge, &mut self.ppu, &self.bus) as u16;
-                    let lo = self.cpu.read(addr & 0x00FF, &mut self.cartridge, &mut self.ppu, &self.bus);
-                    let hi = self.cpu.read((addr + 1) & 0x00FF, &mut self.cartridge, &mut self.ppu, &self.bus);
+                    let addr = self.cpu.read(local_pc + 1, &self.cartridge, &mut self.ppu, &self.bus) as u16;
+                    let lo = self.cpu.read(addr & 0x00FF, &self.cartridge, &mut self.ppu, &self.bus);
+                    let hi = self.cpu.read((addr + 1) & 0x00FF, &self.cartridge, &mut self.ppu, &self.bus);
                     let mut ptr = (hi as u16) << 8 | lo as u16;
                     ptr = ptr.wrapping_add(self.cpu.y as u16);
 

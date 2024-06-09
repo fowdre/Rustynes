@@ -479,7 +479,7 @@ impl Component6502 {
     }
     
     #[allow(clippy::unused_self)]
-    pub fn read(&self, addr: u16, cartridge: &mut ComponentCartridge, ppu: &mut Component2C02, bus: &Bus) -> u8 {
+    pub fn read(&self, addr: u16, cartridge: &ComponentCartridge, ppu: &mut Component2C02, bus: &Bus) -> u8 {
         bus.cpu_read(addr, false, cartridge, ppu)
     }
 
@@ -500,7 +500,7 @@ impl Component6502 {
         }
     }
 
-    pub fn fetch(&mut self, cartridge: &mut ComponentCartridge, ppu: &mut Component2C02, bus: &Bus) -> u8 {
+    pub fn fetch(&mut self, cartridge: &ComponentCartridge, ppu: &mut Component2C02, bus: &Bus) -> u8 {
         if (self.lookup[self.opcode as usize].addr_mode != ADDRESSING_MODES::ACC)
         || (self.lookup[self.opcode as usize].addr_mode != ADDRESSING_MODES::IMP) {
             self.fetched = self.read(self.addr_abs, cartridge, ppu, bus);
@@ -523,7 +523,7 @@ impl Component6502 {
     }
 
     /// Reset signal
-    pub fn reset(&mut self, cartridge: &mut ComponentCartridge, ppu: &mut Component2C02, bus: &Bus) {
+    pub fn reset(&mut self, cartridge: &ComponentCartridge, ppu: &mut Component2C02, bus: &Bus) {
         // Reset registers
         self.a = 0;
         self.x = 0;

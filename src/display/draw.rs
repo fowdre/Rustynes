@@ -1,8 +1,7 @@
-#![allow(clippy::cast_precision_loss)]
+#![allow(clippy::cast_possible_truncation, clippy::cast_possible_wrap, clippy::cast_sign_loss, clippy::cast_precision_loss)]
 
 use raylib::prelude::*;
 
-use crate::constants::*;
 use crate::nes::{Nes, CpuInfo};
 
 const BYTES_PER_LINE: u8 = 40;
@@ -43,7 +42,7 @@ impl<'font> TextBox<'font> {
         }
     }
 
-    pub fn draw(&self, handle: &mut RaylibDrawHandle) {
+    pub fn draw(&self, handle: &mut RaylibDrawHandle<'_>) {
         handle.draw_rectangle_lines_ex(self.outline_rect, 2.0, self.outline_color);
 
         handle.draw_text_ex(
@@ -125,7 +124,6 @@ impl NesDisplay {
         handle.load_font_ex(thread, path, size, None).expect("Could not load font")
     }
     
-    #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss, clippy::cast_possible_wrap)]
     pub fn bytes_to_string(bytes_range: (u16, u16, &[u8])) -> String {
         // Why `bytes_range` isn't simply a &[u8] is because the range is needed for the display
         // However if the starting point is different from 0, an offset needs to be applied
@@ -251,7 +249,7 @@ impl<'font> FlagsDisplay<'font> {
         }
     }
 
-    pub fn draw(&self, handle: &mut RaylibDrawHandle) {
+    pub fn draw(&self, handle: &mut RaylibDrawHandle<'_>) {
         for rect in &self.outline_rects {
             handle.draw_rectangle_lines_ex(*rect, 2.0, self.outline_color);
         }
@@ -317,7 +315,7 @@ impl<'font> InstructionHistoryDisplay<'font> {
         }
     }
 
-    pub fn draw(&self, handle: &mut RaylibDrawHandle) {
+    pub fn draw(&self, handle: &mut RaylibDrawHandle<'_>) {
         let mut y_offset = 0.0;
         for (i, instruction) in self.instructions.iter().enumerate() {
             let color = if instruction == "00 (IMP) BRK" { Color::DARKGRAY } else if i == 0 {
@@ -357,7 +355,7 @@ impl ScreenDisplay {
         }
     }
 
-    pub fn draw(&mut self, handle: &mut RaylibDrawHandle) {
+    pub fn draw(&mut self, handle: &mut RaylibDrawHandle<'_>) {
         if let Some(texture) = &self.texture {
             handle.draw_texture_ex(
                 texture,
@@ -388,11 +386,11 @@ impl ScreenDisplay {
         }
     }
 
-    pub fn get_position(&self) -> Vector2 {
+    pub const fn get_position(&self) -> Vector2 {
         self.position
     }
 
-    pub fn get_dimensions(&self) -> Vector2 {
+    pub const fn get_dimensions(&self) -> Vector2 {
         self.scaled_dimensions
     }
 }

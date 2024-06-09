@@ -17,8 +17,8 @@ pub struct HeaderCartridge {
 }
 
 impl HeaderCartridge {
-    pub fn from_bytes(buffer: &[u8]) -> Self {
-        unsafe { *(buffer.as_ptr() as *const Self) }
+    pub const fn from_bytes(buffer: &[u8]) -> Self {
+        unsafe { buffer.as_ptr().cast::<Self>().read_unaligned() }
     }
 }
 
@@ -26,8 +26,6 @@ impl HeaderCartridge {
 pub enum Mirror {
     Horizontal,
     Vertical,
-    OneScreenLo,
-    OneScreenHi,
 }
 
 #[derive(Debug)]
@@ -37,12 +35,8 @@ pub struct ComponentCartridge {
     /// Character ROM
     chr_rom: Vec<u8>,
     
-    mapper_id: u8,
     mapper: Box<dyn Mapper>,
     pub mirror: Mirror,
-    
-    prg_banks_count: u8,
-    chr_banks_count: u8,
 }
 
 impl ComponentCartridge {
@@ -50,11 +44,8 @@ impl ComponentCartridge {
         Self {
             prg_rom: Vec::new(),
             chr_rom: Vec::new(),
-            mapper_id: 0,
             mapper: Box::new(mapper_000::Mapper000::new(0, 0)),
             mirror: Mirror::Horizontal,
-            prg_banks_count: 0,
-            chr_banks_count: 0,
         }
     }
 
@@ -77,41 +68,31 @@ impl ComponentCartridge {
         let mut chr_banks_count = 0;
 
         let file_type = 1;
-        match file_type {
-            0 => {},
-            1 => {
-                prg_banks_count = header.prg_rom_chunks;
-                prg_rom.resize(prg_banks_count as usize * 16 * 1024, 0);
-                if file.read_exact(&mut prg_rom).is_err() {
-                    println!("[WARN] PRG rom | no more data to read | Buffer size is {} bytes", prg_rom.len());
-                }
+        if file_type == 1 {
+            prg_banks_count = header.prg_rom_chunks;
+            prg_rom.resize(prg_banks_count as usize * 16 * 1024, 0);
+            if file.read_exact(&mut prg_rom).is_err() {
+                println!("[WARN] PRG rom | no more data to read | Buffer size is {} bytes", prg_rom.len());
+            }
 
-                chr_banks_count = header.chr_rom_chunks;
-                chr_rom.resize(chr_banks_count as usize * 8 * 1024, 0);
-                if file.read_exact(&mut chr_rom).is_err() {
-                    println!("[WARN] CHR rom | no more data to read | Buffer size is {} bytes", chr_rom.len());
-                }
-            },
-            2 => {},
-            _ => {},
+            chr_banks_count = header.chr_rom_chunks;
+            chr_rom.resize(chr_banks_count as usize * 8 * 1024, 0);
+            if file.read_exact(&mut chr_rom).is_err() {
+                println!("[WARN] CHR rom | no more data to read | Buffer size is {} bytes", chr_rom.len());
+            }
         }
 
-        let mapper: Box<dyn Mapper> = match mapper_id {
-            0 => Box::new(mapper_000::Mapper000::new(prg_banks_count, chr_banks_count)),
-            _ => {
-                println!("[WARN] Mapper {} not implemented, using Mapper000 (program will probably not work)", mapper_id);
-                Box::new(mapper_000::Mapper000::new(prg_banks_count, chr_banks_count))
-            }
+        let mapper: Box<dyn Mapper> = if mapper_id == 0 {
+            Box::new(mapper_000::Mapper000::new(prg_banks_count, chr_banks_count))
+        } else {
+            todo!("Mapper {mapper_id} not implemented yet!");
         };
 
         Self {
             prg_rom,
             chr_rom,
-            mapper_id,
             mapper,
             mirror,
-            prg_banks_count,
-            chr_banks_count,
         }
     }
 
