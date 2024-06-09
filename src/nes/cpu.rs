@@ -577,8 +577,7 @@ impl Component6502 {
     }
 
     /// Non-maskable interrupt request signal
-    #[allow(dead_code)]
-    fn nmi(&mut self, cartridge: &mut ComponentCartridge, ppu: &mut Component2C02, bus: &mut Bus) {
+    pub fn nmi(&mut self, cartridge: &mut ComponentCartridge, ppu: &mut Component2C02, bus: &mut Bus) {
         // Push PC to stack (16 bits to write)
         self.write(STACK_ADDRESS + self.sp as u16, ((self.pc >> 8) & 0x00FF) as u8, cartridge, ppu, bus);
         self.sp = self.sp.wrapping_sub(1);

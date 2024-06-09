@@ -129,6 +129,7 @@ pub struct Component2C02 {
     address_latch: u8,
     ppu_data_buffer: u8,
     ppu_address: u16,
+    pub nmi_occurred: bool,
 
     /// Row
     scanline: i16,
@@ -152,6 +153,7 @@ impl Component2C02 {
             address_latch: 0,
             ppu_data_buffer: 0,
             ppu_address: 0,
+            nmi_occurred: false,
 
             scanline: 0,
             cycle: 0,
@@ -170,7 +172,6 @@ impl Component2C02 {
             0x0001 => {}
             // Status
             0x0002 => {
-                self.reg_status.set_vertical_blank(true);
                 data = (self.reg_status.into_bits()) & 0xE0 | (self.reg_status.into_bits() & 0x1F);
                 self.reg_status.set_vertical_blank(false);
                 self.address_latch = 0;
@@ -295,6 +296,17 @@ impl Component2C02 {
     }
 
     pub fn tick(&mut self, screen: &mut ScreenData) {
+        if self.scanline == -1 && self.cycle == 1 {
+            self.reg_status.set_vertical_blank(false);
+        }
+
+        if self.scanline == 241 && self.cycle == 1 {
+            self.reg_status.set_vertical_blank(true);
+            if self.reg_control.enable_nmi() {
+                self.nmi_occurred = true;
+            }
+        }
+
         // Random black or white pixels for testing purposes
         screen.draw_pixel_screen(self.cycle as u16, self.scanline as u16, if rand::random() { Color::WHITE } else { Color::BLANK });
 

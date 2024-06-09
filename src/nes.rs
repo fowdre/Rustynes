@@ -92,9 +92,16 @@ impl Nes {
         let display_log = self.cpu.cycles == 0;
 
         self.ppu.tick(&mut self.screen);
+        
         if self.total_clock_ticks % 3 == 0 {
             self.cpu.tick(&mut self.cartridge, &mut self.ppu, &mut self.bus);
         }
+
+        if self.ppu.nmi_occurred {
+            self.ppu.nmi_occurred = false;
+            self.cpu.nmi(&mut self.cartridge, &mut self.ppu, &mut self.bus);
+        }
+
         self.total_clock_ticks += 1;
         
         #[cfg(feature = "nestest")]
