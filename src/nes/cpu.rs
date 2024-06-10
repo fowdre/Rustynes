@@ -1,7 +1,7 @@
 mod addressing_modes;
 mod opcodes;
 
-use crate::nes::{ComponentCartridge, Component2C02, Bus, STACK_ADDRESS};
+use crate::nes::{Controller, ComponentCartridge, Component2C02, Bus, STACK_ADDRESS};
 
 #[allow(non_camel_case_types, clippy::upper_case_acronyms)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -146,8 +146,8 @@ pub struct Instruction {
     pub name: &'static str,
     pub cycles: u8,
     pub addr_mode: ADDRESSING_MODES,
-    pub addr_mode_fn: fn(&mut Component6502, &mut ComponentCartridge, &mut Component2C02, &Bus),
-    pub opcode_fn: fn(&mut Component6502, &mut ComponentCartridge, &mut Component2C02, &mut Bus),
+    pub addr_mode_fn: fn(&mut Component6502, &mut [Controller; 2], &mut ComponentCartridge, &mut Component2C02, &Bus),
+    pub opcode_fn: fn(&mut Component6502, &mut [Controller; 2], &mut ComponentCartridge, &mut Component2C02, &mut Bus),
 }
 
 pub enum Flags {
@@ -479,13 +479,13 @@ impl Component6502 {
     }
     
     #[allow(clippy::unused_self)]
-    pub fn read(&self, addr: u16, cartridge: &ComponentCartridge, ppu: &mut Component2C02, bus: &Bus) -> u8 {
-        bus.cpu_read(addr, false, cartridge, ppu)
+    pub fn read(&self, addr: u16, controllers: &mut [Controller; 2], cartridge: &ComponentCartridge, ppu: &mut Component2C02, bus: &Bus) -> u8 {
+        bus.cpu_read(addr, false, controllers, cartridge, ppu)
     }
 
     #[allow(clippy::unused_self)]
-    pub fn write(&mut self, addr: u16, data: u8, cartridge: &mut ComponentCartridge, ppu: &mut Component2C02, bus: &mut Bus) {
-        bus.cpu_write(addr, data, cartridge, ppu);
+    pub fn write(&mut self, addr: u16, data: u8, controllers: &mut [Controller; 2], cartridge: &mut ComponentCartridge, ppu: &mut Component2C02, bus: &mut Bus) {
+        bus.cpu_write(addr, data, controllers, cartridge, ppu);
     }
 
     pub const fn get_flag(&self, flag: Flags) -> bool {
@@ -500,30 +500,30 @@ impl Component6502 {
         }
     }
 
-    pub fn fetch(&mut self, cartridge: &ComponentCartridge, ppu: &mut Component2C02, bus: &Bus) -> u8 {
+    pub fn fetch(&mut self, controllers: &mut [Controller; 2], cartridge: &ComponentCartridge, ppu: &mut Component2C02, bus: &Bus) -> u8 {
         if (self.lookup[self.opcode as usize].addr_mode != ADDRESSING_MODES::ACC)
         || (self.lookup[self.opcode as usize].addr_mode != ADDRESSING_MODES::IMP) {
-            self.fetched = self.read(self.addr_abs, cartridge, ppu, bus);
+            self.fetched = self.read(self.addr_abs, controllers, cartridge, ppu, bus);
         }
         self.fetched
     }
 
     /// Handle clock cycles
-    pub fn tick(&mut self, cartridge: &mut ComponentCartridge, ppu: &mut Component2C02, bus: &mut Bus) {
+    pub fn tick(&mut self, controllers: &mut [Controller; 2], cartridge: &mut ComponentCartridge, ppu: &mut Component2C02, bus: &mut Bus) {
         if self.cycles == 0 {
-            self.opcode = self.read(self.pc, cartridge, ppu, bus);
+            self.opcode = self.read(self.pc, controllers, cartridge, ppu, bus);
             
             self.pc = self.pc.wrapping_add(1);
             self.cycles = self.lookup[self.opcode as usize].cycles;
             
-            (self.lookup[self.opcode as usize].addr_mode_fn)(self, cartridge, ppu, bus);
-            (self.lookup[self.opcode as usize].opcode_fn)(self, cartridge, ppu, bus);
+            (self.lookup[self.opcode as usize].addr_mode_fn)(self, controllers, cartridge, ppu, bus);
+            (self.lookup[self.opcode as usize].opcode_fn)(self, controllers, cartridge, ppu, bus);
         }
         self.cycles -= 1;
     }
 
     /// Reset signal
-    pub fn reset(&mut self, cartridge: &ComponentCartridge, ppu: &mut Component2C02, bus: &Bus) {
+    pub fn reset(&mut self, controllers: &mut [Controller; 2], cartridge: &ComponentCartridge, ppu: &mut Component2C02, bus: &Bus) {
         // Reset registers
         self.a = 0;
         self.x = 0;
@@ -532,8 +532,8 @@ impl Component6502 {
         self.sp = 0xFD;
         
         // Reset PC address is hardcoded at 0xFFFC and 0xFFFD
-        let lo = self.read(0xFFFC, cartridge, ppu, bus) as u16;
-        let hi = self.read(0xFFFD, cartridge, ppu, bus) as u16;
+        let lo = self.read(0xFFFC, controllers, cartridge, ppu, bus) as u16;
+        let hi = self.read(0xFFFD, controllers, cartridge, ppu, bus) as u16;
         self.pc = (hi << 8) | lo;
         
         // Reset Flags
@@ -550,24 +550,24 @@ impl Component6502 {
 
     /// Interrupt request signal
     #[allow(dead_code)]
-    fn irq(&mut self, cartridge: &mut ComponentCartridge, ppu: &mut Component2C02, bus: &mut Bus) {
+    fn irq(&mut self, controllers: &mut [Controller; 2], cartridge: &mut ComponentCartridge, ppu: &mut Component2C02, bus: &mut Bus) {
         if !self.get_flag(Flags::I) {
             // Push PC to stack (16 bits to write)
-            self.write(STACK_ADDRESS + self.sp as u16, ((self.pc >> 8) & 0x00FF) as u8, cartridge, ppu, bus);
+            self.write(STACK_ADDRESS + self.sp as u16, ((self.pc >> 8) & 0x00FF) as u8, controllers, cartridge, ppu, bus);
             self.sp = self.sp.wrapping_sub(1);
-            self.write(STACK_ADDRESS + self.sp as u16, (self.pc & 0x00FF) as u8, cartridge, ppu, bus);
+            self.write(STACK_ADDRESS + self.sp as u16, (self.pc & 0x00FF) as u8, controllers, cartridge, ppu, bus);
             self.sp = self.sp.wrapping_sub(1);
 
             // Push Flags to stack
             self.set_flag(Flags::B, false);
             self.set_flag(Flags::U, true);
             self.set_flag(Flags::I, true);
-            self.write(STACK_ADDRESS + self.sp as u16, self.status, cartridge, ppu, bus);
+            self.write(STACK_ADDRESS + self.sp as u16, self.status, controllers, cartridge, ppu, bus);
             self.sp = self.sp.wrapping_sub(1);
 
             // New PC address to handle the interrupt is 0xFFFE and 0xFFFF
-            let lo = self.read(0xFFFE, cartridge, ppu, bus) as u16;
-            let hi = self.read(0xFFFF, cartridge, ppu, bus) as u16;
+            let lo = self.read(0xFFFE, controllers, cartridge, ppu, bus) as u16;
+            let hi = self.read(0xFFFF, controllers, cartridge, ppu, bus) as u16;
             self.pc = (hi << 8) | lo;
 
             // Manually set cycles because interrupt request takes time
@@ -576,22 +576,22 @@ impl Component6502 {
     }
 
     /// Non-maskable interrupt request signal
-    pub fn nmi(&mut self, cartridge: &mut ComponentCartridge, ppu: &mut Component2C02, bus: &mut Bus) {
+    pub fn nmi(&mut self, controllers: &mut [Controller; 2], cartridge: &mut ComponentCartridge, ppu: &mut Component2C02, bus: &mut Bus) {
         // Push PC to stack (16 bits to write)
-        self.write(STACK_ADDRESS + self.sp as u16, ((self.pc >> 8) & 0x00FF) as u8, cartridge, ppu, bus);
+        self.write(STACK_ADDRESS + self.sp as u16, ((self.pc >> 8) & 0x00FF) as u8, controllers, cartridge, ppu, bus);
         self.sp = self.sp.wrapping_sub(1);
-        self.write(STACK_ADDRESS + self.sp as u16, (self.pc & 0x00FF) as u8, cartridge, ppu, bus);
+        self.write(STACK_ADDRESS + self.sp as u16, (self.pc & 0x00FF) as u8, controllers, cartridge, ppu, bus);
         self.sp = self.sp.wrapping_sub(1);
 
         // Push Flags to stack
         self.set_flag(Flags::B, false);
         self.set_flag(Flags::I, true);
-        self.write(STACK_ADDRESS + self.sp as u16, self.status, cartridge, ppu, bus);
+        self.write(STACK_ADDRESS + self.sp as u16, self.status, controllers, cartridge, ppu, bus);
         self.sp = self.sp.wrapping_sub(1);
 
         // New PC address to handle the interrupt is 0xFFFA and 0xFFFB
-        let lo = self.read(0xFFFA, cartridge, ppu, bus) as u16;
-        let hi = self.read(0xFFFB, cartridge, ppu, bus) as u16;
+        let lo = self.read(0xFFFA, controllers, cartridge, ppu, bus) as u16;
+        let hi = self.read(0xFFFB, controllers, cartridge, ppu, bus) as u16;
         self.pc = (hi << 8) | lo;
 
         // Manually set cycles because non-maskable interrupt request takes time
