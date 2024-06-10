@@ -1,5 +1,9 @@
 use crate::nes::{Bus, Component2C02, Component6502, ComponentCartridge, Controller};
 
+const fn is_a_read_instruction(opcode: u8) -> bool {
+    matches!(opcode, 0x69 | 0x65 | 0x75 | 0x6D | 0x7D | 0x79 | 0x61 | 0x71)
+}
+
 #[allow(non_snake_case)]
 impl Component6502 {
     /// Accumulator addressing mode
@@ -26,48 +30,60 @@ impl Component6502 {
     
     /// Absolute addressing mode with X offset
     pub fn addr_ABX(&mut self, controllers: &mut [Controller; 2], cartridge: &mut ComponentCartridge, ppu: &mut Component2C02, bus: &Bus) {
-        let lo = self.read(self.pc, controllers, cartridge, ppu, bus) as u16;
+        let low = self.read(self.pc, controllers, cartridge, ppu, bus);
         self.pc = self.pc.wrapping_add(1);
-        
-        let hi = self.read(self.pc, controllers, cartridge, ppu, bus) as u16;
+        let high = self.read(self.pc, controllers, cartridge, ppu, bus);
         self.pc = self.pc.wrapping_add(1);
+
+        let effective_address = ((high as u16) << 8) | low as u16;
+        let absolute_address = effective_address.wrapping_add(self.x as u16);
         
-        self.addr_abs = (hi << 8) | lo;
-        self.addr_abs = self.addr_abs.wrapping_add(self.x as u16);
-        
-        if (self.addr_abs & 0xFF00) != (hi << 8) {
-            self.cycles += 1;
+        if is_a_read_instruction(self.opcode) {
+            if effective_address & 0xFF00 != absolute_address & 0xFF00 {
+                self.cycles += 1;
+                self.read(effective_address & 0xFF00 | absolute_address & 0x00FF, controllers, cartridge, ppu, bus);
+            }
         }
+
+        self.addr_abs = absolute_address;
     }
     
     /// Absolute addressing mode with Y offset
     pub fn addr_ABY(&mut self, controllers: &mut [Controller; 2], cartridge: &mut ComponentCartridge, ppu: &mut Component2C02, bus: &Bus) {
-        let lo = self.read(self.pc, controllers, cartridge, ppu, bus) as u16;
+        let low = self.read(self.pc, controllers, cartridge, ppu, bus);
         self.pc = self.pc.wrapping_add(1);
-        
-        let hi = self.read(self.pc, controllers, cartridge, ppu, bus) as u16;
+        let high = self.read(self.pc, controllers, cartridge, ppu, bus);
         self.pc = self.pc.wrapping_add(1);
-        
-        self.addr_abs = (hi << 8) | lo;
-        self.addr_abs = self.addr_abs.wrapping_add(self.y as u16);
-        
-        if (self.addr_abs & 0xFF00) != (hi << 8) {
+
+        let effective_address = ((high as u16) << 8) | low as u16;
+        let absolute_address = effective_address.wrapping_add(self.y as u16);
+
+        if effective_address & 0xFF00 != absolute_address & 0xFF00 {
             self.cycles += 1;
+            self.read(effective_address & 0xFF00 | absolute_address & 0x00FF, controllers, cartridge, ppu, bus);
         }
+
+        self.addr_abs = absolute_address;
     }
     
     /// Zero Page addressing mode
     pub fn addr_ZP0(&mut self, controllers: &mut [Controller; 2], cartridge: &mut ComponentCartridge, ppu: &mut Component2C02, bus: &Bus) {
-        self.addr_abs = self.read(self.pc, controllers, cartridge, ppu, bus) as u16;
+        let effective_address = self.read(self.pc, controllers, cartridge, ppu, bus);
         self.pc = self.pc.wrapping_add(1);
-        self.addr_abs &= 0x00FF;
+        
+        self.addr_abs = effective_address as u16;
     }
     
     /// Zero Page addressing mode with X offset
     pub fn addr_ZPX(&mut self, controllers: &mut [Controller; 2], cartridge: &mut ComponentCartridge, ppu: &mut Component2C02, bus: &Bus) {
-        self.addr_abs = self.read(self.pc, controllers, cartridge, ppu, bus) as u16 + self.x as u16;
+        let address = self.read(self.pc, controllers, cartridge, ppu, bus);
         self.pc = self.pc.wrapping_add(1);
-        self.addr_abs &= 0x00FF;
+
+        self.read(address as u16, controllers, cartridge, ppu, bus);
+
+        let effective_address = address.wrapping_add(self.x);
+
+        self.addr_abs = effective_address as u16;
     }
     
     /// Zero Page addressing mode with Y offset
@@ -112,28 +128,35 @@ impl Component6502 {
     
     /// Indirect addressing mode with X offset (zero page)
     pub fn addr_IZX(&mut self, controllers: &mut [Controller; 2], cartridge: &mut ComponentCartridge, ppu: &mut Component2C02, bus: &Bus) {
-        let t = self.read(self.pc, controllers, cartridge, ppu, bus) as u16;
+        let pointer = self.read(self.pc, controllers, cartridge, ppu, bus);
         self.pc = self.pc.wrapping_add(1);
         
-        let lo = self.read((t + self.x as u16) & 0x00FF, controllers, cartridge, ppu, bus) as u16;
-        let hi = self.read((t + self.x as u16 + 1) & 0x00FF, controllers, cartridge, ppu, bus) as u16;
+        self.read(pointer as u16, controllers, cartridge, ppu, bus);
+        let effective_addr = pointer.wrapping_add(self.x);
         
-        self.addr_abs = (hi << 8) | lo;
+        let low = self.read(effective_addr as u16, controllers, cartridge, ppu, bus);
+        let high = self.read(effective_addr.wrapping_add(1) as u16, controllers, cartridge, ppu, bus);
+
+        self.addr_abs = ((high as u16) << 8) | low as u16;
     }
     
     /// Indirect addressing mode with Y offset (zero page)
     pub fn addr_IZY(&mut self, controllers: &mut [Controller; 2], cartridge: &mut ComponentCartridge, ppu: &mut Component2C02, bus: &Bus) {
-        let t = self.read(self.pc, controllers, cartridge, ppu, bus) as u16;
+        let pointer = self.read(self.pc, controllers, cartridge, ppu, bus);
         self.pc = self.pc.wrapping_add(1);
+
+        let low = self.read(pointer as u16, controllers, cartridge, ppu, bus);
+        let high = self.read(pointer.wrapping_add(1) as u16, controllers, cartridge, ppu, bus);
+
+        let effective_addr = ((high as u16) << 8) | low as u16;
+        let indirect_addr = effective_addr.wrapping_add(self.y as u16);
         
-        let lo = self.read(t & 0x00FF, controllers, cartridge, ppu, bus) as u16;
-        let hi = self.read((t + 1) & 0x00FF, controllers, cartridge, ppu, bus) as u16;
-        
-        self.addr_abs = (hi << 8) | lo;
-        self.addr_abs = self.addr_abs.wrapping_add(self.y as u16);
-        
-        if (self.addr_abs & 0xFF00) != (hi << 8) {
+        if effective_addr & 0xFF00 != indirect_addr & 0xFF00 {
             self.cycles += 1;
+
+            self.read(effective_addr & 0xFF00 | indirect_addr & 0x00FF, controllers, cartridge, ppu, bus);
         }
+
+        self.addr_abs = indirect_addr;
     }
 }

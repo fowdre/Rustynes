@@ -110,4 +110,52 @@ fn run_json_test(path: &str) {
     assert_eq!(test_passed.len(), deserialized.len());
 }
 
+// --------------------------------- [ADC] --------------------------------- //
+
+#[test]
+/// ADC Immediate
+fn ADC_immediate() {
+    run_json_test("./tests/69.json");
+}
+
+#[test]
+/// ADC Zero Page
+fn ADC_zero_page() {
+    run_json_test("./tests/65.json");
+}
+
+#[test]
+/// ADC Zero Page X
+fn ADC_zero_page_x() {
+    run_json_test("./tests/75.json");
+}
+
+#[test]
+/// ADC Absolute
+fn ADC_absolute() {
+    run_json_test("./tests/6d.json");
+}
+
+#[test]
+/// ADC Absolute X
+fn ADC_absolute_x() {
+    run_json_test("./tests/7d.json");
+}
+
+#[test]
+/// ADC Absolute Y
+fn ADC_absolute_y() {
+    run_json_test("./tests/79.json");
+}
+
+#[test]
+/// ADC Indirect X
+fn ADC_indirect_x() {
+    run_json_test("./tests/61.json");
+}
+
+#[test]
+/// ADC Indirect Y
+fn ADC_indirect_y() {
+    run_json_test("./tests/71.json");
 }
