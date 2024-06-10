@@ -338,3 +338,60 @@ impl Nes {
         instruction_string
     }
 }
+
+#[cfg(test)]
+use crate::tests::TestState;
+
+#[cfg(test)]
+impl Nes {
+    pub fn test_set_initial_state(&mut self, state: &TestState) {
+        self.cpu.pc = state.pc;
+        self.cpu.sp = state.s;
+        self.cpu.a = state.a;
+        self.cpu.x = state.x;
+        self.cpu.y = state.y;
+        self.cpu.status = state.p;
+
+        for (addr, data) in &state.ram {
+            println!("[setup] writing {:02X} ({}) to {:04X} ({})", *data, *data, *addr, *addr);
+            self.bus.ram[*addr as usize] = *data;
+        }
+
+        println!("Setup complete\n");
+    }
+
+    pub fn test_end_state(&mut self, state: &TestState) -> bool {
+        self.cpu.pc == state.pc &&
+        self.cpu.sp == state.s &&
+        self.cpu.a == state.a &&
+        self.cpu.x == state.x &&
+        self.cpu.y == state.y &&
+        self.cpu.status == state.p &&
+        {
+            for (addr, data) in &state.ram {
+                if self.test_read(*addr) != *data {
+                    return false;
+                }
+            }
+            true
+        }
+    }
+
+    pub fn test_read(&mut self, addr: u16) -> u8 {
+        self.cpu.read(addr, &mut self.controllers,  &self.cartridge, &mut self.ppu, &self.bus)
+    }
+
+    pub fn test_write(&mut self, addr: u16, data: u8) {
+        self.cpu.write(addr, data, &mut self.controllers, &mut self.cartridge, &mut self.ppu, &mut self.bus);
+    }
+
+    pub fn test_reset(&mut self) {
+        self.bus.ram = [0; 64 * 1024];
+
+        self.cpu.test_reset();
+    }
+
+    pub fn test_tick(&mut self) {
+        self.cpu.test_tick(&mut self.controllers, &mut self.cartridge, &mut self.ppu, &mut self.bus);
+    }
+}

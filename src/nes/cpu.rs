@@ -480,11 +480,19 @@ impl Component6502 {
     
     #[allow(clippy::unused_self)]
     pub fn read(&self, addr: u16, controllers: &mut [Controller; 2], cartridge: &ComponentCartridge, ppu: &mut Component2C02, bus: &Bus) -> u8 {
+        #[cfg(test)]
+        return bus.test_read(addr);
+
+        #[cfg(not(test))]
         bus.cpu_read(addr, false, controllers, cartridge, ppu)
     }
 
     #[allow(clippy::unused_self)]
     pub fn write(&mut self, addr: u16, data: u8, controllers: &mut [Controller; 2], cartridge: &mut ComponentCartridge, ppu: &mut Component2C02, bus: &mut Bus) {
+        #[cfg(test)]
+        return bus.test_write(addr, data);
+
+        #[cfg(not(test))]
         bus.cpu_write(addr, data, controllers, cartridge, ppu);
     }
 
@@ -598,4 +606,31 @@ impl Component6502 {
         self.cycles = 8;
     }
 
+}
+
+#[cfg(test)]
+impl Component6502 {
+    pub fn test_reset(&mut self) {
+        self.pc = 0;
+        self.status = 0;
+        self.a = 0;
+        self.x = 0;
+        self.y = 0;
+        self.sp = 0;
+    }
+
+    pub fn test_tick(&mut self, controllers: &mut [Controller; 2], cartridge: &mut ComponentCartridge, ppu: &mut Component2C02, bus: &mut Bus) {
+        if self.cycles == 0 {
+            println!("Reading opcode at address: {}", self.pc);
+            self.opcode = self.read(self.pc, controllers, cartridge, ppu, bus);
+            println!("\nExecuting opcode: {:02X} ({})", self.opcode, self.lookup[self.opcode as usize].name);
+            
+            self.pc = self.pc.wrapping_add(1);
+            self.cycles = self.lookup[self.opcode as usize].cycles;
+            
+            (self.lookup[self.opcode as usize].addr_mode_fn)(self, controllers, cartridge, ppu, bus);
+            (self.lookup[self.opcode as usize].opcode_fn)(self, controllers, cartridge, ppu, bus);
+        }
+        self.cycles -= 1;
+    }
 }

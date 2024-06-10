@@ -22,8 +22,7 @@ impl Bus {
             0x2000..=0x3FFF => data = ppu.cpu_read(addr & 0x0007, read_only, cartridge),
             // Controller range
             0x4016..=0x4017 => {
-                // data = controllers[(addr & 0x0001) as usize].read(),
-                data = if controllers[(addr & 0x0001) as usize].controller_state & 0x80 != 0 { 1 } else { 0 };
+                data = if controllers[(addr & 0x0001) as usize].controller_state & 0x80 > 0 { 1 } else { 0 };
                 controllers[(addr & 0x0001) as usize].controller_state <<= 1;
             }
             _ => {}
@@ -49,5 +48,23 @@ impl Bus {
             }
             _ => {}
         }
+    }
+}
+
+#[cfg(test)]
+impl Bus {
+    pub fn test_read(&self, addr: u16) -> u8 {
+        let result = self.ram[addr as usize];
+        
+        println!("dbg [{}, {}, \"read\"]", addr, result);
+        crate::tests::cycles_trace::CYCLES.lock().unwrap().push((addr, result, "read".to_string()));
+        
+        result
+    }
+
+    pub fn test_write(&mut self, addr: u16, data: u8) {
+        println!("dbg [{}, {}, \"write\"]", addr, data);
+        crate::tests::cycles_trace::CYCLES.lock().unwrap().push((addr, data, "write".to_string()));
+        self.ram[addr as usize] = data;
     }
 }

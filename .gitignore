@@ -3,7 +3,8 @@
 target/
 ressources/
 ignore/
-
 ROMS/
-trace*.txt
+tests/
+
+*.txt
 *.log

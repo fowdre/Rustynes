@@ -1,0 +1,3 @@
+[alias]
+ts = "test -- --test-threads=1"
+tsout = "test -- --test-threads=1 --nocapture"

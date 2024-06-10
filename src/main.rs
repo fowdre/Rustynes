@@ -2,6 +2,7 @@
 #![allow(clippy::cast_lossless, clippy::similar_names, clippy::module_name_repetitions)]
 #![warn(missing_debug_implementations, rust_2018_idioms)]
 
+mod tests;
 mod constants;
 mod nes;
 mod display;
