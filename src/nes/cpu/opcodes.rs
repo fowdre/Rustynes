@@ -35,18 +35,21 @@ impl Component6502 {
     /// Shift Left One Bit (Memory or Accumulator)
     pub fn ASL(&mut self, controllers: &mut [Controller; 2], cartridge: &mut ComponentCartridge, ppu: &mut Component2C02, bus: &mut Bus) { 
         self.fetch(controllers, cartridge, ppu, bus);
+            
+        if self.lookup[self.opcode as usize].addr_mode != ADDRESSING_MODES::ACC {
+            self.write(self.addr_abs, self.fetched, controllers, cartridge, ppu, bus);
+        }
+
+        let result = self.fetched.wrapping_shl(1);
         
-        let tmp: u16 = (self.fetched as u16) << 1;
-        
-        self.set_flag(Flags::C, (tmp & 0xFF00) > 0);
-        self.set_flag(Flags::Z, (tmp & 0x00FF) == 0x00);
-        self.set_flag(Flags::N, tmp & 0x80 != 0);
-        
-        if (self.lookup[self.opcode as usize].addr_mode == ADDRESSING_MODES::ACC)
-        || (self.lookup[self.opcode as usize].addr_mode == ADDRESSING_MODES::IMP) {
-            self.a = (tmp & 0x00FF) as u8;
+        self.set_flag(Flags::C, (self.fetched & (1 << 7)) > 0);
+        self.set_flag(Flags::Z, result == 0x00);
+        self.set_flag(Flags::N, result & 0x80 != 0);
+
+        if self.lookup[self.opcode as usize].addr_mode == ADDRESSING_MODES::ACC {
+            self.a = result;
         } else {
-            self.write(self.addr_abs, (tmp & 0x00FF) as u8, controllers, cartridge, ppu, bus);
+            self.write(self.addr_abs, result, controllers, cartridge, ppu, bus);
         }
     }
 

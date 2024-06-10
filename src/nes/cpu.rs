@@ -510,7 +510,7 @@ impl Component6502 {
 
     pub fn fetch(&mut self, controllers: &mut [Controller; 2], cartridge: &ComponentCartridge, ppu: &mut Component2C02, bus: &Bus) -> u8 {
         if (self.lookup[self.opcode as usize].addr_mode != ADDRESSING_MODES::ACC)
-        || (self.lookup[self.opcode as usize].addr_mode != ADDRESSING_MODES::IMP) {
+        && (self.lookup[self.opcode as usize].addr_mode != ADDRESSING_MODES::IMP) {
             self.fetched = self.read(self.addr_abs, controllers, cartridge, ppu, bus);
         }
         self.fetched

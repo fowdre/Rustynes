@@ -113,49 +113,41 @@ fn run_json_test(path: &str) {
 // --------------------------------- [ADC] --------------------------------- //
 
 #[test]
-/// ADC Immediate
 fn ADC_immediate() {
     run_json_test("./tests/69.json");
 }
 
 #[test]
-/// ADC Zero Page
 fn ADC_zero_page() {
     run_json_test("./tests/65.json");
 }
 
 #[test]
-/// ADC Zero Page X
 fn ADC_zero_page_x() {
     run_json_test("./tests/75.json");
 }
 
 #[test]
-/// ADC Absolute
 fn ADC_absolute() {
     run_json_test("./tests/6d.json");
 }
 
 #[test]
-/// ADC Absolute X
 fn ADC_absolute_x() {
     run_json_test("./tests/7d.json");
 }
 
 #[test]
-/// ADC Absolute Y
 fn ADC_absolute_y() {
     run_json_test("./tests/79.json");
 }
 
 #[test]
-/// ADC Indirect X
 fn ADC_indirect_x() {
     run_json_test("./tests/61.json");
 }
 
 #[test]
-/// ADC Indirect Y
 fn ADC_indirect_y() {
     run_json_test("./tests/71.json");
 }
@@ -202,8 +194,29 @@ fn AND_indirect_y() {
     run_json_test("./tests/31.json");
 }
 
+// --------------------------------- [ASL] --------------------------------- //
+
 #[test]
-/// ASL Accumulator
 fn ASL_accumulator() {
     run_json_test("./tests/0a.json");
+}
+
+#[test]
+fn ASL_zero_page() {
+    run_json_test("./tests/06.json");
+}
+
+#[test]
+fn ASL_zero_page_x() {
+    run_json_test("./tests/16.json");
+}
+
+#[test]
+fn ASL_absolute() {
+    run_json_test("./tests/0e.json");
+}
+
+#[test]
+fn ASL_absolute_x() {
+    run_json_test("./tests/1e.json");
 }

@@ -5,10 +5,15 @@ const fn is_a_read_instruction(opcode: u8) -> bool {
     matches!(opcode, 0x29 | 0x25 | 0x35 | 0x2D | 0x3D | 0x39 | 0x21 | 0x31)
 }
 
+const fn is_a_read_modify_write_instruction(opcode: u8) -> bool {
+    matches!(opcode, 0x0A | 0x06 | 0x16 | 0x0E | 0x1E)
+}
+
 #[allow(non_snake_case)]
 impl Component6502 {
     /// Accumulator addressing mode
     pub fn addr_ACC(&mut self, _controllers: &mut [Controller; 2], _cartridge: &mut ComponentCartridge, _ppu: &mut Component2C02, _bus: &Bus) {
+        self.read(self.pc, _controllers, _cartridge, _ppu, _bus);
         self.fetched = self.a;
     }
 
@@ -20,13 +25,16 @@ impl Component6502 {
     
     /// Absolute addressing mode
     pub fn addr_ABS(&mut self, controllers: &mut [Controller; 2], cartridge: &mut ComponentCartridge, ppu: &mut Component2C02, bus: &Bus) {
-        let lo = self.read(self.pc, controllers, cartridge, ppu, bus) as u16;
+        let low = self.read(self.pc, controllers, cartridge, ppu, bus);
         self.pc = self.pc.wrapping_add(1);
-        
-        let hi = self.read(self.pc, controllers, cartridge, ppu, bus) as u16;
+        let high = self.read(self.pc, controllers, cartridge, ppu, bus);
         self.pc = self.pc.wrapping_add(1);
+
+        let effective_address = ((high as u16) << 8) | low as u16;
         
-        self.addr_abs = (hi << 8) | lo;
+        if is_a_read_instruction(self.opcode) || is_a_read_modify_write_instruction(self.opcode) {
+            self.addr_abs = effective_address;
+        }
     }
     
     /// Absolute addressing mode with X offset
@@ -44,6 +52,8 @@ impl Component6502 {
                 self.cycles += 1;
                 self.read(effective_address & 0xFF00 | absolute_address & 0x00FF, controllers, cartridge, ppu, bus);
             }
+        } else if is_a_read_modify_write_instruction(self.opcode) {
+            self.read(effective_address & 0xFF00 | absolute_address & 0x00FF, controllers, cartridge, ppu, bus);
         }
 
         self.addr_abs = absolute_address;
