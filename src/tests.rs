@@ -159,3 +159,51 @@ fn ADC_indirect_x() {
 fn ADC_indirect_y() {
     run_json_test("./tests/71.json");
 }
+
+// --------------------------------- [AND] --------------------------------- //
+
+#[test]
+fn AND_immediate() {
+    run_json_test("./tests/29.json");
+}
+
+#[test]
+fn AND_zero_page() {
+    run_json_test("./tests/25.json");
+}
+
+#[test]
+fn AND_zero_page_x() {
+    run_json_test("./tests/35.json");
+}
+
+#[test]
+fn AND_absolute() {
+    run_json_test("./tests/2d.json");
+}
+
+#[test]
+fn AND_absolute_x() {
+    run_json_test("./tests/3d.json");
+}
+
+#[test]
+fn AND_absolute_y() {
+    run_json_test("./tests/39.json");
+}
+
+#[test]
+fn AND_indirect_x() {
+    run_json_test("./tests/21.json");
+}
+
+#[test]
+fn AND_indirect_y() {
+    run_json_test("./tests/31.json");
+}
+
+#[test]
+/// ASL Accumulator
+fn ASL_accumulator() {
+    run_json_test("./tests/0a.json");
+}
