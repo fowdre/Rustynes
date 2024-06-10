@@ -22,7 +22,7 @@ impl Mapper for Mapper000 where {
         false
     }
 
-    fn cpu_map_write(&self, addr: u16, mapped_addr: &mut u32) -> bool {
+    fn cpu_map_write(&self, addr: u16, mapped_addr: &mut u32, _data: u8) -> bool {
         if addr >= 0x8000 {
             *mapped_addr = if self.prg_banks_count > 1 { (addr & 0x7FFF) as u32 } else { (addr & 0x3FFF) as u32 };
             return true;

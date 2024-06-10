@@ -110,7 +110,7 @@ impl ComponentCartridge {
     pub fn cpu_write(&mut self, addr: u16, data: u8) -> bool {
         let mut mapped_addr = 0x0000;
 
-        if self.mapper.cpu_map_read(addr, &mut mapped_addr) {
+        if self.mapper.cpu_map_write(addr, &mut mapped_addr, data) {
             self.prg_rom[mapped_addr as usize] = data;
             return true;
         }
