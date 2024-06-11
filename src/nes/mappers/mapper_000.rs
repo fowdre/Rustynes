@@ -42,7 +42,6 @@ impl Mapper for Mapper000 where {
 
     fn ppu_map_write(&self, addr: u16, mapped_addr: &mut u32) -> bool {
         if addr <= 0x1FFF && self.chr_banks_count == 0 {
-            dbg!(addr);
             *mapped_addr = addr as u32;
             return true;
         }

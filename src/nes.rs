@@ -356,6 +356,7 @@ impl Nes {
             println!("[setup] writing {:02X} ({}) to {:04X} ({})", *data, *data, *addr, *addr);
             self.bus.ram[*addr as usize] = *data;
         }
+        println!("[setup] pc {:04X} ({}) sp {:02X} a {:02X} x {:02X} y {:02X} status {:02X}", self.cpu.pc, self.cpu.pc, self.cpu.sp, self.cpu.a, self.cpu.x, self.cpu.y, self.cpu.status);
 
         println!("Setup complete\n");
     }

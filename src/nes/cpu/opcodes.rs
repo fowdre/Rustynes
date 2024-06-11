@@ -66,9 +66,9 @@ impl Component6502 {
 
     /// Force Break
     pub fn BRK(&mut self, controllers: &mut [Controller; 2], cartridge: &mut ComponentCartridge, ppu: &mut Component2C02, bus: &mut Bus) {
+        self.read(self.pc, controllers, cartridge, ppu, bus);
         self.pc = self.pc.wrapping_add(1);
         
-        self.set_flag(Flags::I, true);
         self.write(STACK_ADDRESS + self.sp as u16, ((self.pc >> 8) & 0x00FF) as u8, controllers, cartridge, ppu, bus);
         self.sp = self.sp.wrapping_sub(1);
         self.write(STACK_ADDRESS + self.sp as u16, (self.pc & 0x00FF) as u8, controllers, cartridge, ppu, bus);
@@ -76,22 +76,28 @@ impl Component6502 {
         
         self.set_flag(Flags::B, true);
         self.write(STACK_ADDRESS + self.sp as u16, self.status, controllers, cartridge, ppu, bus);
+        self.set_flag(Flags::I, true);
         self.sp = self.sp.wrapping_sub(1);
         self.set_flag(Flags::B, false);
         
-        self.pc = self.read(0xFFFE, controllers, cartridge, ppu, bus) as u16 | ((self.read(0xFFFF, controllers, cartridge, ppu, bus) as u16) << 8);
+        let low = self.read(0xFFFE, controllers, cartridge, ppu, bus) as u16;
+        let high = self.read(0xFFFF, controllers, cartridge, ppu, bus) as u16;
+        self.pc = (high << 8) | low;
     }
 
     // Generic branch instruction
-    pub fn branch(&mut self, _controllers: &mut [Controller; 2], _cartridge: &mut ComponentCartridge, _ppu: &mut Component2C02, _bus: &mut Bus) {
+    pub fn branch(&mut self, controllers: &mut [Controller; 2], cartridge: &mut ComponentCartridge, ppu: &mut Component2C02, bus: &mut Bus) {
         self.cycles += 1;
-        self.addr_abs = self.pc.wrapping_add(self.addr_rel);
         
-        if (self.addr_abs & 0xFF00) != (self.pc & 0xFF00) {
+        let data = self.pc.wrapping_add(self.addr_rel);
+        self.read(self.pc, controllers, cartridge, ppu, bus);
+
+        if data & 0xFF00 != self.pc & 0xFF00 {
             self.cycles += 1;
+            self.read(self.pc & 0xFF00 | data & 0x00FF, controllers, cartridge, ppu, bus);
         }
-        
-        self.pc = self.addr_abs;
+
+        self.pc = data;
     }
     
     /// Branch on Carry Clear
@@ -131,29 +137,15 @@ impl Component6502 {
         }
     }
     /// Branch on Overflow Clear
-    pub fn BVC(&mut self, _controllers: &mut [Controller; 2], _cartridge: &mut ComponentCartridge, _ppu: &mut Component2C02, _bus: &mut Bus) {
+    pub fn BVC(&mut self, controllers: &mut [Controller; 2], cartridge: &mut ComponentCartridge, ppu: &mut Component2C02, bus: &mut Bus) {
         if !self.get_flag(Flags::V) {
-            self.cycles = self.cycles.wrapping_add(1);
-            self.addr_abs = self.pc.wrapping_add(self.addr_rel);
-            
-            if (self.addr_abs & 0xFF00) != (self.pc & 0xFF00) {
-                self.cycles = self.cycles.wrapping_add(1);
-            }
-            
-            self.pc = self.addr_abs;
+            self.branch(controllers, cartridge, ppu, bus);
         }
     }
 	/// Branch on Overflow Set
-    pub fn BVS(&mut self, _controllers: &mut [Controller; 2], _cartridge: &mut ComponentCartridge, _ppu: &mut Component2C02, _bus: &mut Bus) {
+    pub fn BVS(&mut self, controllers: &mut [Controller; 2], cartridge: &mut ComponentCartridge, ppu: &mut Component2C02, bus: &mut Bus) {
         if self.get_flag(Flags::V) {
-            self.cycles = self.cycles.wrapping_add(1);
-            self.addr_abs = self.pc.wrapping_add(self.addr_rel);
-            
-            if (self.addr_abs & 0xFF00) != (self.pc & 0xFF00) {
-                self.cycles = self.cycles.wrapping_add(1);
-            }
-            
-            self.pc = self.addr_abs;
+            self.branch(controllers, cartridge, ppu, bus);
         }
     }
     
@@ -208,12 +200,14 @@ impl Component6502 {
 	/// Decrement Memory by One
     pub fn DEC(&mut self, controllers: &mut [Controller; 2], cartridge: &mut ComponentCartridge, ppu: &mut Component2C02, bus: &mut Bus) {
         self.fetch(controllers, cartridge, ppu, bus);
-        let tmp = self.fetched.wrapping_sub(1) as u16;
-        
-        self.write(self.addr_abs, (tmp & 0x00FF) as u8, controllers, cartridge, ppu, bus);
-        
-        self.set_flag(Flags::Z, (tmp & 0x00FF) == 0x0000);
-        self.set_flag(Flags::N, tmp & 0x0080 != 0);
+
+        self.write(self.addr_abs, self.fetched, controllers, cartridge, ppu, bus);
+        let tmp = self.fetched.wrapping_sub(1);
+
+        self.set_flag(Flags::Z, tmp == 0x0000);
+        self.set_flag(Flags::N, tmp & 0x80 != 0);
+
+        self.write(self.addr_abs, tmp, controllers, cartridge, ppu, bus);
     }
     /// Decrement Index X by One
     pub fn DEX(&mut self, _controllers: &mut [Controller; 2], _cartridge: &mut ComponentCartridge, _ppu: &mut Component2C02, _bus: &mut Bus) {
@@ -242,12 +236,14 @@ impl Component6502 {
 	/// Increment Memory by One
     pub fn INC(&mut self, controllers: &mut [Controller; 2], cartridge: &mut ComponentCartridge, ppu: &mut Component2C02, bus: &mut Bus) {
         self.fetch(controllers, cartridge, ppu, bus);
-        let tmp: u16 = self.fetched as u16 + 1;
+
+        self.write(self.addr_abs, self.fetched, controllers, cartridge, ppu, bus);
+        let tmp = self.fetched.wrapping_add(1);
         
-        self.write(self.addr_abs, (tmp & 0x00FF) as u8, controllers, cartridge, ppu, bus);
-        
-        self.set_flag(Flags::Z, (tmp & 0x00FF) == 0x0000);
+        self.set_flag(Flags::Z, tmp == 0x0000);
         self.set_flag(Flags::N, tmp & 0x0080 != 0);
+        
+        self.write(self.addr_abs, tmp, controllers, cartridge, ppu, bus);
     }
     /// Increment Index X by One
     pub fn INX(&mut self, _controllers: &mut [Controller; 2], _cartridge: &mut ComponentCartridge, _ppu: &mut Component2C02, _bus: &mut Bus) {
@@ -270,14 +266,15 @@ impl Component6502 {
     }
 	/// Jump to New Location Saving Return Address
     pub fn JSR(&mut self, controllers: &mut [Controller; 2], cartridge: &mut ComponentCartridge, ppu: &mut Component2C02, bus: &mut Bus) {
-        self.pc = self.pc.wrapping_sub(1);
+        self.read(STACK_ADDRESS + self.sp as u16, controllers, cartridge, ppu, bus);
         
-        self.write(STACK_ADDRESS + self.sp as u16, ((self.pc >> 8) & 0x00FF) as u8, controllers, cartridge, ppu, bus);
+        self.write(STACK_ADDRESS + self.sp as u16, (self.pc >> 8) as u8, controllers, cartridge, ppu, bus);
         self.sp = self.sp.wrapping_sub(1);
         self.write(STACK_ADDRESS + self.sp as u16, (self.pc & 0x00FF) as u8, controllers, cartridge, ppu, bus);
         self.sp = self.sp.wrapping_sub(1);
         
-        self.pc = self.addr_abs;
+        let high = self.read(self.pc, controllers, cartridge, ppu, bus);
+        self.pc = (high as u16) << 8 | self.addr_abs;
     }
     
     /// Load Accumulator with Memory
@@ -307,18 +304,21 @@ impl Component6502 {
 	/// Shift Right One Bit (Memory or Accumulator)
     pub fn LSR(&mut self, controllers: &mut [Controller; 2], cartridge: &mut ComponentCartridge, ppu: &mut Component2C02, bus: &mut Bus) {
         self.fetch(controllers, cartridge, ppu, bus);
-        
-        let tmp: u16 = (self.fetched as u16) >> 1;
-        
-        self.set_flag(Flags::C, (self.fetched & 0x0001) != 0);
-        self.set_flag(Flags::Z, (tmp & 0x00FF) == 0x00);
-        self.set_flag(Flags::N, tmp & 0x0080 != 0);
-        
-        if (self.lookup[self.opcode as usize].addr_mode == ADDRESSING_MODES::ACC)
-        || (self.lookup[self.opcode as usize].addr_mode == ADDRESSING_MODES::IMP) {
-            self.a = (tmp & 0x00FF) as u8;
+
+        if self.lookup[self.opcode as usize].addr_mode != ADDRESSING_MODES::ACC {
+            self.read(self.addr_abs, controllers, cartridge, ppu, bus);
+        }
+
+        let tmp = self.fetched.wrapping_shr(1);
+
+        self.set_flag(Flags::C, (self.fetched & 0x01) != 0);
+        self.set_flag(Flags::Z, tmp == 0x00);
+        self.set_flag(Flags::N, tmp & 0x80 != 0);
+
+        if self.lookup[self.opcode as usize].addr_mode == ADDRESSING_MODES::ACC {
+            self.a = tmp;
         } else {
-            self.write(self.addr_abs, (tmp & 0x00FF) as u8, controllers, cartridge, ppu, bus);
+            self.write(self.addr_abs, tmp, controllers, cartridge, ppu, bus);
         }
     }
     
@@ -351,6 +351,7 @@ impl Component6502 {
     }
     /// Pull Accumulator from Stack
     pub fn PLA(&mut self, controllers: &mut [Controller; 2], cartridge: &mut ComponentCartridge, ppu: &mut Component2C02, bus: &mut Bus) {
+        self.read(STACK_ADDRESS + self.sp as u16, controllers, cartridge, ppu, bus);
         self.sp = self.sp.wrapping_add(1);
         self.a = self.read(STACK_ADDRESS + self.sp as u16, controllers, cartridge, ppu, bus);
         
@@ -359,6 +360,7 @@ impl Component6502 {
     }
     /// Pull Processor Status from Stack
     pub fn PLP(&mut self, controllers: &mut [Controller; 2], cartridge: &mut ComponentCartridge, ppu: &mut Component2C02, bus: &mut Bus) {
+        self.read(STACK_ADDRESS + self.sp as u16, controllers, cartridge, ppu, bus);
         self.sp = self.sp.wrapping_add(1);
         self.status = self.read(STACK_ADDRESS + self.sp as u16, controllers, cartridge, ppu, bus);
         self.status &= !(Flags::B as u8);
@@ -368,39 +370,46 @@ impl Component6502 {
     /// Rotate One Bit Left (Memory or Accumulator)
     pub fn ROL(&mut self, controllers: &mut [Controller; 2], cartridge: &mut ComponentCartridge, ppu: &mut Component2C02, bus: &mut Bus) {
         self.fetch(controllers, cartridge, ppu, bus);
-        
-        let tmp: u16 = (self.fetched as u16) << 1 | self.get_flag(Flags::C) as u16;
-        
-        self.set_flag(Flags::C, (tmp & 0xFF00) != 0);
-        self.set_flag(Flags::Z, (tmp & 0x00FF) == 0x00);
+
+        if self.lookup[self.opcode as usize].addr_mode != ADDRESSING_MODES::ACC {
+            self.write(self.addr_abs, self.fetched, controllers, cartridge, ppu, bus);
+        }
+
+        let tmp = self.fetched.wrapping_shl(1) | self.get_flag(Flags::C) as u8;
+
+        self.set_flag(Flags::C, (self.fetched & 0x80) != 0);
+        self.set_flag(Flags::Z, tmp == 0x00);
         self.set_flag(Flags::N, tmp & 0x80 != 0);
-        
-        if (self.lookup[self.opcode as usize].addr_mode == ADDRESSING_MODES::ACC)
-        || (self.lookup[self.opcode as usize].addr_mode == ADDRESSING_MODES::IMP) {
-            self.a = (tmp & 0x00FF) as u8;
+
+        if self.lookup[self.opcode as usize].addr_mode == ADDRESSING_MODES::ACC {
+            self.a = tmp;
         } else {
-            self.write(self.addr_abs, (tmp & 0x00FF) as u8, controllers, cartridge, ppu, bus);
+            self.write(self.addr_abs, tmp, controllers, cartridge, ppu, bus);
         }
     }
 	/// Rotate One Bit Right (Memory or Accumulator)
     pub fn ROR(&mut self, controllers: &mut [Controller; 2], cartridge: &mut ComponentCartridge, ppu: &mut Component2C02, bus: &mut Bus) {
         self.fetch(controllers, cartridge, ppu, bus);
-        
-        let tmp: u16 = (self.get_flag(Flags::C) as u16) << 7 | (self.fetched as u16) >> 1;
-        
+
+        if self.lookup[self.opcode as usize].addr_mode != ADDRESSING_MODES::ACC {
+            self.write(self.addr_abs, self.fetched, controllers, cartridge, ppu, bus);
+        }
+
+        let tmp = self.fetched.wrapping_shr(1) | (self.get_flag(Flags::C) as u8) << 7;
+
         self.set_flag(Flags::C, (self.fetched & 0x01) != 0);
-        self.set_flag(Flags::Z, (tmp & 0x00FF) == 0x00);
+        self.set_flag(Flags::Z, tmp == 0x00);
         self.set_flag(Flags::N, tmp & 0x80 != 0);
-        
-        if (self.lookup[self.opcode as usize].addr_mode == ADDRESSING_MODES::ACC)
-        || (self.lookup[self.opcode as usize].addr_mode == ADDRESSING_MODES::IMP) {
-            self.a = (tmp & 0x00FF) as u8;
+
+        if self.lookup[self.opcode as usize].addr_mode == ADDRESSING_MODES::ACC {
+            self.a = tmp;
         } else {
-            self.write(self.addr_abs, (tmp & 0x00FF) as u8, controllers, cartridge, ppu, bus);
+            self.write(self.addr_abs, tmp, controllers, cartridge, ppu, bus);
         }
     }
     /// Return from Interrupt
     pub fn RTI(&mut self, controllers: &mut [Controller; 2], cartridge: &mut ComponentCartridge, ppu: &mut Component2C02, bus: &mut Bus) {
+        self.read(STACK_ADDRESS + self.sp as u16, controllers, cartridge, ppu, bus);
         self.sp = self.sp.wrapping_add(1);
         self.status = self.read(STACK_ADDRESS + self.sp as u16, controllers, cartridge, ppu, bus);
         self.status &= !(Flags::B as u8);
@@ -413,12 +422,14 @@ impl Component6502 {
     }
     /// Return from Subroutine
     pub fn RTS(&mut self, controllers: &mut [Controller; 2], cartridge: &mut ComponentCartridge, ppu: &mut Component2C02, bus: &mut Bus) {
+        self.read(STACK_ADDRESS + self.sp as u16, controllers, cartridge, ppu, bus);
         self.sp = self.sp.wrapping_add(1);
         self.pc = self.read(STACK_ADDRESS + self.sp as u16, controllers, cartridge, ppu, bus) as u16;
         self.sp = self.sp.wrapping_add(1);
         self.pc |= (self.read(STACK_ADDRESS + self.sp as u16, controllers, cartridge, ppu, bus) as u16) << 8;
         
         self.pc = self.pc.wrapping_add(1);
+        self.read(self.pc, controllers, cartridge, ppu, bus);
     }
     
     /// Subtract Memory from Accumulator with Borrow
