@@ -502,22 +502,22 @@ impl Component2C02 {
                     7 => self.increment_scroll_x(),
                     _ => {}
                 }
+            }
 
-                if self.cycle == 256 {
-                    self.increment_scroll_y();
-                }
+            if self.cycle == 256 {
+                self.increment_scroll_y();
+            }
 
-                if self.cycle == 257 {
-                    self.transfer_address_x();
-                }
+            if self.cycle == 257 {
+                self.transfer_address_x();
+            }
 
-                if self.cycle == 338 || self.cycle == 340 {
-                    self.bg_next_tile_id = self.ppu_read(0x2000 | (self.vram_addr.into_bits() & 0x0FFF), false, cartridge);
-                }
+            if self.cycle == 338 || self.cycle == 340 {
+                self.bg_next_tile_id = self.ppu_read(0x2000 | (self.vram_addr.into_bits() & 0x0FFF), false, cartridge);
+            }
 
-                if self.scanline == -1 && self.cycle >= 280 && self.cycle < 305 {
-                    self.transfer_address_y();
-                }
+            if self.scanline == -1 && self.cycle >= 280 && self.cycle < 305 {
+                self.transfer_address_y();
             }
         }
 
