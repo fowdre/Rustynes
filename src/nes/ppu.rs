@@ -160,6 +160,9 @@ pub struct Component2C02 {
     sprite_shifter_pattern_lo: [u8; 8],
     sprite_shifter_pattern_hi: [u8; 8],
 
+    is_sprite_zero_hit_possible: bool,
+    is_sprite_zero_being_rendered: bool,
+
     /// Row
     scanline: i16,
     /// Column
@@ -201,6 +204,9 @@ impl Component2C02 {
             sprite_count: 0,
             sprite_shifter_pattern_lo: [0; 8],
             sprite_shifter_pattern_hi: [0; 8],
+
+            is_sprite_zero_hit_possible: false,
+            is_sprite_zero_being_rendered: false,
 
             scanline: 0,
             cycle: 0,
@@ -477,8 +483,9 @@ impl Component2C02 {
             
             if self.scanline == -1 && self.cycle == 1 {
                 self.reg_status.set_vertical_blank(false);
-
+                self.reg_status.set_sprite_zero_hit(false);
                 self.reg_status.set_sprite_overflow(false);
+                
                 for i in 0..8 {
                     self.sprite_shifter_pattern_lo[i] = 0;   
                     self.sprite_shifter_pattern_hi[i] = 0;
@@ -553,12 +560,17 @@ impl Component2C02 {
                     self.sprite_shifter_pattern_hi[i] = 0;
                 }
 
+                self.is_sprite_zero_hit_possible = false;
                 let mut n = 0;
                 while n < 64 && self.sprite_count < 9 {
                     let diff = self.scanline.wrapping_sub(self.oam.get_entry(n).y as i16);
 
                     if diff >= 0 && diff < if self.reg_control.sprite_size() { 16 } else { 8 } {
                         if self.sprite_count < 8 {
+                            if n == 0 {
+                                self.is_sprite_zero_hit_possible = true;
+                            }
+
                             self.sprites_scanline[self.sprite_count as usize] = *self.oam.get_entry(n);
                             self.sprite_count += 1;
                         }
@@ -661,6 +673,8 @@ impl Component2C02 {
         let mut fg_palette = 0x00;
         let mut fg_priority = false;
         if self.reg_mask.render_sprites() {
+            self.is_sprite_zero_being_rendered = false;
+
             for i in 0..self.sprite_count {
                 if self.sprites_scanline[i as usize].x == 0 {
                     let fg_pixel_lo = ((self.sprite_shifter_pattern_lo[i as usize] & 0x80) > 0) as u8;
@@ -671,6 +685,10 @@ impl Component2C02 {
                     fg_priority = (self.sprites_scanline[i as usize].attributes & 0x20) == 0;
 
                     if fg_pixel != 0 {
+                        if i == 0 {
+                            self.is_sprite_zero_being_rendered = true;
+                        }
+
                         break;
                     }
                 }
@@ -682,11 +700,27 @@ impl Component2C02 {
             (0, _) => (fg_pixel, fg_palette),
             (_, 0) => (bg_pixel, bg_palette),
             (_, _) => {
-                if fg_priority {
+                let res = if fg_priority {
                     (fg_pixel, fg_palette)
                 } else {
                     (bg_pixel, bg_palette)
+                };
+
+                if self.is_sprite_zero_hit_possible && self.is_sprite_zero_being_rendered {
+                    if self.reg_mask.render_background() && self.reg_mask.render_sprites() {
+                        if !(self.reg_mask.render_background_left() || self.reg_mask.render_sprites_left()) {
+                            if self.cycle >= 9 && self.cycle < 258 {
+                                self.reg_status.set_sprite_zero_hit(true);
+                            }
+                        } else {
+                            if self.cycle >= 1 && self.cycle < 258 {
+                                self.reg_status.set_sprite_zero_hit(true);
+                            }
+                        }
+                    }
                 }
+
+                res
             }
         };
 

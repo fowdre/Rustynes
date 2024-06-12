@@ -5,15 +5,15 @@ pub struct RegisterStatus {
     #[bits(5)]
     unused: usize,
     pub sprite_overflow: bool,
-    sprite_zero_hit: bool,
+    pub sprite_zero_hit: bool,
     pub vertical_blank: bool
 }
 
 #[bitfield(u8)]
 pub struct RegisterMask {
     pub grayscale: bool,
-    render_background_left: bool,
-    render_sprites_left: bool,
+    pub render_background_left: bool,
+    pub render_sprites_left: bool,
     pub render_background: bool,
     pub render_sprites: bool,
     enhance_red: bool,

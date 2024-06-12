@@ -187,7 +187,7 @@ fn main() {
         program_location.set_text(NesDisplay::bytes_to_string(nes.get_ram(0x8000, 0x80F0)), None);
         cpu_info.set_text(NesDisplay::cpu_info_to_string(&nes.get_cpu_info()), None);
         flags_display.set_flags(nes.get_cpu_flags());
-        // history_instruction_display.update(&mut nes);
+        history_instruction_display.update(&mut nes);
         cycles_left_display.set_text(format!("Next in\n[{cycle}] cycles"), cycle_text_color);
         screen_display.update(&mut rl_handle, &rl_thread, nes.get_screen());
         pattern_table_display_1.update(&mut rl_handle, &rl_thread, nes.get_pattern_table(0));
