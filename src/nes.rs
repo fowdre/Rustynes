@@ -77,9 +77,7 @@ impl Nes {
             cartridge: ComponentCartridge::new(),
             cpu: Component6502::new(),
             ppu: Component2C02::new(),
-            bus: bus::Bus {
-                ram: [0; 64 * 1024],
-            },
+            bus: bus::Bus::new(),
 
             screen: ScreenData::new(),
             pause: true,
@@ -108,6 +106,19 @@ impl Nes {
         self.total_clock_ticks = 0;
     }
 
+    pub fn handle_dma(&mut self) {
+        if self.total_clock_ticks % 2 == 0 { // on even cycles
+            self.bus.dma_data = self.cpu.read((self.bus.dma_page as u16) << 8 | self.bus.dma_addr as u16, &mut self.controllers, &self.cartridge, &mut self.ppu, &self.bus);
+        } else { // on odd cycles
+            self.ppu.oam.write(self.bus.dma_addr, self.bus.dma_data);
+            self.bus.dma_addr = self.bus.dma_addr.wrapping_add(1);
+            if self.bus.dma_addr == 0 { // DMA transfer complete because it wraps around
+                self.bus.is_dma_active = false;
+                self.bus.dma_wait_for_sync = true;
+            }
+        }
+    }
+
     pub fn tick(&mut self) {
         #[cfg(feature = "nestest")]
         let snapshot = Snapshot {
@@ -122,7 +133,17 @@ impl Nes {
         self.ppu.tick(&mut self.screen, &self.cartridge);
         
         if self.total_clock_ticks % 3 == 0 {
-            self.cpu.tick(&mut self.controllers, &mut self.cartridge, &mut self.ppu, &mut self.bus);
+            if self.bus.is_dma_active {
+                if self.bus.dma_wait_for_sync {
+                    if self.total_clock_ticks % 2 == 1 {
+                        self.bus.dma_wait_for_sync = false;
+                    }
+                } else {
+                    self.handle_dma()
+                }
+            } else {
+                self.cpu.tick(&mut self.controllers, &mut self.cartridge, &mut self.ppu, &mut self.bus);
+            }
         }
 
         if self.ppu.nmi_occurred {

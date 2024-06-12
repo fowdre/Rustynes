@@ -1,23 +1,20 @@
 #![allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
 
 mod registers;
+mod oam;
 
 use raylib::color::Color;
-use registers::{RegisterControl, RegisterLoopy, RegisterMask, RegisterStatus};
 use crate::constants::{NES_SCREEN_HEIGHT, NES_SCREEN_WIDTH};
 use crate::nes::cartridge::{ComponentCartridge, Mirror};
+use registers::{RegisterControl, RegisterLoopy, RegisterMask, RegisterStatus};
+use oam::{EntryOA, OAM};
 
 #[derive(Debug)]
 pub struct ScreenData {
-    // pub displayable_screen: [Color; NES_SCREEN_WIDTH as usize * NES_SCREEN_HEIGHT as usize],
     pub displayable_screen: Box<[Color]>,
-    // screen_palette: [Color; 64],
     screen_palette: Box<[Color; 64]>,
     #[allow(dead_code)]
-    // displayable_name_table: [[Color; 256 * 240]; 2],
-    // pub displayable_pattern_table: [[Color; 128 * 128]; 2],
     displayable_name_table: Box<[Box<[Color]>; 2]>,
-    // pub displayable_pattern_table: Box<[[Color; 128 * 128]; 2]>,
     pub displayable_pattern_table: Box<[Box<[Color]>; 2]>,
 }
 
@@ -101,11 +98,7 @@ impl ScreenData {
                 // screen_palette
                 screen_palette
             },
-            // displayable_name_table: [[Color::BLANK; 256 * 240]; 2],
-            // displayable_pattern_table: [[Color::BLANK; 128 * 128]; 2],
-            // displayable_name_table: Box::new([[Color::BLANK; 256 * 240]; 2]),
             displayable_name_table: Box::new([vec![Color::BLANK; 256 * 240].into_boxed_slice(), vec![Color::BLANK; 256 * 240].into_boxed_slice()]),
-            // displayable_pattern_table: Box::new([[Color::BLANK; 128 * 128]; 2]),
             displayable_pattern_table: Box::new([vec![Color::BLANK; 128 * 128].into_boxed_slice(), vec![Color::BLANK; 128 * 128].into_boxed_slice()]),
         }
     }
@@ -160,6 +153,13 @@ pub struct Component2C02 {
     bg_shifter_attribute_lo: u16,
     bg_shifter_attribute_hi: u16,
 
+    /// (O)bject (A)ttribute (M)emory i.e. Sprites RAM
+    pub oam: OAM,
+    sprites_scanline: [EntryOA; 8],
+    sprite_count: u8,
+    sprite_shifter_pattern_lo: [u8; 8],
+    sprite_shifter_pattern_hi: [u8; 8],
+
     /// Row
     scanline: i16,
     /// Column
@@ -196,6 +196,12 @@ impl Component2C02 {
             bg_shifter_attribute_lo: 0,
             bg_shifter_attribute_hi: 0,
 
+            oam: OAM::new(),
+            sprites_scanline: [EntryOA::new(); 8],
+            sprite_count: 0,
+            sprite_shifter_pattern_lo: [0; 8],
+            sprite_shifter_pattern_hi: [0; 8],
+
             scanline: 0,
             cycle: 0,
             
@@ -221,7 +227,7 @@ impl Component2C02 {
             // OAM Address
             0x0003 => {}
             // OAM Data
-            0x0004 => {}
+            0x0004 => self.oam.read(&mut data),
             // Scroll
             0x0005 => {}
             // PPU Address
@@ -258,9 +264,9 @@ impl Component2C02 {
             // Status
             0x0002 => {}
             // OAM Address
-            0x0003 => {}
+            0x0003 => self.oam.set_address(data),
             // OAM Data
-            0x0004 => {}
+            0x0004 => self.oam.write(self.oam.get_address(), data),
             // Scroll
             0x0005 => {
                 if self.address_latch == 0 {
@@ -450,6 +456,17 @@ impl Component2C02 {
             self.bg_shifter_attribute_lo <<= 1;
             self.bg_shifter_attribute_hi <<= 1;
         }
+
+        if self.reg_mask.render_sprites() && self.cycle >= 1 && self.cycle < 258 {
+            for i in 0..self.sprite_count {
+                if self.sprites_scanline[i as usize].x > 0 {
+                    self.sprites_scanline[i as usize].x -= 1;
+                } else {
+                    self.sprite_shifter_pattern_lo[i as usize] <<= 1;
+                    self.sprite_shifter_pattern_hi[i as usize] <<= 1;
+                }
+            }
+        }
     }
 
     pub fn tick(&mut self, screen: &mut ScreenData, cartridge: &ComponentCartridge) {
@@ -460,6 +477,12 @@ impl Component2C02 {
             
             if self.scanline == -1 && self.cycle == 1 {
                 self.reg_status.set_vertical_blank(false);
+
+                self.reg_status.set_sprite_overflow(false);
+                for i in 0..8 {
+                    self.sprite_shifter_pattern_lo[i] = 0;   
+                    self.sprite_shifter_pattern_hi[i] = 0;
+                }
             }
 
             if (self.cycle >= 2 && self.cycle < 258) || (self.cycle >= 321 && self.cycle < 338) {
@@ -512,12 +535,98 @@ impl Component2C02 {
                 self.transfer_address_x();
             }
 
+            if self.scanline == -1 && self.cycle >= 280 && self.cycle < 305 {
+                self.transfer_address_y();
+            }
+
             if self.cycle == 338 || self.cycle == 340 {
                 self.bg_next_tile_id = self.ppu_read(0x2000 | (self.vram_addr.into_bits() & 0x0FFF), false, cartridge);
             }
 
-            if self.scanline == -1 && self.cycle >= 280 && self.cycle < 305 {
-                self.transfer_address_y();
+            // Sprite evaluation phase
+            if self.cycle == 257 && self.scanline >= 0 {
+                self.sprites_scanline.iter_mut().for_each(|sprite| sprite.set(0xFF));
+                self.sprite_count = 0;
+
+                for i in 0..8 {
+                    self.sprite_shifter_pattern_lo[i] = 0;
+                    self.sprite_shifter_pattern_hi[i] = 0;
+                }
+
+                let mut n = 0;
+                while n < 64 && self.sprite_count < 9 {
+                    let diff = self.scanline.wrapping_sub(self.oam.get_entry(n).y as i16);
+
+                    if diff >= 0 && diff < if self.reg_control.sprite_size() { 16 } else { 8 } {
+                        if self.sprite_count < 8 {
+                            self.sprites_scanline[self.sprite_count as usize] = *self.oam.get_entry(n);
+                            self.sprite_count += 1;
+                        }
+                    }
+                    n += 1;
+                }
+
+                self.reg_status.set_sprite_overflow(self.sprite_count > 8);
+            }
+
+            if self.cycle == 340 {
+                for i in 0..self.sprite_count {
+                    let mut sprite_pattern_bits_lo: u8;
+                    let mut sprite_pattern_bits_hi: u8;
+                    let sprite_pattern_addr_lo: u16;
+
+                    if !self.reg_control.sprite_size() { // 8x8 mode
+                        if !self.sprites_scanline[i as usize].attributes & 0x80 != 0 { // Not flipped
+                            sprite_pattern_addr_lo =
+                                  ((self.reg_control.pattern_sprite() as u16) << 12)
+                                | ((self.sprites_scanline[i as usize].tile_index as u16) << 4)
+                                | (self.scanline as u16 - self.sprites_scanline[i as usize].y as u16);
+                        } else { // Flipped vertically
+                            sprite_pattern_addr_lo =
+                                  ((self.reg_control.pattern_sprite() as u16) << 12)
+                                | ((self.sprites_scanline[i as usize].tile_index as u16) << 4)
+                                | (7_u16.wrapping_sub(self.scanline as u16).wrapping_sub(self.sprites_scanline[i as usize].y as u16));
+                        }
+                    } else { // 8x16 mode
+                        if !self.sprites_scanline[i as usize].attributes & 0x80 != 0 { // Not flipped
+                            if self.scanline - (self.sprites_scanline[i as usize].y as i16) < 8 {
+                                sprite_pattern_addr_lo =
+                                      (((self.sprites_scanline[i as usize].tile_index & 0x01) as u16) << 12)
+                                    | (((self.sprites_scanline[i as usize].tile_index & 0xFE) as u16) << 4)
+                                    | ((self.scanline as u16 - self.sprites_scanline[i as usize].y as u16) & 0x07);
+                            } else {
+                                sprite_pattern_addr_lo =
+                                      (((self.sprites_scanline[i as usize].tile_index & 0x01) as u16) << 12)
+                                    | ((((self.sprites_scanline[i as usize].tile_index & 0xFE) as u16) + 1) << 4)
+                                    | ((self.scanline as u16 - self.sprites_scanline[i as usize].y as u16) & 0x07);
+                            }
+                        } else { // Flipped vertically
+                            if self.scanline - (self.sprites_scanline[i as usize].y as i16) < 8 {
+                                sprite_pattern_addr_lo =
+                                      (((self.sprites_scanline[i as usize].tile_index & 0x01) as u16) << 12)
+                                    | ((((self.sprites_scanline[i as usize].tile_index & 0xFE) as u16) + 1) << 4)
+                                    | (7 - (self.scanline as u16 - self.sprites_scanline[i as usize].y as u16));
+                            } else {
+                                sprite_pattern_addr_lo =
+                                      (((self.sprites_scanline[i as usize].tile_index & 0x01) as u16) << 12)
+                                    | (((self.sprites_scanline[i as usize].tile_index & 0xFE) as u16) << 4)
+                                    | (7 - (self.scanline as u16 - self.sprites_scanline[i as usize].y as u16));
+                            }
+                        }
+                    }
+
+                    let sprite_pattern_addr_hi = sprite_pattern_addr_lo.wrapping_add(8);
+                    sprite_pattern_bits_lo = self.ppu_read(sprite_pattern_addr_lo, false, cartridge);
+                    sprite_pattern_bits_hi = self.ppu_read(sprite_pattern_addr_hi, false, cartridge);
+
+                    if self.sprites_scanline[i as usize].attributes & 0x40 != 0 {
+                        sprite_pattern_bits_lo = sprite_pattern_bits_lo.reverse_bits();
+                        sprite_pattern_bits_hi = sprite_pattern_bits_hi.reverse_bits();
+                    }
+
+                    self.sprite_shifter_pattern_lo[i as usize] = sprite_pattern_bits_lo;
+                    self.sprite_shifter_pattern_hi[i as usize] = sprite_pattern_bits_hi;
+                }
             }
         }
 
@@ -548,7 +657,40 @@ impl Component2C02 {
             0
         };
 
-        screen.draw_pixel_screen((self.cycle - 1) as u16, self.scanline as u16, self.get_palette_color(screen, bg_palette, bg_pixel, cartridge));
+        let mut fg_pixel = 0x00;
+        let mut fg_palette = 0x00;
+        let mut fg_priority = false;
+        if self.reg_mask.render_sprites() {
+            for i in 0..self.sprite_count {
+                if self.sprites_scanline[i as usize].x == 0 {
+                    let fg_pixel_lo = ((self.sprite_shifter_pattern_lo[i as usize] & 0x80) > 0) as u8;
+                    let fg_pixel_hi = ((self.sprite_shifter_pattern_hi[i as usize] & 0x80) > 0) as u8;
+                    fg_pixel = (fg_pixel_hi << 1) | fg_pixel_lo;
+
+                    fg_palette = (self.sprites_scanline[i as usize].attributes & 0x03) + 0x04;
+                    fg_priority = (self.sprites_scanline[i as usize].attributes & 0x20) == 0;
+
+                    if fg_pixel != 0 {
+                        break;
+                    }
+                }
+            }
+        };
+
+        let (pixel, palette) =  match (bg_pixel, fg_pixel) {
+            (0, 0) => (0, 0),
+            (0, _) => (fg_pixel, fg_palette),
+            (_, 0) => (bg_pixel, bg_palette),
+            (_, _) => {
+                if fg_priority {
+                    (fg_pixel, fg_palette)
+                } else {
+                    (bg_pixel, bg_palette)
+                }
+            }
+        };
+
+        screen.draw_pixel_screen((self.cycle - 1) as u16, self.scanline as u16, self.get_palette_color(screen, palette, pixel, cartridge));
 
 
         self.cycle += 1;

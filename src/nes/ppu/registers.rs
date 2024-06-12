@@ -4,7 +4,7 @@ use bitfield_struct::bitfield;
 pub struct RegisterStatus {
     #[bits(5)]
     unused: usize,
-    sprite_overflow: bool,
+    pub sprite_overflow: bool,
     sprite_zero_hit: bool,
     pub vertical_blank: bool
 }
@@ -26,9 +26,9 @@ pub struct RegisterControl {
     pub nametable_x: bool,
     pub nametable_y: bool,
     pub increment_mode: bool,
-    pattern_sprite: bool,
+    pub pattern_sprite: bool,
     pub pattern_background: bool,
-    sprite_size: bool,
+    pub sprite_size: bool,
     slave_mode: bool,
     pub enable_nmi: bool
 }
