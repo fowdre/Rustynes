@@ -86,7 +86,7 @@ impl Component6502 {
     }
 
     // Generic branch instruction
-    pub fn branch(&mut self, controllers: &mut [Controller; 2], cartridge: &mut ComponentCartridge, ppu: &mut Component2C02, bus: &mut Bus) {
+    pub fn branch(&mut self, controllers: &mut [Controller; 2], cartridge: &ComponentCartridge, ppu: &mut Component2C02, bus: &Bus) {
         self.cycles += 1;
         
         let data = self.pc.wrapping_add(self.addr_rel);

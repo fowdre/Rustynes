@@ -14,8 +14,8 @@ pub struct Bus {
 }
 
 impl Bus {
-    pub const fn new() -> Bus {
-        Bus {
+    pub const fn new() -> Self {
+        Self {
             ram: [0; 64 * 1024],
             dma_page: 0,
             dma_addr: 0,

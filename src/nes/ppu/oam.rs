@@ -7,8 +7,8 @@ pub struct EntryOA {
 }
 
 impl EntryOA {
-    pub const fn new() -> EntryOA {
-        EntryOA {
+    pub const fn new() -> Self {
+        Self {
             y: 0,
             tile_index: 0,
             attributes: 0,
@@ -32,14 +32,14 @@ pub struct OAM {
 }
 
 impl OAM {
-    pub const fn new() -> OAM {
-        OAM {
+    pub const fn new() -> Self {
+        Self {
             oam: [EntryOA::new(); 64],
             address: 0,
         }
     }
 
-    pub fn get_entry(&self, index: u8) -> &EntryOA {
+    pub const fn get_entry(&self, index: u8) -> &EntryOA {
         &self.oam[index as usize]
     }
 

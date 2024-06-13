@@ -477,6 +477,7 @@ impl Component2C02 {
         }
     }
 
+    #[allow(clippy::cognitive_complexity)]
     pub fn tick(&mut self, screen: &mut ScreenData, cartridge: &ComponentCartridge) {
         if self.scanline >= -1 && self.scanline < 240 {
             if self.scanline == 0 && self.cycle == 0 {
@@ -567,15 +568,13 @@ impl Component2C02 {
                 while n < 64 && self.sprite_count < 9 {
                     let diff = self.scanline.wrapping_sub(self.oam.get_entry(n).y as i16);
 
-                    if diff >= 0 && diff < if self.reg_control.sprite_size() { 16 } else { 8 } {
-                        if self.sprite_count < 8 {
-                            if n == 0 {
-                                self.is_sprite_zero_hit_possible = true;
-                            }
-
-                            self.sprites_scanline[self.sprite_count as usize] = *self.oam.get_entry(n);
-                            self.sprite_count += 1;
+                    if diff >= 0 && diff < if self.reg_control.sprite_size() { 16 } else { 8 } && self.sprite_count < 8 {
+                        if n == 0 {
+                            self.is_sprite_zero_hit_possible = true;
                         }
+
+                        self.sprites_scanline[self.sprite_count as usize] = *self.oam.get_entry(n);
+                        self.sprite_count += 1;
                     }
                     n += 1;
                 }
@@ -633,13 +632,13 @@ impl Component2C02 {
                     sprite_pattern_bits_lo = self.ppu_read(sprite_pattern_addr_lo, false, cartridge);
                     sprite_pattern_bits_hi = self.ppu_read(sprite_pattern_addr_hi, false, cartridge);
 
-                    if self.sprites_scanline[i as usize].attributes & 0x40 != 0 {
+                    if self.sprites_scanline[i].attributes & 0x40 != 0 {
                         sprite_pattern_bits_lo = sprite_pattern_bits_lo.reverse_bits();
                         sprite_pattern_bits_hi = sprite_pattern_bits_hi.reverse_bits();
                     }
 
-                    self.sprite_shifter_pattern_lo[i as usize] = sprite_pattern_bits_lo;
-                    self.sprite_shifter_pattern_hi[i as usize] = sprite_pattern_bits_hi;
+                    self.sprite_shifter_pattern_lo[i] = sprite_pattern_bits_lo;
+                    self.sprite_shifter_pattern_hi[i] = sprite_pattern_bits_hi;
                 }
             }
         }
@@ -708,17 +707,13 @@ impl Component2C02 {
                     (bg_pixel, bg_palette)
                 };
 
-                if self.is_sprite_zero_hit_possible && self.is_sprite_zero_being_rendered {
-                    if self.reg_mask.render_background() && self.reg_mask.render_sprites() {
-                        if !(self.reg_mask.render_background_left() || self.reg_mask.render_sprites_left()) {
-                            if self.cycle >= 9 && self.cycle < 258 {
-                                self.reg_status.set_sprite_zero_hit(true);
-                            }
-                        } else {
-                            if self.cycle >= 1 && self.cycle < 258 {
-                                self.reg_status.set_sprite_zero_hit(true);
-                            }
+                if self.is_sprite_zero_hit_possible && self.is_sprite_zero_being_rendered && self.reg_mask.render_background() && self.reg_mask.render_sprites() {
+                    if !(self.reg_mask.render_background_left() || self.reg_mask.render_sprites_left()) {
+                        if self.cycle >= 9 && self.cycle < 258 {
+                            self.reg_status.set_sprite_zero_hit(true);
                         }
+                    } else if self.cycle >= 1 && self.cycle < 258 {
+                        self.reg_status.set_sprite_zero_hit(true);
                     }
                 }
 
