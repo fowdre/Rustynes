@@ -582,47 +582,47 @@ impl Component2C02 {
             }
 
             if self.cycle == 340 {
-                for i in 0..self.sprite_count {
+                for i in 0..self.sprite_count as usize {
                     let mut sprite_pattern_bits_lo: u8;
                     let mut sprite_pattern_bits_hi: u8;
                     let sprite_pattern_addr_lo: u16;
 
                     if !self.reg_control.sprite_size() { // 8x8 mode
-                        if !self.sprites_scanline[i as usize].attributes & 0x80 != 0 { // Not flipped
+                        if !self.sprites_scanline[i].attributes & 0x80 != 0 { // Not flipped
                             sprite_pattern_addr_lo =
                                   ((self.reg_control.pattern_sprite() as u16) << 12)
-                                | ((self.sprites_scanline[i as usize].tile_index as u16) << 4)
-                                | (self.scanline as u16 - self.sprites_scanline[i as usize].y as u16);
+                                | ((self.sprites_scanline[i].tile_index as u16) << 4)
+                                | (self.scanline as u16 - self.sprites_scanline[i].y as u16);
                         } else { // Flipped vertically
                             sprite_pattern_addr_lo =
                                   ((self.reg_control.pattern_sprite() as u16) << 12)
-                                | ((self.sprites_scanline[i as usize].tile_index as u16) << 4)
-                                | (7_u16.wrapping_sub(self.scanline as u16).wrapping_sub(self.sprites_scanline[i as usize].y as u16));
+                                | ((self.sprites_scanline[i].tile_index as u16) << 4)
+                                | 7_u16.wrapping_sub((self.scanline as u16).wrapping_sub(self.sprites_scanline[i].y as u16));
                         }
                     } else { // 8x16 mode
-                        if !self.sprites_scanline[i as usize].attributes & 0x80 != 0 { // Not flipped
-                            if self.scanline - (self.sprites_scanline[i as usize].y as i16) < 8 {
+                        if !self.sprites_scanline[i].attributes & 0x80 != 0 { // Not flipped
+                            if self.scanline - (self.sprites_scanline[i].y as i16) < 8 {
                                 sprite_pattern_addr_lo =
-                                      (((self.sprites_scanline[i as usize].tile_index & 0x01) as u16) << 12)
-                                    | (((self.sprites_scanline[i as usize].tile_index & 0xFE) as u16) << 4)
-                                    | ((self.scanline as u16 - self.sprites_scanline[i as usize].y as u16) & 0x07);
+                                      (((self.sprites_scanline[i].tile_index & 0x01) as u16) << 12)
+                                    | (((self.sprites_scanline[i].tile_index & 0xFE) as u16) << 4)
+                                    | ((self.scanline as u16 - self.sprites_scanline[i].y as u16) & 0x07);
                             } else {
                                 sprite_pattern_addr_lo =
-                                      (((self.sprites_scanline[i as usize].tile_index & 0x01) as u16) << 12)
-                                    | ((((self.sprites_scanline[i as usize].tile_index & 0xFE) as u16) + 1) << 4)
-                                    | ((self.scanline as u16 - self.sprites_scanline[i as usize].y as u16) & 0x07);
+                                      (((self.sprites_scanline[i].tile_index & 0x01) as u16) << 12)
+                                    | ((((self.sprites_scanline[i].tile_index & 0xFE) as u16) + 1) << 4)
+                                    | ((self.scanline as u16 - self.sprites_scanline[i].y as u16) & 0x07);
                             }
                         } else { // Flipped vertically
-                            if self.scanline - (self.sprites_scanline[i as usize].y as i16) < 8 {
+                            if self.scanline - (self.sprites_scanline[i].y as i16) < 8 {
                                 sprite_pattern_addr_lo =
-                                      (((self.sprites_scanline[i as usize].tile_index & 0x01) as u16) << 12)
-                                    | ((((self.sprites_scanline[i as usize].tile_index & 0xFE) as u16) + 1) << 4)
-                                    | (7 - (self.scanline as u16 - self.sprites_scanline[i as usize].y as u16));
+                                      (((self.sprites_scanline[i].tile_index & 0x01) as u16) << 12)
+                                    | ((((self.sprites_scanline[i].tile_index & 0xFE) as u16) + 1) << 4)
+                                    | (7 - (self.scanline as u16 - self.sprites_scanline[i].y as u16));
                             } else {
                                 sprite_pattern_addr_lo =
-                                      (((self.sprites_scanline[i as usize].tile_index & 0x01) as u16) << 12)
-                                    | (((self.sprites_scanline[i as usize].tile_index & 0xFE) as u16) << 4)
-                                    | (7 - (self.scanline as u16 - self.sprites_scanline[i as usize].y as u16));
+                                      (((self.sprites_scanline[i].tile_index & 0x01) as u16) << 12)
+                                    | (((self.sprites_scanline[i].tile_index & 0xFE) as u16) << 4)
+                                    | (7 - (self.scanline as u16 - self.sprites_scanline[i].y as u16));
                             }
                         }
                     }
