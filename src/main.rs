@@ -100,15 +100,16 @@ fn main() {
         let frame_time = rl_handle.get_frame_time();
 
         // Controls
-        nes.controllers[0].controller = 0x00;
-        nes.controllers[0].controller |= if rl_handle.is_key_down(KeyboardKey::KEY_Z) { 0x80 } else { 0x00 };
-        nes.controllers[0].controller |= if rl_handle.is_key_down(KeyboardKey::KEY_X) { 0x40 } else { 0x00 };
-        nes.controllers[0].controller |= if rl_handle.is_key_down(KeyboardKey::KEY_A) { 0x20 } else { 0x00 };
-        nes.controllers[0].controller |= if rl_handle.is_key_down(KeyboardKey::KEY_S) { 0x10 } else { 0x00 };
-        nes.controllers[0].controller |= if rl_handle.is_key_down(KeyboardKey::KEY_UP) { 0x08 } else { 0x00 };
-        nes.controllers[0].controller |= if rl_handle.is_key_down(KeyboardKey::KEY_DOWN) { 0x04 } else { 0x00 };
-        nes.controllers[0].controller |= if rl_handle.is_key_down(KeyboardKey::KEY_LEFT) { 0x02 } else { 0x00 };
-        nes.controllers[0].controller |= if rl_handle.is_key_down(KeyboardKey::KEY_RIGHT) { 0x01 } else { 0x00 };
+        nes.controllers[0].check_inputs(
+            rl_handle.is_key_down(KeyboardKey::KEY_Z),
+            rl_handle.is_key_down(KeyboardKey::KEY_X),
+            rl_handle.is_key_down(KeyboardKey::KEY_A),
+            rl_handle.is_key_down(KeyboardKey::KEY_S),
+            rl_handle.is_key_down(KeyboardKey::KEY_UP),
+            rl_handle.is_key_down(KeyboardKey::KEY_DOWN),
+            rl_handle.is_key_down(KeyboardKey::KEY_LEFT),
+            rl_handle.is_key_down(KeyboardKey::KEY_RIGHT),
+        );
         
         // Resume / Pause
         if rl_handle.is_key_pressed(KeyboardKey::KEY_SPACE) {

@@ -22,27 +22,42 @@ pub struct Snapshot {
 
 #[derive(Debug, Copy, Clone)]
 pub struct Controller {
-    pub controller: u8,
-    pub controller_state: u8,
+    state: u8,
+    temp_state: u8,
 }
 
 impl Controller {
     pub const fn new() -> Self {
         Self {
-            controller: 0,
-            controller_state: 0,
+            state: 0,
+            temp_state: 0,
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
+    pub fn check_inputs(&mut self, a: bool, b: bool, select: bool, start: bool, up: bool, down: bool, left: bool, right: bool) {
+        self.state = 0x00;
+
+        self.state |= if a { 0x80 } else { 0x00 };
+        self.state |= if b { 0x40 } else { 0x00 };
+        self.state |= if select { 0x20 } else { 0x00 };
+        self.state |= if start { 0x10 } else { 0x00 };
+        self.state |= if up { 0x08 } else { 0x00 };
+        self.state |= if down { 0x04 } else { 0x00 };
+        self.state |= if left { 0x02 } else { 0x00 };
+        self.state |= if right { 0x01 } else { 0x00 };
+    }
+
     pub fn read(&mut self) -> u8 {
-        let data = if self.controller_state & 0x80 > 0 { 0x01 } else { 0x00 };
-        self.controller_state <<= 1;
+        let data = if self.temp_state & 0x80 > 0 { 0x01 } else { 0x00 };
+        
+        self.temp_state <<= 1;
     
         data
     }
 
     pub fn write(&mut self) {
-        self.controller = self.controller_state;
+        self.temp_state = self.state;
     }
 }
 

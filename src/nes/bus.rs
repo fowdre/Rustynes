@@ -39,8 +39,7 @@ impl Bus {
             0x2000..=0x3FFF => data = ppu.cpu_read(addr & 0x0007, read_only, cartridge),
             // Controller range
             0x4016..=0x4017 => {
-                data = if controllers[(addr & 0x0001) as usize].controller_state & 0x80 > 0 { 1 } else { 0 };
-                controllers[(addr & 0x0001) as usize].controller_state <<= 1;
+                data = controllers[(addr & 0x0001) as usize].read();
             }
             _ => {}
         };
@@ -66,8 +65,7 @@ impl Bus {
             }
             // Controller range
             0x4016..=0x4017 => {
-                // controllers[(addr & 0x0001) as usize].write(),
-                controllers[(addr & 0x0001) as usize].controller_state = controllers[(addr & 0x0001) as usize].controller;
+                controllers[(addr & 0x0001) as usize].write();
             }
             _ => {}
         }
