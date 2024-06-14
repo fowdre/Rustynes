@@ -1,13 +1,22 @@
 pub mod mapper_000;
+pub mod mapper_002;
+
+use crate::nes::cartridge::Mirror;
 
 pub trait Mapper {
     fn new(prg_banks_count: u8, chr_banks_count: u8) -> Self where Self: Sized;
     
     fn cpu_map_read(&self, addr: u16, mapped_addr: &mut u32) -> bool;
-    fn cpu_map_write(&self, addr: u16, mapped_addr: &mut u32, data: u8) -> bool;
+    fn cpu_map_write(&mut self, addr: u16, mapped_addr: &mut u32, data: u8) -> bool;
     
     fn ppu_map_read(&self, addr: u16, mapped_addr: &mut u32) -> bool;
     fn ppu_map_write(&self, addr: u16, mapped_addr: &mut u32) -> bool;
+
+    fn reset(&mut self) {}
+
+    fn mirror(&self) -> Mirror {
+        Mirror::Hardware
+    }
 }
 
 impl Default for Box<dyn Mapper> {

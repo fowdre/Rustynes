@@ -118,6 +118,7 @@ impl Nes {
 
     pub fn reset(&mut self) {
         self.cpu.reset(&mut self.controllers, &self.cartridge, &mut self.ppu, &self.bus);
+        self.cartridge.reset();
         self.total_clock_ticks = 0;
     }
 

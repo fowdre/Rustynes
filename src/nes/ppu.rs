@@ -320,7 +320,7 @@ impl Component2C02 {
             // Name Table range
             0x2000..=0x3EFF => {
                 addr &= 0x0FFF;
-                match cartridge.mirror {
+                match cartridge.mirror() {
                     Mirror::Vertical => {
                         match addr {
                             0x0000..=0x03FF | 0x0800..=0x0BFF => data = self.name_table[0][(addr & 0x03FF) as usize],
@@ -335,6 +335,7 @@ impl Component2C02 {
                             _ => {}
                         }
                     }
+                    _ => {}
                 }
             }
             // Palette RAM range
@@ -368,7 +369,7 @@ impl Component2C02 {
             // Name Table range
             0x2000..=0x3EFF => {
                 addr &= 0x0FFF;
-                match cartridge.mirror {
+                match cartridge.mirror() {
                     Mirror::Vertical => {
                         match addr {
                             0x0000..=0x03FF | 0x0800..=0x0BFF => self.name_table[0][(addr & 0x03FF) as usize] = data,
@@ -383,6 +384,7 @@ impl Component2C02 {
                             _ => {}
                         }
                     }
+                    _ => {}
                 }
             }
             // Palette RAM range
